@@ -53,10 +53,6 @@ function Stats() {
 
   return (
     <div className="space-y-5 w-full">
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Insights</p>
-        <h1 className="mt-1 font-serif text-3xl">Stats</h1>
-      </div>
 
       <section className="rounded-xl border bg-card p-5">
         <h2 className="font-serif text-xl">Income vs Expense — 6 months</h2>

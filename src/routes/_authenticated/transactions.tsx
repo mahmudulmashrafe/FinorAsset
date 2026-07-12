@@ -67,13 +67,7 @@ function TxnsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">History</p>
-          <h1 className="mt-1 font-serif text-4xl">Transactions</h1>
-        </div>
-        <TransactionDialog />
-      </div>
+
 
       {/* Edit dialog (controlled, no trigger) */}
       {editingTxn && (

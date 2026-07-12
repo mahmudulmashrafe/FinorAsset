@@ -288,12 +288,8 @@ function AccountsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Wallets</p>
-          <h1 className="mt-1 font-serif text-4xl">Accounts</h1>
-        </div>
-        <Button onClick={() => setNewOpen(true)}>
+      <div className="flex justify-end">
+        <Button onClick={() => setNewOpen(true)} className="cursor-pointer">
           <Plus className="h-4 w-4 mr-1" /> New account
         </Button>
       </div>

@@ -82,12 +82,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* ── Page header ── */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-3xl">Overview</h1>
-        </div>
-      </div>
+
 
       {/* ── KPI Cards ── */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

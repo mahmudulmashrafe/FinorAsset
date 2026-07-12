@@ -96,13 +96,7 @@ function BudgetsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-          </p>
-          <h1 className="mt-1 font-serif text-4xl">Budgets</h1>
-        </div>
+      <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(val) => {
           setOpen(val);
           if (!val) {
