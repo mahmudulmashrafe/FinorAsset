@@ -52,6 +52,7 @@ function AutomationPage() {
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
+  const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
 
   // Form states
   const [name, setName] = useState("");
@@ -256,84 +257,33 @@ function AutomationPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rules.map((rule) => {
             return (
-              <div key={rule.id} className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2 border-b pb-2">
-                    <h3 className="font-serif text-base font-bold truncate pr-6">{rule.name}</h3>
-                    <span className="text-[10px] text-muted-foreground font-semibold">
+              <div 
+                key={rule.id} 
+                onClick={() => setSelectedRule(rule)}
+                className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden h-[155px] cursor-pointer"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-serif text-base font-bold truncate pr-2 text-foreground group-hover:text-accent transition-colors">
+                      {rule.name}
+                    </h3>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-semibold bg-muted text-muted-foreground">
                       {rule.actions.length} action{rule.actions.length > 1 ? "s" : ""}
-                    </span>
+                    </Badge>
                   </div>
-
-                  {/* Actions summary list */}
-                  <div className="space-y-3">
-                    {rule.actions.map((act, i) => {
-                      const acc = accountMap.get(act.account_id);
-                      const toAcc = act.to_account_id ? accountMap.get(act.to_account_id) : null;
-                      const cat = act.category_id ? catMap.get(act.category_id) : null;
-
-                      const textBadgeColor = 
-                        act.kind === "income" 
-                          ? "text-[color:var(--success)]"
-                          : act.kind === "expense"
-                          ? "text-[color:var(--destructive)]"
-                          : "text-blue-500";
-
-                      return (
-                        <div key={act.id} className="text-xs space-y-1 bg-muted/30 p-2 rounded-lg border border-border/40">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">#{i + 1}</span>
-                            <span className={`font-serif num font-bold ${textBadgeColor}`}>
-                              {act.kind === "expense" ? "−" : act.kind === "income" ? "+" : "↔"} {fmtMoney(act.amount, currency)}
-                            </span>
-                          </div>
-
-                          <div className="text-[11px] text-muted-foreground space-y-0.5 mt-1">
-                            <div className="flex items-center gap-1">
-                              <span className="font-semibold text-foreground/80">Account:</span>
-                              <span className="truncate flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc?.color || "#888" }} />
-                                {acc?.name || "Deleted"}
-                              </span>
-                            </div>
-
-                            {act.kind === "transfer" ? (
-                              <div className="flex items-center gap-1">
-                                <span className="font-semibold text-foreground/80">To:</span>
-                                <span className="truncate flex items-center gap-1">
-                                  <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: toAcc?.color || "#888" }} />
-                                  {toAcc?.name || "Deleted"}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <span className="font-semibold text-foreground/80">Category:</span>
-                                <span className="truncate">
-                                  {cat?.icon} {cat?.name || "Deleted"}
-                                </span>
-                              </div>
-                            )}
-
-                            {act.note && (
-                              <div className="text-[9px] italic text-muted-foreground truncate mt-0.5">
-                                "{act.note}"
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
+                    Template shortcuts
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between mt-5 pt-3 border-t">
+                <div className="flex items-center justify-between mt-auto pt-2 border-t" onClick={(e) => e.stopPropagation()}>
                   <span className="text-xs text-muted-foreground">
-                    Total: <span className="font-serif num font-bold text-foreground text-sm">
+                    Total: <span className="font-serif num font-bold text-foreground text-sm block">
                       {fmtMoney(rule.actions.reduce((sum, act) => sum + (act.kind === "expense" ? act.amount : act.kind === "income" ? act.amount : 0), 0), currency)}
                     </span>
                   </span>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => setEditingRule(rule)}
                       className="h-8 w-8 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground hover:bg-accent/15 transition-colors cursor-pointer"
@@ -351,7 +301,7 @@ function AutomationPage() {
                     <Button
                       onClick={() => executeAutomation(rule)}
                       disabled={executingId === rule.id}
-                      className="gap-1 rounded-full cursor-pointer h-8 px-3.5 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
+                      className="gap-1 rounded-full cursor-pointer h-8 px-3 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground ml-1"
                     >
                       <Play className="h-3 w-3 fill-current shrink-0" />
                       {executingId === rule.id ? "Running..." : "Trigger"}
@@ -363,6 +313,118 @@ function AutomationPage() {
           })}
         </div>
       )}
+
+      {/* Details Dialog */}
+      <Dialog open={!!selectedRule} onOpenChange={(val) => { if (!val) setSelectedRule(null); }}>
+        <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-accent" /> {selectedRule?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-3">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+              Transaction Shortcuts ({selectedRule?.actions.length || 0})
+            </div>
+
+            <div className="space-y-3">
+              {selectedRule?.actions.map((act, i) => {
+                const acc = accountMap.get(act.account_id);
+                const toAcc = act.to_account_id ? accountMap.get(act.to_account_id) : null;
+                const cat = act.category_id ? catMap.get(act.category_id) : null;
+
+                const textBadgeColor = 
+                  act.kind === "income" 
+                    ? "text-[color:var(--success)]"
+                    : act.kind === "expense"
+                    ? "text-[color:var(--destructive)]"
+                    : "text-blue-500";
+
+                return (
+                  <div key={act.id} className="text-xs space-y-1.5 bg-muted/40 p-3 rounded-xl border border-border/60">
+                    <div className="flex items-center justify-between gap-1 border-b pb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Transaction #{i + 1}</span>
+                      <span className={`font-serif num font-bold text-sm ${textBadgeColor}`}>
+                        {act.kind === "expense" ? "−" : act.kind === "income" ? "+" : "↔"} {fmtMoney(act.amount, currency)}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground space-y-1 mt-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-foreground/80 w-16 shrink-0">Account:</span>
+                        <span className="truncate flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: acc?.color || "#888" }} />
+                          {acc?.name || "Deleted Account"}
+                        </span>
+                      </div>
+
+                      {act.kind === "transfer" ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-foreground/80 w-16 shrink-0">To:</span>
+                          <span className="truncate flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: toAcc?.color || "#888" }} />
+                            {toAcc?.name || "Deleted Account"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-foreground/80 w-16 shrink-0">Category:</span>
+                          <span className="truncate">
+                            {cat?.icon} {cat?.name || "Deleted Category"}
+                          </span>
+                        </div>
+                      )}
+
+                      {act.note && (
+                        <div className="text-[10px] italic text-muted-foreground truncate border-t pt-1 mt-1.5">
+                          "{act.note}"
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t mt-6">
+              <div>
+                <span className="text-xs text-muted-foreground block">Aggregate Total:</span>
+                <span className="font-serif num font-black text-xl text-foreground">
+                  {selectedRule && fmtMoney(selectedRule.actions.reduce((sum, act) => sum + (act.kind === "expense" ? act.amount : act.kind === "income" ? act.amount : 0), 0), currency)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedRule) {
+                      setEditingRule(selectedRule);
+                      setSelectedRule(null);
+                    }
+                  }}
+                  className="gap-1.5 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedRule) {
+                      executeAutomation(selectedRule);
+                      setSelectedRule(null);
+                    }
+                  }}
+                  disabled={selectedRule && executingId === selectedRule.id}
+                  className="gap-1.5 rounded-full cursor-pointer h-9 px-5 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  <Play className="h-3.5 w-3.5 fill-current shrink-0" />
+                  Trigger Macro
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Floating Add Macro FAB Button */}
       <Dialog open={createOpen} onOpenChange={(val) => {
