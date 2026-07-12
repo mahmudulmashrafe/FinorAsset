@@ -184,17 +184,17 @@ function SidebarProfileMenu({
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="w-full h-14 justify-start px-2.5 rounded-xl hover:bg-accent/10 transition-all text-left flex items-center gap-3 cursor-pointer group-data-[collapsible=icon]:!p-2"
+          className="w-full h-12 justify-start px-2.5 rounded-xl hover:bg-accent/10 transition-all text-left flex items-center gap-3 cursor-pointer group-data-[collapsible=icon]:!p-2"
         >
           {/* Avatar */}
-          <div className="h-10 w-10 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:-translate-x-1.5 group-data-[collapsible=icon]:-translate-y-1 transform rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-sm group-data-[collapsible=icon]:text-xs font-bold text-accent-foreground flex-shrink-0 shadow-sm transition-all">
+          <div className="h-9 w-9 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:-translate-x-1.5 group-data-[collapsible=icon]:-translate-y-1 transform rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-xs group-data-[collapsible=icon]:text-xs font-bold text-accent-foreground flex-shrink-0 shadow-sm transition-all">
             {initials}
           </div>
           {/* Name — hidden when sidebar is collapsed */}
           {state === "expanded" && (
             <div className="flex-1 min-w-0">
-              <p className="font-serif font-semibold text-base truncate leading-tight">{displayName}</p>
-              <p className="text-xs text-muted-foreground truncate leading-tight">{email}</p>
+              <p className="font-serif font-semibold text-sm truncate leading-tight">{displayName}</p>
+              <p className="text-[10px] text-muted-foreground truncate leading-tight">{email}</p>
             </div>
           )}
           {state === "expanded" && <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
@@ -306,10 +306,10 @@ function Layout() {
                     <SidebarMenuButton
                       asChild
                       isActive={path === it.url}
-                      className="h-14 text-xl md:text-2xl font-semibold font-serif px-4"
+                      className="h-11 text-sm md:text-base font-semibold font-serif px-3"
                     >
-                      <Link to={it.url} className="flex items-center gap-4">
-                        <it.icon className="h-7 w-7 shrink-0" />
+                      <Link to={it.url} className="flex items-center gap-3">
+                        <it.icon className="h-5 w-5 shrink-0" />
                         <span>{it.title}</span>
                       </Link>
                     </SidebarMenuButton>

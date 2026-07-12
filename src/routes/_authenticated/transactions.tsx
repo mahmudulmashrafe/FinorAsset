@@ -115,7 +115,7 @@ function TxnsPage() {
 
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[300px] thin-scroll">
+        <div className="overflow-x-auto overflow-y-auto max-h-[350px] thin-scroll">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
