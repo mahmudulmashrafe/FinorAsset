@@ -200,21 +200,21 @@ function AuthPage() {
   }
 
   return (
-    <div className="h-screen w-full bg-background text-foreground flex flex-col justify-between overflow-hidden relative">
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between relative">
       {/* Premium subtle background glow */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,oklch(0.72_0.16_55_/_8%),transparent_50%)] pointer-events-none" />
 
       {/* Header navbar - Large logo and navigation */}
-      <header className="w-full border-b bg-background/50 backdrop-blur-sm sticky top-0 z-50 h-28 flex items-center">
-        <div className="flex w-full items-center justify-between px-6 md:px-12 lg:px-20 py-4">
-          <Link to="/" className="flex items-center gap-4 font-serif text-2xl md:text-3xl font-black select-none hover:opacity-90 transition-opacity">
-            <span className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center">
+      <header className="w-full border-b bg-background/50 backdrop-blur-sm sticky top-0 z-50 h-20 md:h-28 flex items-center">
+        <div className="flex w-full items-center justify-between px-4 md:px-12 lg:px-20 py-2 md:py-4">
+          <Link to="/" className="flex items-center gap-2 md:gap-4 font-serif text-xl md:text-3xl font-black select-none hover:opacity-90 transition-opacity">
+            <span className="relative flex h-5 w-5 md:h-7 md:w-7 flex-shrink-0 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-              <span className="relative inline-flex h-4 w-4 rounded-full bg-accent shadow-[0_0_12px_rgba(217,119,6,0.5)]" />
+              <span className="relative inline-flex h-3 w-3 md:h-4 md:w-4 rounded-full bg-accent shadow-[0_0_12px_rgba(217,119,6,0.5)]" />
             </span>
             <span>FinorAsset</span>
           </Link>
-          <nav className="flex items-center gap-6 text-lg md:text-xl font-bold">
+          <nav className="flex items-center gap-6 text-sm md:text-xl font-bold">
             <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Back to home</Link>
           </nav>
         </div>
