@@ -60,8 +60,8 @@ function FinorAssetLogo({ className = "", iconSize = "h-6 w-6", dotSize = "h-4 w
 
 // ─── Top Bar Logo (conditionally visible) ──────────────────────────────────
 function TopBarLogo() {
-  const { state } = useSidebar();
-  if (state === "expanded") {
+  const { state, isMobile } = useSidebar();
+  if (state === "expanded" && !isMobile) {
     // Spacer matching the width of the collapsed sidebar to prevent layout shifting
     return <div className="h-9 w-9 flex-shrink-0" />;
   }

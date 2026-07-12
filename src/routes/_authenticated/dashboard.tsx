@@ -209,7 +209,7 @@ function Dashboard() {
               All <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[190px] pb-2 thin-scroll">
+          <ul className="divide-y overflow-y-auto max-h-[190px] pr-3 pb-2 thin-scroll">
             {accounts.length === 0 && (
               <li className="py-6 text-sm text-muted-foreground text-center">
                 No accounts yet.{" "}
@@ -239,7 +239,7 @@ function Dashboard() {
               All <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[190px] pb-2 thin-scroll">
+          <ul className="divide-y overflow-y-auto max-h-[190px] pr-3 pb-2 thin-scroll">
             {recent.length === 0 && (
               <li className="py-6 text-sm text-muted-foreground text-center">No transactions yet.</li>
             )}

@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api, fmtMoney } from "@/lib/finance";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/stats")({
   component: Stats,
@@ -13,19 +14,45 @@ export const Route = createFileRoute("/_authenticated/stats")({
 function Stats() {
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(2000) });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
+  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
 
   const { currency } = useUserProfile();
 
+  const currentMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>(currentMonthKey);
+
   const catMap = new Map(cats.map(c => [c.id, c]));
+
+  const monthOptions = useMemo(() => {
+    const list = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+      list.push({ value, label });
+    }
+    return list;
+  }, []);
+
+  const filteredTxns = useMemo(() => {
+    return txns.filter(t => {
+      if (accountFilter !== "all" && t.account_id !== accountFilter) return false;
+      return true;
+    });
+  }, [txns, accountFilter]);
 
   const monthly = useMemo(() => {
     const map = new Map<string, { month: string; income: number; expense: number }>();
+    const [yr, mn] = monthFilter.split("-").map(Number);
+    const endDate = new Date(yr, mn - 1, 1);
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+      const d = new Date(endDate.getFullYear(), endDate.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       map.set(key, { month: d.toLocaleDateString(undefined, { month: "short" }), income: 0, expense: 0 });
     }
-    for (const t of txns) {
+    for (const t of filteredTxns) {
       const d = new Date(t.occurred_on);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const row = map.get(key); if (!row) continue;
@@ -33,26 +60,49 @@ function Stats() {
       else if (t.kind === "expense") row.expense += Number(t.amount);
     }
     return Array.from(map.values());
-  }, [txns]);
+  }, [filteredTxns, monthFilter]);
 
-  const now = new Date();
   const byCat = useMemo(() => {
     const m = new Map<string, number>();
-    for (const t of txns) {
+    const [yr, mn] = monthFilter.split("-").map(Number);
+    for (const t of filteredTxns) {
       const d = new Date(t.occurred_on);
-      if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
+      if (d.getMonth() !== (mn - 1) || d.getFullYear() !== yr) continue;
       if (t.kind !== "expense" || !t.category_id) continue;
       m.set(t.category_id, (m.get(t.category_id) ?? 0) + Number(t.amount));
     }
     return Array.from(m.entries()).map(([id, v]) => ({
       name: catMap.get(id)?.name ?? "Other", value: v, color: catMap.get(id)?.color ?? "#999",
     })).sort((a, b) => b.value - a.value);
-  }, [txns, catMap]);
+  }, [filteredTxns, monthFilter, catMap]);
 
   const totalExp = byCat.reduce((s, x) => s + x.value, 0);
 
   return (
     <div className="space-y-4 w-full">
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3.5">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-48 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent className="z-[100]">
+              <SelectItem value="all">All accounts</SelectItem>
+              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-48 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent className="z-[100]">
+              {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <section className="rounded-xl border bg-card p-4">
         <h2 className="font-serif text-lg font-bold">Income vs Expense — 6 months</h2>
