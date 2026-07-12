@@ -183,7 +183,7 @@ function BudgetsPage() {
           setOpen(true);
         }}
         size="icon"
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
+        className="fixed bottom-20 md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
         title="New budget"
       >
         <Plus className="h-5 w-5 md:h-6 md:w-6" />
