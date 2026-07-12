@@ -168,8 +168,8 @@ export function ProfileDialog({
               </div>
               <div className="min-w-0 w-full">
                 <h2 className="font-serif text-xl font-semibold truncate">{displayName || "Anonymous"}</h2>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1 truncate w-full">
-                  <Mail className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{authUser?.email}</span>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1 flex-wrap break-all w-full select-all">
+                  <Mail className="h-3 w-3 flex-shrink-0" /> <span className="break-all">{authUser?.email}</span>
                 </p>
               </div>
               <div className="w-full border-t pt-4 text-left space-y-2.5 text-xs">
@@ -233,6 +233,15 @@ export function ProfileDialog({
               <div>
                 <h3 className="font-serif text-lg font-semibold mb-3">Change Email Address</h3>
                 <form onSubmit={handleUpdateEmail} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Current Email Address</Label>
+                    <Input
+                      value={authUser?.email ?? ""}
+                      disabled
+                      className="bg-muted text-muted-foreground select-all"
+                    />
+                  </div>
+
                   <div className="space-y-1.5">
                     <Label htmlFor="new-email" className="text-xs font-semibold">New Email Address</Label>
                     <Input
