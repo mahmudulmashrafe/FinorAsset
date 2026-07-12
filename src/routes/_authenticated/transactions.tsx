@@ -66,7 +66,7 @@ function TxnsPage() {
   }
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6 w-full h-full flex flex-col overflow-hidden">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">History</p>
@@ -114,8 +114,8 @@ function TxnsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[600px] thin-scroll">
+      <div className="rounded-xl border bg-card overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="overflow-x-auto overflow-y-auto flex-1 thin-scroll">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>

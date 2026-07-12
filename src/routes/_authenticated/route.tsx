@@ -103,6 +103,66 @@ function SidebarLogoHeader() {
   );
 }
 
+// ─── Shared Profile Dropdown Content ─────────────────────────────────────────
+function ProfileDropdownContent({
+  displayName,
+  email,
+  onSignOut,
+  onOpenCategories,
+  onOpenProfile,
+}: {
+  displayName: string;
+  email: string;
+  onSignOut: () => void;
+  onOpenCategories: () => void;
+  onOpenProfile: () => void;
+}) {
+  return (
+    <DropdownMenuContent side="top" align="start" className="w-64 mb-1">
+      {/* User info header */}
+      <div className="px-3 py-3 border-b">
+        <p className="font-serif font-bold text-base truncate">{displayName}</p>
+        <p className="text-sm text-muted-foreground truncate">{email}</p>
+      </div>
+
+      {/* Menu items */}
+      <DropdownMenuItem onClick={onOpenCategories} className="flex items-center gap-3 cursor-pointer py-2.5">
+        <Tag className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <p className="font-medium text-sm">Personalization</p>
+          <p className="text-xs text-muted-foreground">Manage your categories</p>
+        </div>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2.5">
+        <Settings className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <p className="font-medium text-sm">Settings</p>
+          <p className="text-xs text-muted-foreground">Currency, display name</p>
+        </div>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2.5">
+        <User className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <p className="font-medium text-sm">Profile</p>
+          <p className="text-xs text-muted-foreground">View your account</p>
+        </div>
+      </DropdownMenuItem>
+
+      <DropdownMenuSeparator />
+
+      <DropdownMenuItem
+        onClick={onSignOut}
+        className="flex items-center gap-3 text-destructive focus:text-destructive cursor-pointer py-2.5"
+      >
+        <LogOut className="h-4 w-4" />
+        <p className="font-medium text-sm">Sign out</p>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+}
+
 // ─── Sidebar Profile Menu ─────────────────────────────────────────────────────
 function SidebarProfileMenu({
   onSignOut,
@@ -140,50 +200,71 @@ function SidebarProfileMenu({
           {state === "expanded" && <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
         </SidebarMenuButton>
       </DropdownMenuTrigger>
-
-      <DropdownMenuContent side="top" align="start" className="w-64 mb-1">
-        {/* User info header */}
-        <div className="px-3 py-3 border-b">
-          <p className="font-serif font-bold text-base truncate">{displayName}</p>
-          <p className="text-sm text-muted-foreground truncate">{email}</p>
-        </div>
-
-        {/* Menu items */}
-        <DropdownMenuItem onClick={onOpenCategories} className="flex items-center gap-3 cursor-pointer py-2.5">
-          <Tag className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="font-medium text-sm">Personalization</p>
-            <p className="text-xs text-muted-foreground">Manage your categories</p>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2.5">
-          <Settings className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="font-medium text-sm">Settings</p>
-            <p className="text-xs text-muted-foreground">Currency, display name</p>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2.5">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="font-medium text-sm">Profile</p>
-            <p className="text-xs text-muted-foreground">View your account</p>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={onSignOut}
-          className="flex items-center gap-3 text-destructive focus:text-destructive cursor-pointer py-2.5"
-        >
-          <LogOut className="h-4 w-4" />
-          <p className="font-medium text-sm">Sign out</p>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
+      <ProfileDropdownContent
+        displayName={displayName}
+        email={email}
+        onSignOut={onSignOut}
+        onOpenCategories={onOpenCategories}
+        onOpenProfile={onOpenProfile}
+      />
     </DropdownMenu>
+  );
+}
+
+// ─── Header Profile Menu (Mobile Only) ─────────────────────────────────────────
+function HeaderProfileMenu({
+  onSignOut,
+  onOpenCategories,
+  onOpenProfile,
+}: {
+  onSignOut: () => void;
+  onOpenCategories: () => void;
+  onOpenProfile: () => void;
+}) {
+  const { profile, authUser } = useUserProfile();
+  const displayName = profile?.display_name || authUser?.email?.split("@")[0] || "User";
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const email = authUser?.email ?? "";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="h-10 w-10 rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-sm font-bold text-accent-foreground flex-shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+          {initials}
+        </button>
+      </DropdownMenuTrigger>
+      <ProfileDropdownContent
+        displayName={displayName}
+        email={email}
+        onSignOut={onSignOut}
+        onOpenCategories={onOpenCategories}
+        onOpenProfile={onOpenProfile}
+      />
+    </DropdownMenu>
+  );
+}
+
+// ─── Mobile Bottom Navigation ─────────────────────────────────────────────────
+function MobileBottomNav() {
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/80 backdrop-blur-md md:hidden flex items-center justify-around px-2 pb-safe shadow-sm">
+      {items.map((it) => {
+        const isActive = path === it.url;
+        return (
+          <Link
+            key={it.url}
+            to={it.url}
+            className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+              isActive ? "text-accent scale-105" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <it.icon className="h-5.5 w-5.5 shrink-0" />
+            <span className="text-[10px] font-medium tracking-tight font-serif">{it.title}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -193,6 +274,7 @@ function Layout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { profile, authUser } = useUserProfile();
   const displayName = profile?.display_name || authUser?.email?.split("@")[0] || "there";
+  const isTxnsPage = path === "/transactions";
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -257,9 +339,8 @@ function Layout() {
         {/* Top bar — taller, with centered greeting */}
         <header className="relative flex h-28 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
 
-          {/* Left: Trigger & Logo */}
+          {/* Left: Logo */}
           <div className="flex items-center gap-2 z-10">
-            <SidebarTrigger className="h-9 w-9 cursor-pointer md:hidden" />
             <TopBarLogo />
           </div>
 
@@ -275,7 +356,7 @@ function Layout() {
             </p>
           </div>
 
-          {/* Right: Add */}
+          {/* Right: Add & Mobile Profile */}
           <div className="ml-auto flex items-center gap-2 md:gap-3 z-10">
             <TransactionDialog
               trigger={
@@ -289,11 +370,22 @@ function Layout() {
                 </Button>
               }
             />
+            <div className="md:hidden">
+              <HeaderProfileMenu
+                onSignOut={signOut}
+                onOpenCategories={() => setCategoriesOpen(true)}
+                onOpenProfile={() => setProfileOpen(true)}
+              />
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between">
-          <div className="flex-1">
+        <main className={`flex-1 p-4 min-w-0 flex flex-col justify-between ${
+          isTxnsPage 
+            ? "h-[calc(100svh-7rem)] overflow-hidden pb-20 md:pb-6" 
+            : "overflow-x-hidden pb-20 md:pb-6"
+        }`}>
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <Outlet />
           </div>
           <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider">
@@ -302,10 +394,12 @@ function Layout() {
         </main>
       </div>
 
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+
       {/* ── Dialog Overlays ── */}
       <CategoriesDialog open={categoriesOpen} onOpenChange={setCategoriesOpen} />
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </SidebarProvider>
-
   );
 }
