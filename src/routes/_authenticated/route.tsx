@@ -336,8 +336,8 @@ function Layout() {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-w-0 bg-background min-h-svh">
 
-        {/* Top bar — taller, with centered greeting */}
-        <header className="relative flex h-28 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        {/* Top bar — cleaner, with centered greeting */}
+        <header className="relative flex h-20 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
 
           {/* Left: Logo */}
           <div className="flex items-center gap-2 z-10">
@@ -346,10 +346,10 @@ function Layout() {
 
           {/* Center: greeting + full date — absolutely centered */}
           <div className="absolute inset-0 hidden md:flex flex-col items-center justify-center pointer-events-none">
-            <p className="font-serif text-2xl md:text-3xl font-black tracking-tight">
+            <p className="font-serif text-lg md:text-xl font-black tracking-tight">
               {greetTime()}, {displayName}.
             </p>
-            <p className="text-sm md:text-base text-muted-foreground mt-0.5 font-medium">
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 font-medium">
               {new Date().toLocaleDateString(undefined, {
                 weekday: "long", month: "long", day: "numeric", year: "numeric",
               })}
@@ -380,12 +380,8 @@ function Layout() {
           </div>
         </header>
 
-        <main className={`flex-1 p-4 min-w-0 flex flex-col justify-between ${
-          isTxnsPage 
-            ? "h-[calc(100svh-7rem)] overflow-hidden pb-20 md:pb-6" 
-            : "overflow-x-hidden pb-20 md:pb-6"
-        }`}>
-          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-20 md:pb-6">
+          <div className="flex-1">
             <Outlet />
           </div>
           <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider">
