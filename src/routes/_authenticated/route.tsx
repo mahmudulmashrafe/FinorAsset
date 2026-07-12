@@ -337,14 +337,53 @@ function Layout() {
       <div className="flex-1 flex flex-col min-w-0 bg-background min-h-svh">
 
         {/* Top bar — cleaner, with centered greeting */}
-        <header className="relative flex h-20 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10 h-24 md:h-20 gap-1 md:gap-0">
+          
+          {/* Mobile Layout (Logo row + Greeting row) */}
+          <div className="md:hidden flex flex-col w-full">
+            {/* Top row: Logo + Actions */}
+            <div className="flex items-center justify-between w-full">
+              <TopBarLogo />
+              <div className="flex items-center gap-2">
+                <TransactionDialog
+                  trigger={
+                    <Button 
+                      size="default" 
+                      className="group relative gap-1.5 font-bold rounded-full h-9 px-3.5 bg-primary hover:bg-[#2c2826] text-primary-foreground text-xs transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-sm border border-primary/10 cursor-pointer"
+                      id="header-new-txn-btn"
+                    >
+                      <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90 text-accent" />
+                      <span className="tracking-tight">Add</span>
+                    </Button>
+                  }
+                />
+                <HeaderProfileMenu
+                  onSignOut={signOut}
+                  onOpenCategories={() => setCategoriesOpen(true)}
+                  onOpenProfile={() => setProfileOpen(true)}
+                />
+              </div>
+            </div>
+            {/* Bottom row: Greeting + Date */}
+            <div className="flex items-baseline justify-between w-full mt-1.5 border-t pt-1 border-border/40">
+              <span className="text-xs font-serif font-black tracking-tight text-foreground select-none">
+                {greetTime()}, {displayName}.
+              </span>
+              <span className="text-[9px] text-muted-foreground font-serif">
+                {new Date().toLocaleDateString(undefined, {
+                  weekday: "short", month: "short", day: "numeric",
+                })}
+              </span>
+            </div>
+          </div>
 
-          {/* Left: Logo */}
-          <div className="flex items-center gap-2 z-10">
+          {/* Desktop Layout (Logo left, centered greeting, actions right) */}
+          {/* Desktop Logo */}
+          <div className="hidden md:flex items-center gap-2 z-10">
             <TopBarLogo />
           </div>
 
-          {/* Center: greeting + full date — absolutely centered */}
+          {/* Desktop Center Greeting */}
           <div className="absolute inset-0 hidden md:flex flex-col items-center justify-center pointer-events-none">
             <p className="font-serif text-lg md:text-xl font-black tracking-tight">
               {greetTime()}, {displayName}.
@@ -356,31 +395,20 @@ function Layout() {
             </p>
           </div>
 
-          {/* Right: Add & Mobile Profile */}
-          <div className="ml-auto flex items-center gap-2 md:gap-3 z-10">
-            {/* Mobile-only greeting, left of the + icon */}
-            <span className="md:hidden text-xs font-serif font-black tracking-tight text-muted-foreground/80 mr-1 select-none">
-              {greetTime()}, {displayName}
-            </span>
+          {/* Desktop Right Actions */}
+          <div className="hidden md:flex ml-auto items-center gap-3 z-10">
             <TransactionDialog
               trigger={
                 <Button 
                   size="default" 
-                  className="group relative gap-2.5 font-bold rounded-full h-12 px-4 sm:px-6 bg-primary hover:bg-[#2c2826] text-primary-foreground text-sm sm:text-base transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-md hover:shadow-[0_4px_20px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
+                  className="group relative gap-2.5 font-bold rounded-full h-12 px-6 bg-primary hover:bg-[#2c2826] text-primary-foreground text-sm sm:text-base transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-md hover:shadow-[0_4px_20px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
                   id="header-new-txn-btn"
                 >
                   <Plus className="h-5 w-5 transition-transform duration-300 group-hover:rotate-90 text-accent" />
-                  <span className="hidden sm:inline tracking-tight">Add Transaction</span>
+                  <span className="tracking-tight">Add Transaction</span>
                 </Button>
               }
             />
-            <div className="md:hidden">
-              <HeaderProfileMenu
-                onSignOut={signOut}
-                onOpenCategories={() => setCategoriesOpen(true)}
-                onOpenProfile={() => setProfileOpen(true)}
-              />
-            </div>
           </div>
         </header>
 

@@ -288,11 +288,6 @@ function AccountsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex justify-end">
-        <Button onClick={() => setNewOpen(true)} size="icon" className="rounded-full h-10 w-10 cursor-pointer" title="New account">
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
 
       {/* ── New account dialog ── */}
       <AccountFormDialog
@@ -379,6 +374,18 @@ function AccountsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floatable Add Account FAB */}
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
+        <Button 
+          onClick={() => setNewOpen(true)} 
+          size="icon" 
+          className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center" 
+          title="New account"
+        >
+          <Plus className="h-5 w-5 md:h-6 md:w-6 text-accent" />
+        </Button>
+      </div>
     </div>
   );
 }

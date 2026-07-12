@@ -193,10 +193,10 @@ function BudgetsPage() {
                 setAmount("");
               }}
               size="icon"
-              className="h-14 w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center"
+              className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center"
               title="New budget"
             >
-              <Plus className="h-6 w-6 text-accent" />
+              <Plus className="h-5 w-5 md:h-6 md:w-6 text-accent" />
             </Button>
           </DialogTrigger>
           <DialogContent>

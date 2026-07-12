@@ -231,7 +231,7 @@ function TxnsPage() {
 
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[255px] md:max-h-[465px] thin-scroll">
+        <div className="overflow-x-auto overflow-y-auto max-h-[580px] md:max-h-[465px] thin-scroll">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
@@ -340,20 +340,6 @@ function TxnsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Floatable Add Transaction FAB */}
-      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
-        <TransactionDialog
-          trigger={
-            <Button
-              size="icon"
-              className="h-14 w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center"
-            >
-              <Plus className="h-6 w-6 text-accent" />
-            </Button>
-          }
-        />
-      </div>
     </div>
   );
 }
