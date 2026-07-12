@@ -435,7 +435,7 @@ function AutomationPage() {
           setCreateOpen(true);
         }}
         size="icon"
-        className="fixed bottom-17 md:bottom-4 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
+        className="fixed bottom-15 md:bottom-2 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
         title="Create Automation Macro"
       >
         <Plus className="h-5 w-5 md:h-6 md:w-6" />
