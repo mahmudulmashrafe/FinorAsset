@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import {
@@ -273,9 +273,13 @@ function Layout() {
   const qc = useQueryClient();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isPending = useRouterState({ select: (s) => s.status === "pending" });
+  const isFetching = useIsFetching({ fetchStatus: "fetching" });
   const { profile, authUser } = useUserProfile();
   const displayName = profile?.display_name || authUser?.email?.split("@")[0] || "there";
   const isTxnsPage = path === "/transactions";
+
+  // Show loader overlay when navigation is pending OR during initial queries fetching
+  const showLoader = isPending || (isFetching > 0 && (!qc.getQueryData(["transactions"]) || !qc.getQueryData(["accounts"])));
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -289,6 +293,17 @@ function Layout() {
 
   return (
     <SidebarProvider>
+      {showLoader && (
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-[2px] z-[100] flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-14 w-14 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-serif text-2xl font-black animate-pulse shadow-lg ring-4 ring-accent/15">
+              F
+            </div>
+            <span className="text-[10px] text-muted-foreground font-serif tracking-[0.25em] uppercase animate-pulse">FinorAsset</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Left Sidebar ── */}
       <Sidebar collapsible="icon">
 
@@ -415,16 +430,6 @@ function Layout() {
 
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-20 md:pb-6">
           <div key={path} className="flex-1 page-transition relative">
-            {isPending && (
-              <div className="fixed inset-0 bg-background/60 backdrop-blur-[2px] z-[100] flex flex-col items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-14 w-14 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-serif text-2xl font-black animate-pulse shadow-lg ring-4 ring-accent/15">
-                    F
-                  </div>
-                  <span className="text-[10px] text-muted-foreground font-serif tracking-[0.25em] uppercase animate-pulse">FinorAsset</span>
-                </div>
-              </div>
-            )}
             <Outlet />
           </div>
           <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider">
