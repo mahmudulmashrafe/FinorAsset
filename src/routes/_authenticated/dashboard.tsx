@@ -85,78 +85,78 @@ function Dashboard() {
 
 
       {/* ── KPI Cards ── */}
-      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Net Worth" value={fmtMoney(net, currency)} icon={Wallet} accent />
         <StatCard label="Income this month" value={fmtMoney(income, currency)} icon={TrendingUp} positive />
         <StatCard label="Expenses this month" value={fmtMoney(expense, currency)} icon={TrendingDown} negative />
-        <div className="rounded-xl border bg-card py-3.5 px-4">
+        <div className="rounded-xl border bg-card py-2.5 px-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Savings Rate</p>
-            <Zap className="h-4 w-4 text-muted-foreground" />
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Savings Rate</p>
+            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
-          <p className="mt-2 font-serif text-3xl num">{savingsRate}%</p>
-          <Progress value={savingsRate} className="mt-2.5 h-1.5" />
-          <p className="mt-1 text-xs text-muted-foreground">of income saved</p>
+          <p className="mt-1 font-serif text-xl num">{savingsRate}%</p>
+          <Progress value={savingsRate} className="mt-1.5 h-1" />
+          <p className="mt-0.5 text-[10px] text-muted-foreground">of income saved</p>
         </div>
       </div>
 
       {/* ── Chart + Top Spending ── */}
-      <div className="grid gap-3.5 lg:grid-cols-3">
+      <div className="grid gap-2.5 lg:grid-cols-3">
         {/* Cashflow chart */}
-        <section className="rounded-xl border bg-card p-4 lg:col-span-2">
+        <section className="rounded-xl border bg-card p-3 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-serif text-2xl">Last 30 days</h2>
-              <p className="text-xs text-muted-foreground">Daily net cashflow</p>
+              <h2 className="font-serif text-base font-bold">Last 30 days</h2>
+              <p className="text-[10px] text-muted-foreground">Daily net cashflow</p>
             </div>
           </div>
-          <div className="h-36 mt-2">
+          <div className="h-28 mt-1.5">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={series}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} interval={Math.floor(series.length / 5)} />
-                <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} width={52} />
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Line type="monotone" dataKey="net" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} interval={Math.floor(series.length / 5)} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} width={48} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 10 }} />
+                <Line type="monotone" dataKey="net" stroke="var(--accent)" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
 
         {/* Top spending categories */}
-        <section className="rounded-xl border bg-card p-4">
-          <h2 className="font-serif text-2xl">Top Spending</h2>
-          <p className="text-xs text-muted-foreground mb-2">This month by category</p>
+        <section className="rounded-xl border bg-card p-3">
+          <h2 className="font-serif text-base font-bold">Top Spending</h2>
+          <p className="text-[10px] text-muted-foreground mb-1.5">This month by category</p>
           {topCats.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-36 text-muted-foreground text-sm text-center gap-2">
-              <Target className="h-8 w-8 opacity-40" />
+            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground text-xs text-center gap-1.5">
+              <Target className="h-7 w-7 opacity-40" />
               <p>No expense transactions yet</p>
             </div>
           ) : (
             <>
-              <div className="h-28 mb-3">
+              <div className="h-20 mb-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={topCats} dataKey="amt" nameKey="cat.name" cx="50%" cy="50%" outerRadius={45} innerRadius={22}>
+                    <Pie data={topCats} dataKey="amt" nameKey="cat.name" cx="50%" cy="50%" outerRadius={36} innerRadius={18}>
                       {topCats.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
                       formatter={(v: number) => fmtMoney(v, currency)}
-                      contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 10 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <ul className="space-y-1.5">
+              <ul className="space-y-0.5 text-xs">
                 {topCats.map(({ cat, amt }, i) => (
-                  <li key={cat!.id} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  <li key={cat!.id} className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                       <span className="truncate">{cat!.icon} {cat!.name}</span>
                     </span>
-                    <span className="font-serif num text-sm font-medium flex-shrink-0">{fmtMoney(amt, currency)}</span>
+                    <span className="font-serif num font-medium flex-shrink-0">{fmtMoney(amt, currency)}</span>
                   </li>
                 ))}
               </ul>
@@ -166,35 +166,35 @@ function Dashboard() {
       </div>
 
       {/* ── Budget Health + Accounts + Recent ── */}
-      <div className="grid gap-3.5 lg:grid-cols-3">
+      <div className="grid gap-2.5 lg:grid-cols-3">
         {/* Budget health */}
-        <section className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-2xl">Budget Health</h2>
-            <Link to="/budgets" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
-              All <ArrowRight className="h-3 w-3" />
+        <section className="rounded-xl border bg-card p-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <h2 className="font-serif text-base font-bold">Budget Health</h2>
+            <Link to="/budgets" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
+              All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
           {budgetItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm text-center gap-2">
-              <PiggyBank className="h-8 w-8 opacity-40" />
+            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground text-xs text-center gap-1.5">
+              <PiggyBank className="h-7 w-7 opacity-40" />
               <p>No budgets set</p>
               <Link to="/budgets" className="text-xs text-accent hover:underline">Set a budget →</Link>
             </div>
           ) : (
-            <ul className="space-y-3.5 overflow-y-auto max-h-[190px] pr-2 pb-2 thin-scroll">
+            <ul className="space-y-1.5 overflow-y-auto max-h-[110px] pr-1.5 pb-1 thin-scroll text-xs">
               {budgetItems.map(({ b, spent, pct, over, cat }) => (
                 <li key={b.id}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="font-medium flex items-center gap-1.5">
                       {cat?.icon} {cat?.name ?? "—"}
                     </span>
-                    <span className={`text-xs font-mono ${over ? "text-destructive" : "text-muted-foreground"}`}>
+                    <span className={`font-mono text-[10px] ${over ? "text-destructive" : "text-muted-foreground"}`}>
                       {fmtMoney(spent, currency)} / {fmtMoney(Number(b.amount), currency)}
                     </span>
                   </div>
-                  <Progress value={pct} className={`h-2 ${over ? "[&>div]:bg-destructive" : ""}`} />
-                  {over && <p className="text-xs text-destructive mt-1 leading-none">Over by {fmtMoney(spent - Number(b.amount), currency)}</p>}
+                  <Progress value={pct} className={`h-1.5 ${over ? "[&>div]:bg-destructive" : ""}`} />
+                  {over && <p className="text-[10px] text-destructive mt-0.5 leading-none">Over by {fmtMoney(spent - Number(b.amount), currency)}</p>}
                 </li>
               ))}
             </ul>
@@ -202,46 +202,46 @@ function Dashboard() {
         </section>
 
         {/* Accounts */}
-        <section className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-2xl">Accounts</h2>
-            <Link to="/accounts" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
-              All <ArrowRight className="h-3 w-3" />
+        <section className="rounded-xl border bg-card p-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <h2 className="font-serif text-base font-bold">Accounts</h2>
+            <Link to="/accounts" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
+              All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[190px] pr-3 pb-2 thin-scroll">
+          <ul className="divide-y overflow-y-auto max-h-[110px] pr-2 pb-1 thin-scroll text-xs">
             {accounts.length === 0 && (
-              <li className="py-6 text-sm text-muted-foreground text-center">
+              <li className="py-4 text-xs text-muted-foreground text-center">
                 No accounts yet.{" "}
                 <Link to="/accounts" className="text-accent hover:underline">Add one →</Link>
               </li>
             )}
             {accounts.map((a) => (
-              <li key={a.id} className="flex items-center justify-between py-2.5">
-                <div className="flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+              <li key={a.id} className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: a.color }} />
                   <div>
-                    <div className="text-sm font-medium">{a.name}</div>
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground">{a.type}</div>
+                    <div className="font-medium">{a.name}</div>
+                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{a.type}</div>
                   </div>
                 </div>
-                <div className="num font-serif text-base">{fmtMoney(balances.get(a.id) ?? 0, currency)}</div>
+                <div className="num font-serif text-xs">{fmtMoney(balances.get(a.id) ?? 0, currency)}</div>
               </li>
             ))}
           </ul>
         </section>
 
         {/* Recent activity */}
-        <section className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-2xl">Recent</h2>
-            <Link to="/transactions" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
-              All <ArrowRight className="h-3 w-3" />
+        <section className="rounded-xl border bg-card p-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <h2 className="font-serif text-base font-bold">Recent</h2>
+            <Link to="/transactions" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
+              All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[190px] pr-3 pb-2 thin-scroll">
+          <ul className="divide-y overflow-y-auto max-h-[110px] pr-2 pb-1 thin-scroll text-xs">
             {recent.length === 0 && (
-              <li className="py-6 text-sm text-muted-foreground text-center">No transactions yet.</li>
+              <li className="py-4 text-xs text-muted-foreground text-center">No transactions yet.</li>
             )}
             {recent.map((t) => {
               const cat = t.category_id ? catMap.get(t.category_id) : null;
@@ -249,15 +249,15 @@ function Dashboard() {
               const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
               const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "text-muted-foreground";
               return (
-                <li key={t.id} className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {cat?.icon && <span className="text-base flex-shrink-0">{cat.icon}</span>}
+                <li key={t.id} className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {cat?.icon && <span className="text-sm flex-shrink-0">{cat.icon}</span>}
                     <div className="min-w-0">
-                      <div className="text-sm truncate max-w-[110px]">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</div>
-                      <div className="text-xs text-muted-foreground truncate">{acc?.name} · {new Date(t.occurred_on).toLocaleDateString()}</div>
+                      <div className="truncate max-w-[90px] font-medium">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</div>
+                      <div className="text-[9px] text-muted-foreground truncate">{acc?.name} · {new Date(t.occurred_on).toLocaleDateString(undefined, {month: "numeric", day: "numeric"})}</div>
                     </div>
                   </div>
-                  <div className={`num font-serif text-base flex-shrink-0 ${color}`}>{sign}{fmtMoney(Number(t.amount), currency)}</div>
+                  <div className={`num font-serif text-xs flex-shrink-0 ${color}`}>{sign}{fmtMoney(Number(t.amount), currency)}</div>
                 </li>
               );
             })}
@@ -274,13 +274,12 @@ function StatCard({ label, value, icon: Icon, accent, positive, negative }: {
 }) {
   const color = positive ? "text-[color:var(--success)]" : negative ? "text-[color:var(--destructive)]" : "";
   return (
-    <div className="rounded-xl border bg-card py-3.5 px-4">
+    <div className="rounded-xl border bg-card py-2.5 px-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
-      <p className={`mt-2 font-serif text-2xl num ${color}`}>{value}</p>
+      <p className={`mt-1 font-serif text-xl num ${color}`}>{value}</p>
     </div>
   );
 }
-
