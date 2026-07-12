@@ -175,7 +175,7 @@ function BudgetsPage() {
       </AlertDialog>
 
       {/* Floatable Add Budget FAB */}
-      <div className="fixed bottom-20 md:bottom-12 right-6 z-40">
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
         <Dialog open={open} onOpenChange={(val) => {
           setOpen(val);
           if (!val) {

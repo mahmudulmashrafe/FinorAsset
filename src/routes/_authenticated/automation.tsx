@@ -3,13 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney } from "@/lib/finance";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Play, Plus, Cpu, Sliders, Info, Sparkles } from "lucide-react";
+import { Trash2, Play, Plus, Cpu, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
 export const Route = createFileRoute("/_authenticated/automation")({
@@ -17,15 +18,20 @@ export const Route = createFileRoute("/_authenticated/automation")({
   head: () => ({ meta: [{ title: "Automation — FinorAsset" }] }),
 });
 
-interface AutomationRule {
+interface AutomationAction {
   id: string;
-  name: string;
   kind: "income" | "expense" | "transfer";
   category_id?: string;
   account_id: string;
   to_account_id?: string;
   amount: number;
   note?: string;
+}
+
+interface AutomationRule {
+  id: string;
+  name: string;
+  actions: AutomationAction[];
 }
 
 function AutomationPage() {
@@ -41,12 +47,9 @@ function AutomationPage() {
 
   // Form states
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<"income" | "expense" | "transfer">("expense");
-  const [accountId, setAccountId] = useState("");
-  const [toAccountId, setToAccountId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
+  const [actions, setActions] = useState<Omit<AutomationAction, "id">[]>([
+    { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }
+  ]);
 
   // Load rules from localStorage
   useEffect(() => {
@@ -65,37 +68,62 @@ function AutomationPage() {
     localStorage.setItem("finorasset_automations", JSON.stringify(newRules));
   }
 
+  function addActionForm() {
+    setActions([...actions, { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+  }
+
+  function removeActionForm(index: number) {
+    const next = [...actions];
+    next.splice(index, 1);
+    setActions(next);
+  }
+
+  function updateActionField(index: number, field: string, value: any) {
+    const next = [...actions];
+    next[index] = { ...next[index], [field]: value };
+    // Reset dependency fields if kind transitions
+    if (field === "kind") {
+      next[index].category_id = "";
+      next[index].to_account_id = "";
+    }
+    setActions(next);
+  }
+
   function handleCreateRule(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return toast.error("Automation name is required");
-    if (!accountId) return toast.error("Please select an account");
-    if (kind === "transfer" && !toAccountId) return toast.error("Please select a destination account");
-    if (kind === "transfer" && accountId === toAccountId) return toast.error("Source and destination accounts must differ");
-    if (kind !== "transfer" && !categoryId) return toast.error("Please select a category");
-    if (!amount || Number(amount) <= 0) return toast.error("Please enter a valid amount");
+    
+    // Validate all actions
+    for (let i = 0; i < actions.length; i++) {
+      const act = actions[i];
+      const prefix = `Transaction #${i + 1}: `;
+      if (!act.account_id) return toast.error(`${prefix}Please select an account`);
+      if (act.kind === "transfer" && !act.to_account_id) return toast.error(`${prefix}Please select a destination account`);
+      if (act.kind === "transfer" && act.account_id === act.to_account_id) return toast.error(`${prefix}Source and destination accounts must differ`);
+      if (act.kind !== "transfer" && !act.category_id) return toast.error(`${prefix}Please select a category`);
+      if (!act.amount || Number(act.amount) <= 0) return toast.error(`${prefix}Please enter a valid amount`);
+    }
 
     const newRule: AutomationRule = {
       id: crypto.randomUUID(),
       name: name.trim(),
-      kind,
-      account_id: accountId,
-      to_account_id: kind === "transfer" ? toAccountId : undefined,
-      category_id: kind !== "transfer" ? categoryId : undefined,
-      amount: Number(amount),
-      note: note.trim() || undefined,
+      actions: actions.map((act) => ({
+        id: crypto.randomUUID(),
+        kind: act.kind,
+        account_id: act.account_id,
+        to_account_id: act.to_account_id || undefined,
+        category_id: act.category_id || undefined,
+        amount: Number(act.amount),
+        note: act.note?.trim() || undefined,
+      })),
     };
 
     saveRules([...rules, newRule]);
-    toast.success(`Automation "${name}" created!`);
+    toast.success(`Automation "${name}" created with ${actions.length} shortcuts!`);
 
     // Reset Form
     setName("");
-    setKind("expense");
-    setAccountId("");
-    setToAccountId("");
-    setCategoryId("");
-    setAmount("");
-    setNote("");
+    setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
     setCreateOpen(false);
   }
 
@@ -110,21 +138,23 @@ function AutomationPage() {
     setExecutingId(rule.id);
 
     try {
-      const { error } = await supabase.from("transactions").insert({
-        kind: rule.kind,
-        category_id: rule.kind !== "transfer" ? rule.category_id || null : null,
-        account_id: rule.account_id,
-        to_account_id: rule.kind === "transfer" ? rule.to_account_id || null : null,
-        amount: Number(rule.amount),
-        note: rule.note || `Automation shortcut: ${rule.name}`,
+      const inserts = rule.actions.map((act) => ({
+        kind: act.kind,
+        category_id: act.kind !== "transfer" ? act.category_id || null : null,
+        account_id: act.account_id,
+        to_account_id: act.kind === "transfer" ? act.to_account_id || null : null,
+        amount: Number(act.amount),
+        note: act.note || `Automation shortcut: ${rule.name}`,
         occurred_on: new Date().toISOString().split("T")[0],
-      });
+      }));
+
+      const { error } = await supabase.from("transactions").insert(inserts);
 
       if (error) {
         toast.error(`Execution failed: ${error.message}`);
       } else {
-        toast.success(`Executed "${rule.name}"! Entry logged successfully.`);
-        // Refresh values across dashboard pages
+        toast.success(`Executed "${rule.name}"! Logged ${rule.actions.length} transactions successfully.`);
+        // Refresh values across layout views
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
       }
@@ -139,137 +169,10 @@ function AutomationPage() {
   const catMap = new Map(cats.map((c) => [c.id, c]));
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Header Info */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1">
-            <Cpu className="h-3 w-3 text-accent" /> One-Click Shortcuts
-          </p>
-          <h1 className="mt-1 font-serif text-3xl font-semibold">Automation</h1>
-        </div>
-
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-1.5 rounded-full cursor-pointer text-xs font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Plus className="h-4 w-4" /> Create Macro
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">New Automation Macro</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateRule} className="space-y-4 mt-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="macro-name" className="text-xs font-semibold">Macro Name</Label>
-                <Input
-                  id="macro-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Daily Coffee, Rent Payment"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="macro-kind" className="text-xs font-semibold">Transaction Type</Label>
-                <Select value={kind} onValueChange={(v: any) => setKind(v)}>
-                  <SelectTrigger id="macro-kind">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[150]">
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="macro-acc" className="text-xs font-semibold">
-                  {kind === "transfer" ? "Source Account" : "Account"}
-                </Label>
-                <Select value={accountId} onValueChange={setAccountId}>
-                  <SelectTrigger id="macro-acc">
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[150]">
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} ({a.type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {kind === "transfer" ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="macro-to-acc" className="text-xs font-semibold">Destination Account</Label>
-                  <Select value={toAccountId} onValueChange={setToAccountId}>
-                    <SelectTrigger id="macro-to-acc">
-                      <SelectValue placeholder="Select destination account" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[150]">
-                      {accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name} ({a.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label htmlFor="macro-cat" className="text-xs font-semibold">Category</Label>
-                  <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger id="macro-cat">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[150]">
-                      {cats.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.icon} {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="macro-amt" className="text-xs font-semibold">Amount</Label>
-                <Input
-                  id="macro-amt"
-                  type="number"
-                  step="any"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="macro-note" className="text-xs font-semibold">Optional Note</Label>
-                <Input
-                  id="macro-note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Specific tags or details"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
-                  Save Macro
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+    <div className="w-full relative min-h-[60vh] pb-10">
+      
       {rules.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4">
+        <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4 mt-12">
           <div className="h-12 w-12 rounded-full bg-accent/10 text-accent flex items-center justify-center">
             <Sparkles className="h-6 w-6" />
           </div>
@@ -286,65 +189,82 @@ function AutomationPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rules.map((rule) => {
-            const acc = accountMap.get(rule.account_id);
-            const toAcc = rule.to_account_id ? accountMap.get(rule.to_account_id) : null;
-            const cat = rule.category_id ? catMap.get(rule.category_id) : null;
-            
-            // Badge color scheme
-            const badgeColor = 
-              rule.kind === "income" 
-                ? "bg-[color:var(--success)]/10 text-[color:var(--success)] border-[color:var(--success)]/20"
-                : rule.kind === "expense"
-                ? "bg-[color:var(--destructive)]/10 text-[color:var(--destructive)] border-[color:var(--destructive)]/20"
-                : "bg-blue-500/10 text-blue-500 border-blue-500/20";
-
             return (
               <div key={rule.id} className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden">
-                <div className="space-y-3.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-serif text-lg font-bold truncate pr-6">{rule.name}</h3>
-                    <Badge variant="outline" className={`capitalize text-[9px] px-1.5 py-0 leading-none shrink-0 ${badgeColor}`}>
-                      {rule.kind}
-                    </Badge>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2 border-b pb-2">
+                    <h3 className="font-serif text-base font-bold truncate pr-6">{rule.name}</h3>
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      {rule.actions.length} action{rule.actions.length > 1 ? "s" : ""}
+                    </span>
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-foreground shrink-0">From:</span>
-                      <span className="truncate flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: acc?.color || "#888" }} />
-                        {acc?.name || "Deleted Account"}
-                      </span>
-                    </div>
+                  {/* Actions summary list */}
+                  <div className="space-y-3">
+                    {rule.actions.map((act, i) => {
+                      const acc = accountMap.get(act.account_id);
+                      const toAcc = act.to_account_id ? accountMap.get(act.to_account_id) : null;
+                      const cat = act.category_id ? catMap.get(act.category_id) : null;
 
-                    {rule.kind === "transfer" ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-foreground shrink-0">To:</span>
-                        <span className="truncate flex items-center gap-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: toAcc?.color || "#888" }} />
-                          {toAcc?.name || "Deleted Account"}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-foreground shrink-0">Category:</span>
-                        <span className="truncate">
-                          {cat?.icon} {cat?.name || "Deleted Category"}
-                        </span>
-                      </div>
-                    )}
+                      const textBadgeColor = 
+                        act.kind === "income" 
+                          ? "text-[color:var(--success)]"
+                          : act.kind === "expense"
+                          ? "text-[color:var(--destructive)]"
+                          : "text-blue-500";
 
-                    {rule.note && (
-                      <div className="text-[10px] italic text-muted-foreground/80 truncate border-t pt-1.5 mt-2">
-                        "{rule.note}"
-                      </div>
-                    )}
+                      return (
+                        <div key={act.id} className="text-xs space-y-1 bg-muted/30 p-2 rounded-lg border border-border/40">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">#{i + 1}</span>
+                            <span className={`font-serif num font-bold ${textBadgeColor}`}>
+                              {act.kind === "expense" ? "−" : act.kind === "income" ? "+" : "↔"} {fmtMoney(act.amount, currency)}
+                            </span>
+                          </div>
+
+                          <div className="text-[11px] text-muted-foreground space-y-0.5 mt-1">
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold text-foreground/80">Account:</span>
+                              <span className="truncate flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc?.color || "#888" }} />
+                                {acc?.name || "Deleted"}
+                              </span>
+                            </div>
+
+                            {act.kind === "transfer" ? (
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-foreground/80">To:</span>
+                                <span className="truncate flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: toAcc?.color || "#888" }} />
+                                  {toAcc?.name || "Deleted"}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-foreground/80">Category:</span>
+                                <span className="truncate">
+                                  {cat?.icon} {cat?.name || "Deleted"}
+                                </span>
+                              </div>
+                            )}
+
+                            {act.note && (
+                              <div className="text-[9px] italic text-muted-foreground truncate mt-0.5">
+                                "{act.note}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between mt-5 pt-3 border-t">
-                  <span className="font-serif text-xl num font-bold text-foreground">
-                    {fmtMoney(rule.amount, currency)}
+                  <span className="text-xs text-muted-foreground">
+                    Total: <span className="font-serif num font-bold text-foreground text-sm">
+                      {fmtMoney(rule.actions.reduce((sum, act) => sum + (act.kind === "expense" ? act.amount : act.kind === "income" ? act.amount : 0), 0), currency)}
+                    </span>
                   </span>
 
                   <div className="flex items-center gap-1.5">
@@ -370,6 +290,156 @@ function AutomationPage() {
           })}
         </div>
       )}
+
+      {/* Floating Add Macro FAB Button */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            className="fixed bottom-20 md:bottom-6 right-6 z-40 rounded-full h-10 w-10 md:h-14 md:w-14 p-0 shadow-lg cursor-pointer bg-accent hover:bg-accent/90 text-accent-foreground border border-accent/20"
+            title="Create Automation Macro"
+          >
+            <Plus className="h-5 w-5 md:h-6 md:w-6" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">New Automation Macro</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateRule} className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="macro-name" className="text-xs font-semibold">Macro Name</Label>
+              <Input
+                id="macro-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Daily Coffee, Rent Payment"
+              />
+            </div>
+
+            <div className="border-t pt-3 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold">Transactions ({actions.length})</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addActionForm} className="h-8 rounded-full text-xs font-semibold cursor-pointer">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Transaction
+                </Button>
+              </div>
+
+              {actions.map((act, idx) => (
+                <div key={idx} className="p-3 border rounded-xl bg-muted/40 space-y-3 relative">
+                  {actions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeActionForm(idx)}
+                      className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-destructive text-[10px] font-semibold cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Transaction #{idx + 1}</span>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold">Type</Label>
+                      <Select value={act.kind} onValueChange={(v: any) => updateActionField(idx, "kind", v)}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[150]">
+                          <SelectItem value="expense">Expense</SelectItem>
+                          <SelectItem value="income">Income</SelectItem>
+                          <SelectItem value="transfer">Transfer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold">Amount</Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        className="h-8 text-xs"
+                        value={act.amount || ""}
+                        onChange={(e) => updateActionField(idx, "amount", Number(e.target.value))}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold">
+                        {act.kind === "transfer" ? "Source Account" : "Account"}
+                      </Label>
+                      <Select value={act.account_id} onValueChange={(v) => updateActionField(idx, "account_id", v)}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[150]">
+                          {accounts.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {act.kind === "transfer" ? (
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-semibold">Destination Account</Label>
+                        <Select value={act.to_account_id || ""} onValueChange={(v) => updateActionField(idx, "to_account_id", v)}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select account" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[150]">
+                            {accounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>
+                                {a.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-semibold">Category</Label>
+                        <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[150]">
+                            {cats.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.icon} {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold">Optional Note</Label>
+                    <Input
+                      className="h-8 text-xs"
+                      value={act.note || ""}
+                      onChange={(e) => updateActionField(idx, "note", e.target.value)}
+                      placeholder="e.g. coffee details"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
+                Save Macro
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -376,7 +376,7 @@ function AccountsPage() {
       </AlertDialog>
 
       {/* Floatable Add Account FAB */}
-      <div className="fixed bottom-20 md:bottom-12 right-6 z-40">
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
         <Button 
           onClick={() => setNewOpen(true)} 
           size="icon" 

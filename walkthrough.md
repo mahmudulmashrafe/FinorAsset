@@ -96,13 +96,22 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
     - Added change email functionality (`supabase.auth.updateUser`) and change password options verifying old password before applying updates inside settings dialog.
     - Configured a read-only "Current Email Address" input field in settings email panel and refactored stats overview cards with text wrapping CSS class parameters (`break-all` and `select-all`) to guarantee long email strings are fully legible on all displays.
 
+22. **Page Swapping Transitions & Centered Viewport Loader**:
+    - Implemented a smooth GPU-accelerated page fade-in and slide-up transition animation on all page routes.
+    - Positioned the loading overlay fixed at the absolute viewport root, ensuring it is always perfectly centered and never shifts on mobile or desktop during data fetching.
+
+23. **One-Click Transaction Macros (Automation Page)**:
+    - Created an **Automation** page enabling users to save templates for common/recurring transactions (macros).
+    - Added an interactive trigger engine that logs transactions directly to Supabase with one click and dynamically syncs account balances and charts.
+    - Registered the page in the main layout route menu tree to show in both the desktop sidebar and mobile bottom navigation bar.
+
 ---
 
 ## Live URL
 
 Your website is live at:
 🚀 **[https://finorasset.vercel.app](https://finorasset.vercel.app)**
-*(Alternative Preview URL: [finor-asset-evqaorccd-mahmudul-mashrafes-projects-a3fb83c2.vercel.app](https://finor-asset-evqaorccd-mahmudul-mashrafes-projects-a3fb83c2.vercel.app))*
+*(Alternative Preview URL: [finor-asset-gdsuzi3pd-mahmudul-mashrafes-projects-a3fb83c2.vercel.app](https://finor-asset-gdsuzi3pd-mahmudul-mashrafes-projects-a3fb83c2.vercel.app))*
 
 ---
 
