@@ -235,12 +235,12 @@ function TxnsPage() {
           <Table className="w-full">
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
-                <TableHead className="py-3 px-4 text-xs md:text-sm">Date</TableHead>
-                <TableHead className="py-3 px-4 text-xs md:text-sm">Type</TableHead>
-                <TableHead className="py-3 px-4 text-xs md:text-sm">Category</TableHead>
-                <TableHead className="py-3 px-4 text-xs md:text-sm">Account</TableHead>
-                <TableHead className="py-3 px-4 text-xs md:text-sm">Note</TableHead>
-                <TableHead className="py-3 px-4 text-xs md:text-sm text-right">Amount</TableHead>
+                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Date</TableHead>
+                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Type</TableHead>
+                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Category</TableHead>
+                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Account</TableHead>
+                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Note</TableHead>
+                <TableHead className="py-3 px-4 text-sm md:text-base font-bold text-right">Amount</TableHead>
                 <TableHead className="py-3 px-4 w-20"></TableHead>
               </TableRow>
             </TableHeader>
@@ -263,13 +263,13 @@ function TxnsPage() {
                   : "";
                 return (
                   <TableRow key={t.id} className="group">
-                    <TableCell className="py-3 px-4 tabular-nums text-xs md:text-sm">
+                    <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
                       {new Date(t.occurred_on).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="py-3 px-4">
-                      <Badge variant="outline" className="capitalize text-xs px-2 py-0.5">{t.kind}</Badge>
+                      <Badge variant="outline" className="capitalize text-sm px-2.5 py-0.5">{t.kind}</Badge>
                     </TableCell>
-                    <TableCell className="py-3 px-4 text-xs md:text-sm">
+                    <TableCell className="py-3 px-4 text-sm md:text-base">
                       {cat ? (
                         <span className="inline-flex items-center gap-2">
                           <span>{cat.icon}</span>
@@ -278,14 +278,14 @@ function TxnsPage() {
                         </span>
                       ) : "—"}
                     </TableCell>
-                    <TableCell className="py-3 px-4 text-xs md:text-sm">
+                    <TableCell className="py-3 px-4 text-sm md:text-base">
                       {acc?.name}
                       {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
                     </TableCell>
-                    <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-xs md:text-sm">
+                    <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base">
                       {t.note ?? "—"}
                     </TableCell>
-                    <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-xs md:text-sm ${amtColor}`}>
+                    <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-sm md:text-base ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
                     <TableCell className="py-3 px-4">
@@ -339,16 +339,16 @@ function TxnsPage() {
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-serif font-black truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</span>
-                      <Badge variant="outline" className="capitalize text-[8px] px-1 py-0 scale-90 origin-left leading-none">{t.kind}</Badge>
+                      <span className="text-sm font-serif font-black truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</span>
+                      <Badge variant="outline" className="capitalize text-[9px] px-1 py-0 scale-90 origin-left leading-none">{t.kind}</Badge>
                     </div>
-                    <div className="text-[10px] text-muted-foreground truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                       {acc?.name} {t.to_account_id && `→ ${accMap.get(t.to_account_id)?.name}`}
                       <span className="mx-1">·</span>
                       {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </div>
                     {t.note && (
-                      <div className="text-[9px] text-muted-foreground italic truncate max-w-[160px] mt-0.5">
+                      <div className="text-[10px] text-muted-foreground italic truncate max-w-[160px] mt-0.5">
                         {t.note}
                       </div>
                     )}
@@ -356,7 +356,7 @@ function TxnsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`num font-serif text-xs font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
+                  <span className={`num font-serif text-sm font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
                   <div className="flex items-center gap-0.5">
                     <button
                       onClick={() => setEditingTxn(t)}
