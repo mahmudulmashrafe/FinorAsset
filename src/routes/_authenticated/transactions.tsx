@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, SlidersHorizontal } from "lucide-react";
+import { Trash2, Pencil, SlidersHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -172,7 +172,7 @@ function TxnsPage() {
                 <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Type</label>
                 <Select value={kind} onValueChange={setKind}>
                   <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="all">All types</SelectItem>
                     <SelectItem value="income">Income</SelectItem>
                     <SelectItem value="expense">Expense</SelectItem>
@@ -185,7 +185,7 @@ function TxnsPage() {
                 <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
                 <Select value={account} onValueChange={setAccount}>
                   <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="all">All accounts</SelectItem>
                     {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
@@ -196,7 +196,7 @@ function TxnsPage() {
                 <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
                   <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="all">All months</SelectItem>
                     {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                   </SelectContent>
@@ -340,6 +340,20 @@ function TxnsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floatable Add Transaction FAB */}
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
+        <TransactionDialog
+          trigger={
+            <Button
+              size="icon"
+              className="h-14 w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center"
+            >
+              <Plus className="h-6 w-6 text-accent" />
+            </Button>
+          }
+        />
+      </div>
     </div>
   );
 }

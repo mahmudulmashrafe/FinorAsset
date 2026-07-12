@@ -52,11 +52,11 @@ function Stats() {
   const totalExp = byCat.reduce((s, x) => s + x.value, 0);
 
   return (
-    <div className="space-y-5 w-full">
+    <div className="space-y-4 w-full">
 
-      <section className="rounded-xl border bg-card p-5">
-        <h2 className="font-serif text-xl">Income vs Expense — 6 months</h2>
-        <div className="h-60 mt-3">
+      <section className="rounded-xl border bg-card p-4">
+        <h2 className="font-serif text-lg font-bold">Income vs Expense — 6 months</h2>
+        <div className="h-48 mt-2">
           <ResponsiveContainer>
             <BarChart data={monthly}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -71,11 +71,11 @@ function Stats() {
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-2">
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-serif text-xl">Spending by category</h2>
-          <p className="text-sm text-muted-foreground">This month · {fmtMoney(totalExp, currency)} total</p>
-          <div className="h-60 mt-3">
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border bg-card p-4">
+          <h2 className="font-serif text-lg font-bold">Spending by category</h2>
+          <p className="text-xs text-muted-foreground font-serif">This month · {fmtMoney(totalExp, currency)} total</p>
+          <div className="h-48 mt-2">
             {byCat.length === 0 ? (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No expenses this month yet.</div>
             ) : (
@@ -91,13 +91,13 @@ function Stats() {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-serif text-xl">Top categories</h2>
-          <ul className="mt-3 divide-y">
+        <div className="rounded-xl border bg-card p-4">
+          <h2 className="font-serif text-lg font-bold">Top categories</h2>
+          <ul className="mt-2 divide-y">
             {byCat.slice(0, 8).map(c => (
-              <li key={c.name} className="flex items-center justify-between py-2">
+              <li key={c.name} className="flex items-center justify-between py-1 text-sm">
                 <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c.color }} />{c.name}</span>
-                <span className="num font-serif">{fmtMoney(c.value, currency)}</span>
+                <span className="num font-serif font-bold">{fmtMoney(c.value, currency)}</span>
               </li>
             ))}
             {byCat.length === 0 && <li className="py-6 text-sm text-muted-foreground">No data.</li>}

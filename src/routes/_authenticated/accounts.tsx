@@ -205,7 +205,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
               <Label htmlFor="account-type">Type</Label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger id="account-type"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[100]">
                   {TYPES.map(t => <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -228,7 +228,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
             <Label htmlFor="account-currency">Currency</Label>
             <Select value={currencyInput} onValueChange={setCurrencyInput}>
               <SelectTrigger id="account-currency"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {CURRENCIES.map((c) => (
                   <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
                 ))}
@@ -316,7 +316,7 @@ function AccountsPage() {
         {accounts.map((a) => (
           <div
             key={a.id}
-            className="rounded-xl border bg-card p-6 relative group transition-shadow hover:shadow-md"
+            className="rounded-xl border bg-card p-4 relative group transition-shadow hover:shadow-md"
             style={{ }}
           >
             {/* Action buttons — visible on hover */}
@@ -339,11 +339,11 @@ function AccountsPage() {
 
             {/* Color dot + name */}
             <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full flex-shrink-0" style={{ background: a.color }} />
-              <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
+              <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
             </div>
-            <h3 className="mt-3 font-serif text-2xl">{a.name}</h3>
-            <p className="mt-6 num font-serif text-3xl">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
+            <h3 className="mt-1.5 font-serif text-base font-bold">{a.name}</h3>
+            <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
           </div>
         ))}
 
