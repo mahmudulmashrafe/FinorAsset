@@ -427,35 +427,19 @@ function AutomationPage() {
       </Dialog>
 
       {/* Floatable Add Macro Trigger */}
-      <div>
-        {/* Mobile View: Floating Action Button */}
-        <Button 
-          onClick={() => {
-            setEditingRule(null);
-            setName("");
-            setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
-            setCreateOpen(true);
-          }}
-          size="icon"
-          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex md:hidden items-center justify-center cursor-pointer"
-          title="Create Automation Macro"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-
-        {/* Web View: Inline Button before Credential Bar */}
-        <Button
-          onClick={() => {
-            setEditingRule(null);
-            setName("");
-            setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
-            setCreateOpen(true);
-          }}
-          className="hidden md:flex items-center gap-1.5 rounded-full cursor-pointer text-xs font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground ml-auto mt-8 px-5 py-2 w-fit"
-        >
-          <Plus className="h-4 w-4" /> Add Macro
-        </Button>
-      </div>
+      <Button 
+        onClick={() => {
+          setEditingRule(null);
+          setName("");
+          setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+          setCreateOpen(true);
+        }}
+        size="icon"
+        className="fixed bottom-20 md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
+        title="Create Automation Macro"
+      >
+        <Plus className="h-5 w-5 md:h-6 md:w-6" />
+      </Button>
 
       <Dialog open={createOpen} onOpenChange={(val) => {
         setCreateOpen(val);

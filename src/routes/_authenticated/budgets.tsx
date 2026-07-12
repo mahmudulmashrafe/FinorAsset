@@ -174,35 +174,20 @@ function BudgetsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div>
-        <Button 
-          disabled={availCats.length === 0}
-          onClick={() => {
-            setEditingBudget(null);
-            setCatId("");
-            setAmount("");
-            setOpen(true);
-          }}
-          size="icon"
-          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex md:hidden items-center justify-center cursor-pointer"
-          title="New budget"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-
-        <Button
-          disabled={availCats.length === 0}
-          onClick={() => {
-            setEditingBudget(null);
-            setCatId("");
-            setAmount("");
-            setOpen(true);
-          }}
-          className="hidden md:flex items-center gap-1.5 rounded-full cursor-pointer text-xs font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground ml-auto mt-8 px-5 py-2 w-fit"
-        >
-          <Plus className="h-4 w-4" /> Add Budget
-        </Button>
-      </div>
+      <Button 
+        disabled={availCats.length === 0}
+        onClick={() => {
+          setEditingBudget(null);
+          setCatId("");
+          setAmount("");
+          setOpen(true);
+        }}
+        size="icon"
+        className="fixed bottom-20 md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
+        title="New budget"
+      >
+        <Plus className="h-5 w-5 md:h-6 md:w-6" />
+      </Button>
 
       <Dialog open={open} onOpenChange={(val) => {
         setOpen(val);
