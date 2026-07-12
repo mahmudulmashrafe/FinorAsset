@@ -48,7 +48,57 @@ function AutomationPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
 
-  const [rules, setRules] = useState<AutomationRule[]>([]);
+  // Load rules using useQuery with Supabase database as source and LocalStorage as fallback
+  const { data: rules = [], refetch } = useQuery({
+    queryKey: ["macros"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return [];
+
+      const { data, error } = await supabase
+        .from("macros")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        // Fallback to local storage if table doesn't exist
+        if (error.code === "42P01") {
+          const stored = localStorage.getItem("finorasset_automations");
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed)) {
+                return parsed.map((rule: any) => {
+                  if (rule.actions && Array.isArray(rule.actions)) return rule;
+                  return {
+                    id: rule.id || generateId(),
+                    name: rule.name || "Legacy Macro",
+                    actions: [
+                      {
+                        id: generateId(),
+                        kind: rule.kind || "expense",
+                        category_id: rule.category_id,
+                        account_id: rule.account_id || "",
+                        to_account_id: rule.to_account_id,
+                        amount: Number(rule.amount || 0),
+                        note: rule.note,
+                      }
+                    ]
+                  };
+                });
+              }
+            } catch (e) {
+              console.error("Local storage load/migration error:", e);
+            }
+          }
+          return [];
+        }
+        throw error;
+      }
+      return data as AutomationRule[];
+    }
+  });
+
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
@@ -60,42 +110,6 @@ function AutomationPage() {
     { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }
   ]);
 
-  // Load rules from localStorage and migrate legacy single-action rules
-  useEffect(() => {
-    const stored = localStorage.getItem("finorasset_automations");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          const migrated = parsed.map((rule: any) => {
-            if (rule.actions && Array.isArray(rule.actions)) {
-              return rule;
-            }
-            // Migrate single action schema to multiple actions schema
-            return {
-              id: rule.id || generateId(),
-              name: rule.name || "Legacy Macro",
-              actions: [
-                {
-                  id: generateId(),
-                  kind: rule.kind || "expense",
-                  category_id: rule.category_id,
-                  account_id: rule.account_id || "",
-                  to_account_id: rule.to_account_id,
-                  amount: Number(rule.amount || 0),
-                  note: rule.note,
-                }
-              ]
-            };
-          });
-          saveRules(migrated);
-        }
-      } catch (e) {
-        console.error("Local storage load/migration error:", e);
-      }
-    }
-  }, []);
-
   // Sync editing rule to form state
   useEffect(() => {
     if (editingRule) {
@@ -104,11 +118,6 @@ function AutomationPage() {
       setCreateOpen(true);
     }
   }, [editingRule]);
-
-  function saveRules(newRules: AutomationRule[]) {
-    setRules(newRules);
-    localStorage.setItem("finorasset_automations", JSON.stringify(newRules));
-  }
 
   function addActionForm() {
     setActions([...actions, { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
@@ -131,7 +140,7 @@ function AutomationPage() {
     setActions(next);
   }
 
-  function handleCreateRule(e: React.FormEvent) {
+  async function handleCreateRule(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return toast.error("Automation name is required");
     
@@ -146,41 +155,69 @@ function AutomationPage() {
       if (!act.amount || Number(act.amount) <= 0) return toast.error(`${prefix}Please enter a valid amount`);
     }
 
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return toast.error("User session expired. Please sign in again.");
+
+    const mappedActions = actions.map((act) => ({
+      id: (act as any).id || generateId(),
+      kind: act.kind,
+      account_id: act.account_id,
+      to_account_id: act.to_account_id || undefined,
+      category_id: act.category_id || undefined,
+      amount: Number(act.amount),
+      note: act.note?.trim() || undefined,
+    }));
+
     if (editingRule) {
-      const updatedRules = rules.map((r) =>
-        r.id === editingRule.id
-          ? {
-              ...r,
-              name: name.trim(),
-              actions: actions.map((act) => ({
-                id: (act as any).id || generateId(),
-                kind: act.kind,
-                account_id: act.account_id,
-                to_account_id: act.to_account_id || undefined,
-                category_id: act.category_id || undefined,
-                amount: Number(act.amount),
-                note: act.note?.trim() || undefined,
-              })),
-            }
-          : r
-      );
-      saveRules(updatedRules);
+      // 1. Try updating in Supabase
+      const { error } = await supabase
+        .from("macros")
+        .update({
+          name: name.trim(),
+          actions: mappedActions
+        })
+        .eq("id", editingRule.id);
+
+      if (error && error.code !== "42P01") {
+        return toast.error(error.message);
+      }
+
+      if (error && error.code === "42P01") {
+        // Fallback to local storage
+        const stored = localStorage.getItem("finorasset_automations");
+        const parsed = stored ? JSON.parse(stored) : [];
+        const next = parsed.map((r: any) => r.id === editingRule.id ? { ...r, name: name.trim(), actions: mappedActions } : r);
+        localStorage.setItem("finorasset_automations", JSON.stringify(next));
+      }
+
       toast.success(`Automation "${name}" updated!`);
     } else {
-      const newRule: AutomationRule = {
-        id: generateId(),
-        name: name.trim(),
-        actions: actions.map((act) => ({
+      // 1. Try inserting in Supabase
+      const { error } = await supabase
+        .from("macros")
+        .insert({
+          user_id: u.user.id,
+          name: name.trim(),
+          actions: mappedActions
+        });
+
+      if (error && error.code !== "42P01") {
+        return toast.error(error.message);
+      }
+
+      if (error && error.code === "42P01") {
+        // Fallback to local storage
+        const stored = localStorage.getItem("finorasset_automations");
+        const parsed = stored ? JSON.parse(stored) : [];
+        const newRule = {
           id: generateId(),
-          kind: act.kind,
-          account_id: act.account_id,
-          to_account_id: act.to_account_id || undefined,
-          category_id: act.category_id || undefined,
-          amount: Number(act.amount),
-          note: act.note?.trim() || undefined,
-        })),
-      };
-      saveRules([...rules, newRule]);
+          name: name.trim(),
+          actions: mappedActions
+        };
+        parsed.push(newRule);
+        localStorage.setItem("finorasset_automations", JSON.stringify(parsed));
+      }
+
       toast.success(`Automation "${name}" created with ${actions.length} shortcuts!`);
     }
 
@@ -189,12 +226,29 @@ function AutomationPage() {
     setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
     setEditingRule(null);
     setCreateOpen(false);
+    qc.invalidateQueries({ queryKey: ["macros"] });
   }
 
-  function handleDeleteRule(id: string) {
-    const newRules = rules.filter((r) => r.id !== id);
-    saveRules(newRules);
+  async function handleDeleteRule(id: string) {
+    const { error } = await supabase
+      .from("macros")
+      .delete()
+      .eq("id", id);
+
+    if (error && error.code !== "42P01") {
+      return toast.error(error.message);
+    }
+
+    if (error && error.code === "42P01") {
+      // Fallback to local storage
+      const stored = localStorage.getItem("finorasset_automations");
+      const parsed = stored ? JSON.parse(stored) : [];
+      const next = parsed.filter((r: any) => r.id !== id);
+      localStorage.setItem("finorasset_automations", JSON.stringify(next));
+    }
+
     toast.success("Automation template deleted.");
+    qc.invalidateQueries({ queryKey: ["macros"] });
   }
 
   async function executeAutomation(rule: AutomationRule) {
@@ -435,7 +489,7 @@ function AutomationPage() {
           setCreateOpen(true);
         }}
         size="icon"
-        className="fixed bottom-20 md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
+        className="fixed mobile-fab-position right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
         title="Create Automation Macro"
       >
         <Plus className="h-5 w-5 md:h-6 md:w-6" />

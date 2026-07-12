@@ -194,3 +194,14 @@
   animation: page-transition 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Floating Action Button Position above Mobile Bottom Nav */
+.mobile-fab-position {
+  bottom: calc(4rem + 16px + env(safe-area-inset-bottom)) !important;
+}
+
+@media (min-width: 768px) {
+  .mobile-fab-position {
+    bottom: 1.5rem !important;
+  }
+}
+

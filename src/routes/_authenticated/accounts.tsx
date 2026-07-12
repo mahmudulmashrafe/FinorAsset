@@ -311,34 +311,37 @@ function AccountsPage() {
         {accounts.map((a) => (
           <div
             key={a.id}
-            className="rounded-xl border bg-card p-4 relative group transition-shadow hover:shadow-md"
-            style={{ }}
+            className="rounded-xl border bg-card p-4 relative group transition-shadow hover:shadow-md flex flex-col justify-between"
           >
-            {/* Action buttons — visible on hover on desktop, always visible on mobile */}
-            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={() => setEditAccount(a)}
-                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
-                title="Edit account"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setDeleteAccount({ id: a.id, name: a.name })}
-                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                title="Delete account"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+            <div>
+              {/* Color dot + name */}
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
+              </div>
+              <h3 className="mt-1.5 font-serif text-base font-bold">{a.name}</h3>
+              <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
             </div>
 
-            {/* Color dot + name */}
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
+            {/* Action buttons at bottom — always visible and easy to tap */}
+            <div className="flex items-center gap-2 mt-4 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); setEditAccount(a); }}
+                className="flex-1 gap-1.5 h-8 text-xs cursor-pointer"
+              >
+                <Pencil className="h-3 w-3" /> Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); setDeleteAccount({ id: a.id, name: a.name }); }}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <h3 className="mt-1.5 font-serif text-base font-bold pr-16">{a.name}</h3>
-            <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
           </div>
         ))}
 
@@ -379,7 +382,7 @@ function AccountsPage() {
       <Button 
         onClick={() => setNewOpen(true)} 
         size="icon" 
-        className="fixed bottom-20 md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
+        className="fixed mobile-fab-position right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
         title="New account"
       >
         <Plus className="h-5 w-5 md:h-6 md:w-6" />
