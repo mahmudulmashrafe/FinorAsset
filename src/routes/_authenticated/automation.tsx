@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney } from "@/lib/finance";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Play, Plus, Cpu, Sparkles, ArrowRight } from "lucide-react";
+import { Trash2, Play, Plus, Cpu, Sparkles, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ interface AutomationRule {
 
 function AutomationPage() {
   const qc = useQueryClient();
-  const { currency } = useUserProfile();
+  const { currency, authUser } = useUserProfile();
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
@@ -51,6 +51,7 @@ function AutomationPage() {
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
 
   // Form states
   const [name, setName] = useState("");
@@ -94,6 +95,15 @@ function AutomationPage() {
     }
   }, []);
 
+  // Sync editing rule to form state
+  useEffect(() => {
+    if (editingRule) {
+      setName(editingRule.name);
+      setActions(editingRule.actions);
+      setCreateOpen(true);
+    }
+  }, [editingRule]);
+
   function saveRules(newRules: AutomationRule[]) {
     setRules(newRules);
     localStorage.setItem("finorasset_automations", JSON.stringify(newRules));
@@ -135,26 +145,48 @@ function AutomationPage() {
       if (!act.amount || Number(act.amount) <= 0) return toast.error(`${prefix}Please enter a valid amount`);
     }
 
-    const newRule: AutomationRule = {
-      id: generateId(),
-      name: name.trim(),
-      actions: actions.map((act) => ({
+    if (editingRule) {
+      const updatedRules = rules.map((r) =>
+        r.id === editingRule.id
+          ? {
+              ...r,
+              name: name.trim(),
+              actions: actions.map((act) => ({
+                id: (act as any).id || generateId(),
+                kind: act.kind,
+                account_id: act.account_id,
+                to_account_id: act.to_account_id || undefined,
+                category_id: act.category_id || undefined,
+                amount: Number(act.amount),
+                note: act.note?.trim() || undefined,
+              })),
+            }
+          : r
+      );
+      saveRules(updatedRules);
+      toast.success(`Automation "${name}" updated!`);
+    } else {
+      const newRule: AutomationRule = {
         id: generateId(),
-        kind: act.kind,
-        account_id: act.account_id,
-        to_account_id: act.to_account_id || undefined,
-        category_id: act.category_id || undefined,
-        amount: Number(act.amount),
-        note: act.note?.trim() || undefined,
-      })),
-    };
-
-    saveRules([...rules, newRule]);
-    toast.success(`Automation "${name}" created with ${actions.length} shortcuts!`);
+        name: name.trim(),
+        actions: actions.map((act) => ({
+          id: generateId(),
+          kind: act.kind,
+          account_id: act.account_id,
+          to_account_id: act.to_account_id || undefined,
+          category_id: act.category_id || undefined,
+          amount: Number(act.amount),
+          note: act.note?.trim() || undefined,
+        })),
+      };
+      saveRules([...rules, newRule]);
+      toast.success(`Automation "${name}" created with ${actions.length} shortcuts!`);
+    }
 
     // Reset Form
     setName("");
     setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+    setEditingRule(null);
     setCreateOpen(false);
   }
 
@@ -166,10 +198,14 @@ function AutomationPage() {
 
   async function executeAutomation(rule: AutomationRule) {
     if (executingId) return;
+    if (!authUser?.id) {
+      return toast.error("User session expired. Please sign in again.");
+    }
     setExecutingId(rule.id);
 
     try {
       const inserts = rule.actions.map((act) => ({
+        user_id: authUser.id, // Authenticated user ID matches DB RLS policies
         kind: act.kind,
         category_id: act.kind !== "transfer" ? act.category_id || null : null,
         account_id: act.account_id,
@@ -185,7 +221,6 @@ function AutomationPage() {
         toast.error(`Execution failed: ${error.message}`);
       } else {
         toast.success(`Executed "${rule.name}"! Logged ${rule.actions.length} transactions successfully.`);
-        // Refresh values across layout views
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
       }
@@ -300,6 +335,13 @@ function AutomationPage() {
 
                   <div className="flex items-center gap-1.5">
                     <button
+                      onClick={() => setEditingRule(rule)}
+                      className="h-8 w-8 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground hover:bg-accent/15 transition-colors cursor-pointer"
+                      title="Edit Macro"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={() => handleDeleteRule(rule.id)}
                       className="h-8 w-8 flex items-center justify-center rounded-full bg-destructive/10 text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
                       title="Delete Macro"
@@ -323,7 +365,14 @@ function AutomationPage() {
       )}
 
       {/* Floating Add Macro FAB Button */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={(val) => {
+        setCreateOpen(val);
+        if (!val) {
+          setEditingRule(null);
+          setName("");
+          setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+        }
+      }}>
         <DialogTrigger asChild>
           <Button 
             className="fixed bottom-20 md:bottom-6 right-6 z-40 rounded-full h-10 w-10 md:h-14 md:w-14 p-0 shadow-lg cursor-pointer bg-accent hover:bg-accent/90 text-accent-foreground border border-accent/20"
@@ -334,7 +383,9 @@ function AutomationPage() {
         </DialogTrigger>
         <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
           <DialogHeader>
-            <DialogTitle className="font-serif text-2xl">New Automation Macro</DialogTitle>
+            <DialogTitle className="font-serif text-2xl">
+              {editingRule ? "Edit Automation Macro" : "New Automation Macro"}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateRule} className="space-y-4 mt-2">
             <div className="space-y-1.5">
@@ -465,7 +516,7 @@ function AutomationPage() {
 
             <div className="pt-2 flex justify-end">
               <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
-                Save Macro
+                {editingRule ? "Update Macro" : "Save Macro"}
               </Button>
             </div>
           </form>
