@@ -5,6 +5,9 @@ import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Toolti
 import { useMemo, useState } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/stats")({
   component: Stats,
@@ -21,6 +24,7 @@ function Stats() {
   const currentMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>(currentMonthKey);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const catMap = new Map(cats.map(c => [c.id, c]));
 
@@ -78,30 +82,64 @@ function Stats() {
 
   const totalExp = byCat.reduce((s, x) => s + x.value, 0);
 
+  const filtersContent = (
+    <>
+      <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+        <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
+        <Select value={accountFilter} onValueChange={setAccountFilter}>
+          <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+          <SelectContent className="z-[100]">
+            <SelectItem value="all">All accounts</SelectItem>
+            {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+        <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
+        <Select value={monthFilter} onValueChange={setMonthFilter}>
+          <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+          <SelectContent className="z-[100]">
+            {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+
   return (
     <div className="space-y-4 w-full">
-      {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3.5">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-48 bg-background"><SelectValue /></SelectTrigger>
-            <SelectContent className="z-[100]">
-              <SelectItem value="all">All accounts</SelectItem>
-              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Desktop Filters (inline) */}
+      <div className="hidden md:flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3.5">
+        {filtersContent}
+      </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
-          <Select value={monthFilter} onValueChange={setMonthFilter}>
-            <SelectTrigger className="w-48 bg-background"><SelectValue /></SelectTrigger>
-            <SelectContent className="z-[100]">
-              {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Mobile Filters Trigger */}
+      <div className="md:hidden flex items-center justify-between gap-3">
+        <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer bg-card border">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span>Filters</span>
+              {(accountFilter !== "all" || monthFilter !== currentMonthKey) && (
+                <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+              )}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[90vw] rounded-xl z-[99]">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Filter Stats</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-3">
+              {filtersContent}
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => setFiltersOpen(false)} className="text-xs font-bold cursor-pointer">
+                Apply Filters
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <section className="rounded-xl border bg-card p-4">

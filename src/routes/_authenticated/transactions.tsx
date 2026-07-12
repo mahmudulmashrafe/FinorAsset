@@ -231,17 +231,17 @@ function TxnsPage() {
 
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[580px] md:max-h-[465px] thin-scroll">
+        <div className="overflow-x-auto overflow-y-auto max-h-[295px] md:max-h-[465px] thin-scroll">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="w-20"></TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Date</TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Type</TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Category</TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Account</TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Note</TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm text-right">Amount</TableHead>
+                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 w-16 md:w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -263,47 +263,49 @@ function TxnsPage() {
                   : "";
                 return (
                   <TableRow key={t.id} className="group">
-                    <TableCell className="tabular-nums">
-                      {new Date(t.occurred_on).toLocaleDateString()}
+                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 tabular-nums text-xs md:text-sm">
+                      {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "2-digit" })}
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">{t.kind}</Badge>
+                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4">
+                      <Badge variant="outline" className="capitalize text-[9px] md:text-xs px-1 py-0 md:px-2 md:py-0.5">{t.kind}</Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 text-xs md:text-sm">
                       {cat ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span>{cat.icon}</span>
-                          <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                          {cat.name}
+                        <span className="inline-flex items-center gap-1">
+                          <span className="scale-90 md:scale-100">{cat.icon}</span>
+                          <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                          <span className="truncate max-w-[8ch] md:max-w-none">{cat.name}</span>
                         </span>
                       ) : "—"}
                     </TableCell>
-                    <TableCell>
-                      {acc?.name}
-                      {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
+                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 text-xs md:text-sm">
+                      <span className="truncate max-w-[8ch] md:max-w-none block">
+                        {acc?.name}
+                        {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground max-w-[20ch] truncate">
+                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 text-muted-foreground max-w-[10ch] md:max-w-[20ch] truncate text-xs md:text-sm">
                       {t.note ?? "—"}
                     </TableCell>
-                    <TableCell className={`text-right num font-serif font-semibold ${amtColor}`}>
+                    <TableCell className={`py-1.5 md:py-3 px-2 md:px-4 text-right num font-serif font-semibold text-xs md:text-sm ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
-                    <TableCell>
-                      {/* Edit + Delete — visible on row hover */}
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4">
+                      {/* Edit + Delete — visible on row hover / permanently visible on mobile */}
+                      <div className="flex items-center justify-end gap-0.5 md:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setEditingTxn(t)}
-                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                          className="h-6 w-6 md:h-7 md:w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
                           title="Edit transaction"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-3 w-3 md:h-3.5 md:w-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteId(t.id)}
-                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          className="h-6 w-6 md:h-7 md:w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                           title="Delete transaction"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
                         </button>
                       </div>
                     </TableCell>
