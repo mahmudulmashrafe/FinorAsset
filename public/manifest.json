@@ -1,0 +1,17 @@
+{
+  "short_name": "FinorAsset",
+  "name": "FinorAsset — Personal Finance Journal",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#fdfcfb",
+  "theme_color": "#d97706",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/"
+}

@@ -92,13 +92,17 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 20. **Dashboard List Margin & Padding Enhancements**:
     - Added right padding (`pr-3`) to the scrollable lists inside the Accounts and Recent Transactions dashboard widgets. This keeps the vertical scrollbar separated from the balance and transaction amount text values.
 
+21. **Email & Password Settings Panel updates**:
+    - Added change email functionality (`supabase.auth.updateUser`) and change password options verifying old password before applying updates inside settings dialog.
+    - Configured a read-only "Current Email Address" input field in settings email panel and refactored stats overview cards with text wrapping CSS class parameters (`break-all` and `select-all`) to guarantee long email strings are fully legible on all displays.
+
 ---
 
 ## Live URL
 
 Your website is live at:
 🚀 **[https://finorasset.vercel.app](https://finorasset.vercel.app)**
-*(Alternative Preview URL: [finor-asset-pte3fins1-mahmudul-mashrafes-projects-a3fb83c2.vercel.app](https://finor-asset-pte3fins1-mahmudul-mashrafes-projects-a3fb83c2.vercel.app))*
+*(Alternative Preview URL: [finor-asset-evqaorccd-mahmudul-mashrafes-projects-a3fb83c2.vercel.app](https://finor-asset-evqaorccd-mahmudul-mashrafes-projects-a3fb83c2.vercel.app))*
 
 ---
 
