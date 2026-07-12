@@ -375,15 +375,24 @@ function AccountsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Floatable Add Account FAB */}
-      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
+      {/* Floatable Add Account Trigger */}
+      <div>
+        {/* Mobile View: Floating Action Button */}
         <Button 
           onClick={() => setNewOpen(true)} 
           size="icon" 
-          className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center" 
+          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex md:hidden items-center justify-center cursor-pointer" 
           title="New account"
         >
-          <Plus className="h-5 w-5 md:h-6 md:w-6 text-accent" />
+          <Plus className="h-5 w-5" />
+        </Button>
+
+        {/* Web View: Inline Button before Credential Bar */}
+        <Button
+          onClick={() => setNewOpen(true)}
+          className="hidden md:flex items-center gap-1.5 rounded-full cursor-pointer text-xs font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground ml-auto mt-8 px-5 py-2 w-fit"
+        >
+          <Plus className="h-4 w-4" /> Add Account
         </Button>
       </div>
     </div>

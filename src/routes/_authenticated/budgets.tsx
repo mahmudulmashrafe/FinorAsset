@@ -174,74 +174,92 @@ function BudgetsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Floatable Add Budget FAB */}
-      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
-        <Dialog open={open} onOpenChange={(val) => {
-          setOpen(val);
-          if (!val) {
+      <div>
+        <Button 
+          disabled={availCats.length === 0}
+          onClick={() => {
             setEditingBudget(null);
             setCatId("");
             setAmount("");
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button 
-              disabled={availCats.length === 0}
-              onClick={() => {
-                setEditingBudget(null);
-                setCatId("");
-                setAmount("");
-              }}
-              size="icon"
-              className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-primary hover:bg-[#2c2826] text-primary-foreground shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-primary/10 flex items-center justify-center"
-              title="New budget"
-            >
-              <Plus className="h-5 w-5 md:h-6 md:w-6 text-accent" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-serif">
-                {editingBudget ? "Edit budget" : "New monthly budget"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Category</Label>
-                {editingBudget ? (
-                  <Input value={activeCat?.name ?? "—"} disabled className="bg-muted" />
-                ) : (
-                  <Select value={catId} onValueChange={setCatId}>
-                    <SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      {availCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div>
-                <Label>Amount</Label>
-                <Input 
-                  type="number" 
-                  step="0.01" 
-                  value={amount} 
-                  onChange={(e) => setAmount(e.target.value)} 
-                  placeholder="0.00"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => { setOpen(false); setEditingBudget(null); }}>
-                Cancel
-              </Button>
-              <Button onClick={save}>
-                {editingBudget ? "Save changes" : "Set budget"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            setOpen(true);
+          }}
+          size="icon"
+          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex md:hidden items-center justify-center cursor-pointer"
+          title="New budget"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+
+        <Button
+          disabled={availCats.length === 0}
+          onClick={() => {
+            setEditingBudget(null);
+            setCatId("");
+            setAmount("");
+            setOpen(true);
+          }}
+          className="hidden md:flex items-center gap-1.5 rounded-full cursor-pointer text-xs font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground ml-auto mt-8 px-5 py-2 w-fit"
+        >
+          <Plus className="h-4 w-4" /> Add Budget
+        </Button>
       </div>
+
+      <Dialog open={open} onOpenChange={(val) => {
+        setOpen(val);
+        if (!val) {
+          setEditingBudget(null);
+          setCatId("");
+          setAmount("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif">
+              {editingBudget ? "Edit budget" : "New monthly budget"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Category</Label>
+              {editingBudget ? (
+                <Input value={activeCat ? `${activeCat.icon} ${activeCat.name}` : "—"} disabled className="bg-muted" />
+              ) : (
+                <Select value={catId} onValueChange={setCatId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[150]">
+                    {availCats.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.icon} {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label>Monthly Amount</Label>
+              <Input
+                type="number"
+                step="any"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => { setOpen(false); setEditingBudget(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={save}>
+              {editingBudget ? "Save changes" : "Set budget"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
