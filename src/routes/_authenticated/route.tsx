@@ -272,6 +272,7 @@ function Layout() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const isPending = useRouterState({ select: (s) => s.status === "pending" });
   const { profile, authUser } = useUserProfile();
   const displayName = profile?.display_name || authUser?.email?.split("@")[0] || "there";
   const isTxnsPage = path === "/transactions";
@@ -413,7 +414,17 @@ function Layout() {
         </header>
 
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-20 md:pb-6">
-          <div key={path} className="flex-1 page-transition">
+          <div key={path} className="flex-1 page-transition relative">
+            {isPending && (
+              <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center min-h-[250px]">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-14 w-14 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-serif text-2xl font-black animate-pulse shadow-lg ring-4 ring-accent/15">
+                    F
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-serif tracking-[0.25em] uppercase animate-pulse">FinorAsset</span>
+                </div>
+              </div>
+            )}
             <Outlet />
           </div>
           <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider">
