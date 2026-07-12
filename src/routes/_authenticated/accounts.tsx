@@ -314,8 +314,8 @@ function AccountsPage() {
             className="rounded-xl border bg-card p-4 relative group transition-shadow hover:shadow-md"
             style={{ }}
           >
-            {/* Action buttons — visible on hover */}
-            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Action buttons — visible on hover on desktop, always visible on mobile */}
+            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => setEditAccount(a)}
                 className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
@@ -337,7 +337,7 @@ function AccountsPage() {
               <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
             </div>
-            <h3 className="mt-1.5 font-serif text-base font-bold">{a.name}</h3>
+            <h3 className="mt-1.5 font-serif text-base font-bold pr-16">{a.name}</h3>
             <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
           </div>
         ))}
@@ -379,7 +379,7 @@ function AccountsPage() {
       <Button 
         onClick={() => setNewOpen(true)} 
         size="icon" 
-        className="fixed bottom-0 right-6 z-[60] h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
         title="New account"
       >
         <Plus className="h-5 w-5 md:h-6 md:w-6" />
