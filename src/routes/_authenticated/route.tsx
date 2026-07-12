@@ -257,11 +257,14 @@ function Layout() {
         {/* Top bar — taller, with centered greeting */}
         <header className="relative flex h-28 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
 
-          {/* Left: Logo */}
-          <TopBarLogo />
+          {/* Left: Trigger & Logo */}
+          <div className="flex items-center gap-2 z-10">
+            <SidebarTrigger className="h-9 w-9 cursor-pointer md:hidden" />
+            <TopBarLogo />
+          </div>
 
           {/* Center: greeting + full date — absolutely centered */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 hidden md:flex flex-col items-center justify-center pointer-events-none">
             <p className="font-serif text-2xl md:text-3xl font-black tracking-tight">
               {greetTime()}, {displayName}.
             </p>

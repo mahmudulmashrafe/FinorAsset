@@ -85,7 +85,11 @@ function Dashboard() {
       {/* ── Page header ── */}
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Summary</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+            <span>Summary</span>
+            <span className="md:hidden text-muted-foreground/60 font-sans tracking-normal">&middot;</span>
+            <span className="md:hidden text-muted-foreground/80 font-sans normal-case tracking-normal">{greet(displayName)}</span>
+          </p>
           <h1 className="mt-1 font-serif text-3xl">Overview</h1>
         </div>
       </div>
