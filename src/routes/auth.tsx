@@ -207,10 +207,10 @@ function AuthPage() {
       {/* Header navbar - Large logo and navigation */}
       <header className="w-full border-b bg-background/50 backdrop-blur-sm sticky top-0 z-50 h-28 flex items-center">
         <div className="flex w-full items-center justify-between px-6 md:px-12 lg:px-20 py-4">
-          <Link to="/" className="flex items-center gap-4 font-serif text-4xl md:text-5xl font-black select-none hover:opacity-90 transition-opacity">
-            <span className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center">
+          <Link to="/" className="flex items-center gap-4 font-serif text-2xl md:text-3xl font-black select-none hover:opacity-90 transition-opacity">
+            <span className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-              <span className="relative inline-flex h-5.5 w-5.5 rounded-full bg-accent shadow-[0_0_12px_rgba(217,119,6,0.5)]" />
+              <span className="relative inline-flex h-4 w-4 rounded-full bg-accent shadow-[0_0_12px_rgba(217,119,6,0.5)]" />
             </span>
             <span>FinorAsset</span>
           </Link>

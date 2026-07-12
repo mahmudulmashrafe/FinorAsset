@@ -246,7 +246,7 @@ function Layout() {
         <header className="relative flex h-28 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
 
           {/* Left: Logo */}
-          <FinorAssetLogo className="text-4xl md:text-5xl flex-shrink-0" iconSize="h-9 w-9" dotSize="h-5.5 w-5.5" />
+          <FinorAssetLogo className="text-xl md:text-2xl flex-shrink-0" iconSize="h-6 w-6" dotSize="h-3.5 w-3.5" />
 
           {/* Center: greeting + full date — absolutely centered */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
