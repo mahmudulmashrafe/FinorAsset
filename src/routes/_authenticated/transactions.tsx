@@ -231,7 +231,7 @@ function TxnsPage() {
 
       {/* Table (Desktop Layout) */}
       <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-y-auto max-h-[465px] thin-scroll">
+        <div className="overflow-y-auto max-h-[520px] thin-scroll">
           <Table className="w-full">
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
@@ -315,7 +315,7 @@ function TxnsPage() {
       </div>
 
       {/* List (Mobile Layout) */}
-      <div className="md:hidden rounded-xl border bg-card p-3 overflow-y-auto overflow-x-hidden max-h-[420px] thin-scroll">
+      <div className="md:hidden rounded-xl border bg-card p-3 overflow-y-auto overflow-x-hidden max-h-[475px] thin-scroll">
         {filtered.length === 0 && (
           <div className="text-center text-muted-foreground py-12 text-sm">
             No transactions match.

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api, computeAccountBalances, fmtMoney, monthKey } from "@/lib/finance";
-import { TransactionDialog } from "@/components/transaction-dialog";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Zap, Target } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -12,12 +11,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
   head: () => ({ meta: [{ title: "Dashboard — FinorAsset" }] }),
 });
-
-function greet(name: string) {
-  const h = new Date().getHours();
-  const salutation = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  return `${salutation}, ${name}.`;
-}
 
 function Dashboard() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
@@ -81,36 +74,35 @@ function Dashboard() {
   const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
-    <div className="space-y-3.5">
-
+    <div className="space-y-2.5">
 
       {/* ── KPI Cards ── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Net Worth" value={fmtMoney(net, currency)} icon={Wallet} accent />
         <StatCard label="Income this month" value={fmtMoney(income, currency)} icon={TrendingUp} positive />
         <StatCard label="Expenses this month" value={fmtMoney(expense, currency)} icon={TrendingDown} negative />
-        <div className="rounded-xl border bg-card py-3.5 px-4">
+        <div className="rounded-xl border bg-card py-2.5 px-3.5">
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Savings Rate</p>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </div>
           <p className="mt-1 font-serif text-2xl num">{savingsRate}%</p>
-          <Progress value={savingsRate} className="mt-2.5 h-1.5" />
+          <Progress value={savingsRate} className="mt-1.5 h-1.5" />
           <p className="mt-0.5 text-xs text-muted-foreground">of income saved</p>
         </div>
       </div>
 
       {/* ── Chart + Top Spending ── */}
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-2.5 lg:grid-cols-3">
         {/* Cashflow chart */}
-        <section className="rounded-xl border bg-card p-4 lg:col-span-2">
+        <section className="rounded-xl border bg-card p-3.5 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-serif text-base font-bold">Last 30 days</h2>
               <p className="text-[10px] text-muted-foreground">Daily net cashflow</p>
             </div>
           </div>
-          <div className="h-32 mt-1.5">
+          <div className="h-28 mt-1.5">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={series}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -124,20 +116,20 @@ function Dashboard() {
         </section>
 
         {/* Top spending categories */}
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-xl border bg-card p-3.5">
           <h2 className="font-serif text-base font-bold">Top Spending</h2>
           <p className="text-[10px] text-muted-foreground mb-1.5">This month by category</p>
           {topCats.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-xs text-center gap-1.5">
+            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground text-xs text-center gap-1.5">
               <Target className="h-7 w-7 opacity-40" />
               <p>No expense transactions yet</p>
             </div>
           ) : (
             <>
-              <div className="h-24 mb-2">
+              <div className="h-20 mb-1.5">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={topCats} dataKey="amt" nameKey="cat.name" cx="50%" cy="50%" outerRadius={40} innerRadius={20}>
+                    <Pie data={topCats} dataKey="amt" nameKey="cat.name" cx="50%" cy="50%" outerRadius={36} innerRadius={18}>
                       {topCats.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
@@ -166,9 +158,9 @@ function Dashboard() {
       </div>
 
       {/* ── Budget Health + Accounts + Recent ── */}
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-2.5 lg:grid-cols-3">
         {/* Budget health */}
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-xl border bg-card p-3.5">
           <div className="flex items-center justify-between mb-1.5">
             <h2 className="font-serif text-base font-bold">Budget Health</h2>
             <Link to="/budgets" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
@@ -176,13 +168,13 @@ function Dashboard() {
             </Link>
           </div>
           {budgetItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-xs text-center gap-1.5">
+            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground text-xs text-center gap-1.5">
               <PiggyBank className="h-7 w-7 opacity-40" />
               <p>No budgets set</p>
               <Link to="/budgets" className="text-xs text-accent hover:underline">Set a budget →</Link>
             </div>
           ) : (
-            <ul className="space-y-2 overflow-y-auto max-h-[140px] pr-1.5 pb-1 thin-scroll text-xs">
+            <ul className="space-y-2 overflow-y-auto max-h-[125px] pr-1.5 pb-1 thin-scroll text-xs">
               {budgetItems.map(({ b, spent, pct, over, cat }) => (
                 <li key={b.id}>
                   <div className="flex items-center justify-between mb-0.5">
@@ -202,14 +194,14 @@ function Dashboard() {
         </section>
 
         {/* Accounts */}
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-xl border bg-card p-3.5">
           <div className="flex items-center justify-between mb-1.5">
             <h2 className="font-serif text-base font-bold">Accounts</h2>
             <Link to="/accounts" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[140px] pr-2 pb-1 thin-scroll text-xs">
+          <ul className="divide-y overflow-y-auto max-h-[125px] pr-2 pb-1 thin-scroll text-xs">
             {accounts.length === 0 && (
               <li className="py-4 text-xs text-muted-foreground text-center">
                 No accounts yet.{" "}
@@ -232,14 +224,14 @@ function Dashboard() {
         </section>
 
         {/* Recent activity */}
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-xl border bg-card p-3.5">
           <div className="flex items-center justify-between mb-1.5">
             <h2 className="font-serif text-base font-bold">Recent</h2>
             <Link to="/transactions" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[140px] pr-2 pb-1 thin-scroll text-xs">
+          <ul className="divide-y overflow-y-auto max-h-[125px] pr-2 pb-1 thin-scroll text-xs">
             {recent.length === 0 && (
               <li className="py-4 text-xs text-muted-foreground text-center">No transactions yet.</li>
             )}
@@ -274,7 +266,7 @@ function StatCard({ label, value, icon: Icon, accent, positive, negative }: {
 }) {
   const color = positive ? "text-[color:var(--success)]" : negative ? "text-[color:var(--destructive)]" : "";
   return (
-    <div className="rounded-xl border bg-card py-3.5 px-4">
+    <div className="rounded-xl border bg-card py-2.5 px-3.5">
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
         <Icon className="h-4 w-4 text-muted-foreground" />
