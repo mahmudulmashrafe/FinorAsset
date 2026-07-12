@@ -49,51 +49,45 @@ function AutomationPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
 
-  // Load rules using useQuery with Supabase database as source and LocalStorage as fallback
-  const { data: rules = [], refetch } = useQuery({
-    queryKey: ["macros"],
-    queryFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return [];
+  // Load rules — try localStorage first (instant), then Supabase as background upgrade
+  function loadLocalRules(): AutomationRule[] {
+    const stored = localStorage.getItem("finorasset_automations");
+    if (!stored) return [];
+    try {
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((rule: any) => {
+        if (rule.actions && Array.isArray(rule.actions)) return rule;
+        return {
+          id: rule.id || generateId(),
+          name: rule.name || "Legacy Macro",
+          actions: [{
+            id: generateId(),
+            kind: rule.kind || "expense",
+            category_id: rule.category_id,
+            account_id: rule.account_id || "",
+            to_account_id: rule.to_account_id,
+            amount: Number(rule.amount || 0),
+            note: rule.note,
+          }]
+        };
+      });
+    } catch { return []; }
+  }
 
+  const { data: rules = [] } = useQuery({
+    queryKey: ["macros", authUser?.id],
+    enabled: !!authUser,
+    initialData: loadLocalRules,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("macros")
         .select("*")
         .order("created_at", { ascending: true });
 
       if (error) {
-        // Fallback to local storage if table doesn't exist
-        if (error.code === "42P01") {
-          const stored = localStorage.getItem("finorasset_automations");
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (Array.isArray(parsed)) {
-                return parsed.map((rule: any) => {
-                  if (rule.actions && Array.isArray(rule.actions)) return rule;
-                  return {
-                    id: rule.id || generateId(),
-                    name: rule.name || "Legacy Macro",
-                    actions: [
-                      {
-                        id: generateId(),
-                        kind: rule.kind || "expense",
-                        category_id: rule.category_id,
-                        account_id: rule.account_id || "",
-                        to_account_id: rule.to_account_id,
-                        amount: Number(rule.amount || 0),
-                        note: rule.note,
-                      }
-                    ]
-                  };
-                });
-              }
-            } catch (e) {
-              console.error("Local storage load/migration error:", e);
-            }
-          }
-          return [];
-        }
+        // Table doesn't exist yet — use localStorage
+        if (error.code === "42P01") return loadLocalRules();
         throw error;
       }
       return data as AutomationRule[];
