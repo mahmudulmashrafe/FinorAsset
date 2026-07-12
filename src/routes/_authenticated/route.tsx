@@ -58,15 +58,34 @@ function FinorAssetLogo({ className = "", iconSize = "h-6 w-6", dotSize = "h-4 w
   );
 }
 
+// ─── Top Bar Logo (conditionally visible) ──────────────────────────────────
+function TopBarLogo() {
+  const { state } = useSidebar();
+  if (state === "expanded") {
+    // Spacer matching the width of the collapsed sidebar to prevent layout shifting
+    return <div className="h-9 w-9 flex-shrink-0" />;
+  }
+  return <FinorAssetLogo className="text-xl md:text-2xl flex-shrink-0" iconSize="h-6 w-6" dotSize="h-3.5 w-3.5" />;
+}
+
 // ─── Sidebar header with hover-reveal trigger ─────────────────────────────────
 function SidebarLogoHeader() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  return (
-    // group/hdr lets children react to hover on this container
-    <div className="group/hdr flex items-center justify-center px-4 py-6 relative w-full">
+  if (!isCollapsed) {
+    return (
+      <div className="group/hdr flex items-center justify-between px-3 py-6 relative w-full">
+        <FinorAssetLogo className="text-xl flex-shrink-0" iconSize="h-6 w-6" dotSize="h-3.5 w-3.5" />
+        <SidebarTrigger
+          className="h-9 w-9 [&_svg]:h-5 [&_svg]:w-5 flex-shrink-0 opacity-0 group-hover/hdr:opacity-100 transition-opacity duration-150 cursor-pointer"
+        />
+      </div>
+    );
+  }
 
+  return (
+    <div className="group/hdr flex items-center justify-center px-4 py-6 relative w-full">
       {/* Round icon badge — centered, always visible */}
       <div className="flex items-center justify-center select-none w-full">
         <span className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-accent/15 border border-accent/30 shadow-[0_0_15px_rgba(217,119,6,0.15)]">
@@ -78,14 +97,7 @@ function SidebarLogoHeader() {
       {/* SidebarTrigger — hidden until user hovers the header area */}
       {/* In collapsed state: always visible so user can click to expand */}
       <SidebarTrigger
-        className={`
-          h-9 w-9 [&_svg]:h-5 [&_svg]:w-5 flex-shrink-0
-          transition-opacity duration-150
-          ${isCollapsed
-            ? "absolute inset-0 m-auto opacity-0 hover:opacity-100 w-full h-full rounded-none"
-            : "opacity-0 group-hover/hdr:opacity-100"
-          }
-        `}
+        className="h-9 w-9 [&_svg]:h-5 [&_svg]:w-5 flex-shrink-0 absolute inset-0 m-auto opacity-0 hover:opacity-100 w-full h-full rounded-none cursor-pointer"
       />
     </div>
   );
@@ -246,7 +258,7 @@ function Layout() {
         <header className="relative flex h-28 items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
 
           {/* Left: Logo */}
-          <FinorAssetLogo className="text-xl md:text-2xl flex-shrink-0" iconSize="h-6 w-6" dotSize="h-3.5 w-3.5" />
+          <TopBarLogo />
 
           {/* Center: greeting + full date — absolutely centered */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
