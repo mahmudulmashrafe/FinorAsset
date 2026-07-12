@@ -18,6 +18,13 @@ export const Route = createFileRoute("/_authenticated/automation")({
   head: () => ({ meta: [{ title: "Automation — FinorAsset" }] }),
 });
 
+function generateId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "id-" + Math.random().toString(36).substring(2, 15) + "-" + Date.now().toString(36);
+}
+
 interface AutomationAction {
   id: string;
   kind: "income" | "expense" | "transfer";
@@ -51,14 +58,38 @@ function AutomationPage() {
     { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }
   ]);
 
-  // Load rules from localStorage
+  // Load rules from localStorage and migrate legacy single-action rules
   useEffect(() => {
     const stored = localStorage.getItem("finorasset_automations");
     if (stored) {
       try {
-        setRules(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const migrated = parsed.map((rule: any) => {
+            if (rule.actions && Array.isArray(rule.actions)) {
+              return rule;
+            }
+            // Migrate single action schema to multiple actions schema
+            return {
+              id: rule.id || generateId(),
+              name: rule.name || "Legacy Macro",
+              actions: [
+                {
+                  id: generateId(),
+                  kind: rule.kind || "expense",
+                  category_id: rule.category_id,
+                  account_id: rule.account_id || "",
+                  to_account_id: rule.to_account_id,
+                  amount: Number(rule.amount || 0),
+                  note: rule.note,
+                }
+              ]
+            };
+          });
+          saveRules(migrated);
+        }
       } catch (e) {
-        console.error(e);
+        console.error("Local storage load/migration error:", e);
       }
     }
   }, []);
@@ -105,10 +136,10 @@ function AutomationPage() {
     }
 
     const newRule: AutomationRule = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: name.trim(),
       actions: actions.map((act) => ({
-        id: crypto.randomUUID(),
+        id: generateId(),
         kind: act.kind,
         account_id: act.account_id,
         to_account_id: act.to_account_id || undefined,
