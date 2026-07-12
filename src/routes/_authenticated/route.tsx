@@ -358,6 +358,10 @@ function Layout() {
 
           {/* Right: Add & Mobile Profile */}
           <div className="ml-auto flex items-center gap-2 md:gap-3 z-10">
+            {/* Mobile-only greeting, left of the + icon */}
+            <span className="md:hidden text-xs font-serif font-black tracking-tight text-muted-foreground/80 mr-1 select-none">
+              {greetTime()}, {displayName}
+            </span>
             <TransactionDialog
               trigger={
                 <Button 
