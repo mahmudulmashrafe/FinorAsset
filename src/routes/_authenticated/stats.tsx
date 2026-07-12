@@ -163,7 +163,7 @@ function Stats() {
 
       <section className="rounded-xl border bg-card p-3">
         <h2 className="font-serif text-base font-bold">Income vs Expense — 6 months</h2>
-        <div className="h-40 mt-1.5">
+        <div className="h-48 mt-1.5">
           <ResponsiveContainer>
             <BarChart data={monthly}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -182,13 +182,13 @@ function Stats() {
         <div className="rounded-xl border bg-card p-3">
           <h2 className="font-serif text-base font-bold">Spending by category</h2>
           <p className="text-[10px] text-muted-foreground font-serif">This month · {fmtMoney(totalExp, currency)} total</p>
-          <div className="h-40 mt-1.5">
+          <div className="h-48 mt-1.5">
             {byCat.length === 0 ? (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No expenses this month yet.</div>
             ) : (
               <ResponsiveContainer>
                 <PieChart>
-                  <Pie data={byCat} dataKey="value" nameKey="name" outerRadius={70} innerRadius={42} paddingAngle={2}>
+                  <Pie data={byCat} dataKey="value" nameKey="name" outerRadius={90} innerRadius={55} paddingAngle={2}>
                     {byCat.map((c, i) => <Cell key={i} fill={c.color} />)}
                   </Pie>
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11 }} formatter={(v: any) => fmtMoney(Number(v), currency)} />

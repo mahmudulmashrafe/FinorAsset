@@ -46,6 +46,7 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 
 9. **Prevented Page Transitions Layout Shift**:
    - Added `scrollbar-gutter: stable;` to the `html` element inside `styles.css`. This ensures that navigating between pages with varying content heights does not shift the top bar header or other aligned items horizontally.
+   - Forced the vertical scrollbar track to remain visible at all times (`overflow-y: scroll`) inside `styles.css` to prevent layout jumping when content heights shrink during account or month filtering.
 
 10. **Mobile Greeting Placement**:
     - Positioned the personalized greeting message on the left of the `+` (Add Transaction) icon inside the top header on mobile.
@@ -59,8 +60,10 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 13. **Removed Duplicate Transactions Dialog Trigger**:
     - Removed the duplicate "New Transaction" action button from the Transactions page body, leaving only the primary shared header "Add Transaction" button.
 
-14. **Transactions Table Viewport (8 Rows on Mobile & Desktop)**:
-    - Adjusted the table scrollbar wrapper container to use standard Tailwind sizing `max-h-[580px] md:max-h-[465px]`. This displays more records on mobile screens and exactly 8 transaction records on desktop before triggering a scrollbar.
+14. **Transactions Table Viewport (8 Rows on Desktop, 6 Rows on Mobile)**:
+    - Adjusted the table scrollbar wrapper container to use standard Tailwind sizing `max-h-[295px] md:max-h-[465px]`. This displays exactly 6 rows on mobile before showing a scrollbar, and 8 rows on desktop.
+    - Set table element minimum width to `min-w-[650px] md:min-w-full`. This forces the table to scroll horizontally inside its `overflow-x-auto` wrapper instead of squeezing columns, guaranteeing Note and Amount data columns are never clipped on narrow mobile viewports.
+    - Compacted table cell paddings (`py-1.5 px-2 md:py-3 md:px-4`) and font sizes on mobile, making edit/delete actions permanently visible on touch displays.
 
 15. **Floating Action Buttons (FABs) for Accounts & Budgets**:
     - Relocated both the Add Account and Add Budget buttons as floating action buttons (FABs) fixed in the bottom-right corner (`fixed bottom-20 md:bottom-12 right-6 z-40`). Raised the desktop FAB position from `bottom-6` to `bottom-12` so they float elegantly above any page borders.
@@ -70,7 +73,7 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 16. **Pop-up Filters & Month Selection (Transactions & Stats)**:
     - Added a month filtering option dropdown generating options for the last 12 months.
     - Implemented a responsive filter layout: on desktop, the filters display inline inside a card; on mobile, they collapse into a single "Filters" button with an active indicator badge that triggers a clean modal pop-up containing all filter dropdowns and inputs.
-    - Added Account and Month filters to the Stats page as an inline header row, updating the bar and pie charts dynamically based on selections.
+    - Added Account and Month filters to the Stats page as an inline header row on desktop and a pop-up filter trigger Dialog on mobile.
     - Resolved a z-index overlay bug where Radix select dropdown portals were rendered behind the mobile Dialog pop-up. Applied `className="z-[100]"` to all dropdown containers (`SelectContent`) inside Dialog components.
 
 17. **Reduced Account Block Sizing**:
@@ -78,12 +81,13 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 
 18. **Compact Stats Insights Layout**:
     - Reduced spacing and heights across the Stats page to fit the viewport more efficiently.
-    - Shrunk charts container heights from `h-60` (240px) to `h-48` (192px).
-    - Reduced card padding to `p-4`, list spacing to `py-1`, and grid spacing to `gap-4` to present a unified, cohesive layout.
+    - Shrunk charts container heights from `h-60` (240px) to `h-40` (160px).
+    - Reduced card padding to `p-3`, list spacing to `py-1`, and grid spacing to `gap-3`.
+    - Compacted desktop inline stats filters to render side-by-side with labels and Select triggers at height `h-8`.
 
 19. **Top Bar Header Mobilization Layout**:
     - Restored the FinorAsset logo on mobile by adjusting the expanded state check (`state === 'expanded' && !isMobile`) in the TopBarLogo component.
-    - Kept a single-line top bar layout (`h-20` on all viewports) and positioned the personalized greeting and short date in the center of the bar next to the logo and action items, preventing overlapping using responsive font bounds and horizontal constraints.
+    - Kept a single-line top bar layout (`h-20` on all viewports) and positioned the personalized greeting and short date in the center of the bar next to the logo and action items. Removed the horizontal separator border line on mobile viewports.
 
 20. **Dashboard List Margin & Padding Enhancements**:
     - Added right padding (`pr-3`) to the scrollable lists inside the Accounts and Recent Transactions dashboard widgets. This keeps the vertical scrollbar separated from the balance and transaction amount text values.
@@ -94,7 +98,7 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 
 Your website is live at:
 🚀 **[https://finorasset.vercel.app](https://finorasset.vercel.app)**
-*(Alternative Preview URL: [finor-asset-3hj2mf186-mahmudul-mashrafes-projects-a3fb83c2.vercel.app](https://finor-asset-3hj2mf186-mahmudul-mashrafes-projects-a3fb83c2.vercel.app))*
+*(Alternative Preview URL: [finor-asset-pte3fins1-mahmudul-mashrafes-projects-a3fb83c2.vercel.app](https://finor-asset-pte3fins1-mahmudul-mashrafes-projects-a3fb83c2.vercel.app))*
 
 ---
 

@@ -229,19 +229,19 @@ function TxnsPage() {
         </span>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[295px] md:max-h-[465px] thin-scroll">
-          <Table className="min-w-[650px] md:min-w-full">
+      {/* Table (Desktop Layout) */}
+      <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
+        <div className="overflow-y-auto max-h-[465px] thin-scroll">
+          <Table className="w-full">
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Date</TableHead>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Type</TableHead>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Category</TableHead>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Account</TableHead>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Note</TableHead>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm text-right">Amount</TableHead>
-                <TableHead className="py-2 md:py-3.5 px-2 md:px-4 w-16 md:w-20"></TableHead>
+                <TableHead className="py-3 px-4 text-xs md:text-sm">Date</TableHead>
+                <TableHead className="py-3 px-4 text-xs md:text-sm">Type</TableHead>
+                <TableHead className="py-3 px-4 text-xs md:text-sm">Category</TableHead>
+                <TableHead className="py-3 px-4 text-xs md:text-sm">Account</TableHead>
+                <TableHead className="py-3 px-4 text-xs md:text-sm">Note</TableHead>
+                <TableHead className="py-3 px-4 text-xs md:text-sm text-right">Amount</TableHead>
+                <TableHead className="py-3 px-4 w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -263,49 +263,46 @@ function TxnsPage() {
                   : "";
                 return (
                   <TableRow key={t.id} className="group">
-                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 tabular-nums text-xs md:text-sm">
-                      {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "2-digit" })}
+                    <TableCell className="py-3 px-4 tabular-nums text-xs md:text-sm">
+                      {new Date(t.occurred_on).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4">
-                      <Badge variant="outline" className="capitalize text-[9px] md:text-xs px-1 py-0 md:px-2 md:py-0.5">{t.kind}</Badge>
+                    <TableCell className="py-3 px-4">
+                      <Badge variant="outline" className="capitalize text-xs px-2 py-0.5">{t.kind}</Badge>
                     </TableCell>
-                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 text-xs md:text-sm">
+                    <TableCell className="py-3 px-4 text-xs md:text-sm">
                       {cat ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="scale-90 md:scale-100">{cat.icon}</span>
-                          <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                          <span className="truncate max-w-[8ch] md:max-w-none">{cat.name}</span>
+                        <span className="inline-flex items-center gap-2">
+                          <span>{cat.icon}</span>
+                          <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                          {cat.name}
                         </span>
                       ) : "—"}
                     </TableCell>
-                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 text-xs md:text-sm">
-                      <span className="truncate max-w-[8ch] md:max-w-none block">
-                        {acc?.name}
-                        {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
-                      </span>
+                    <TableCell className="py-3 px-4 text-xs md:text-sm">
+                      {acc?.name}
+                      {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
                     </TableCell>
-                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4 text-muted-foreground max-w-[10ch] md:max-w-[20ch] truncate text-xs md:text-sm">
+                    <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-xs md:text-sm">
                       {t.note ?? "—"}
                     </TableCell>
-                    <TableCell className={`py-1.5 md:py-3 px-2 md:px-4 text-right num font-serif font-semibold text-xs md:text-sm ${amtColor}`}>
+                    <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-xs md:text-sm ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
-                    <TableCell className="py-1.5 md:py-3 px-2 md:px-4">
-                      {/* Edit + Delete — visible on row hover / permanently visible on mobile */}
-                      <div className="flex items-center justify-end gap-0.5 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <TableCell className="py-3 px-4">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setEditingTxn(t)}
-                          className="h-6 w-6 md:h-7 md:w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
                           title="Edit transaction"
                         >
-                          <Pencil className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteId(t.id)}
-                          className="h-6 w-6 md:h-7 md:w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                           title="Delete transaction"
                         >
-                          <Trash2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </TableCell>
@@ -314,6 +311,72 @@ function TxnsPage() {
               })}
             </TableBody>
           </Table>
+        </div>
+      </div>
+
+      {/* List (Mobile Layout) */}
+      <div className="md:hidden rounded-xl border bg-card p-3 overflow-y-auto overflow-x-hidden max-h-[420px] thin-scroll">
+        {filtered.length === 0 && (
+          <div className="text-center text-muted-foreground py-12 text-sm">
+            No transactions match.
+          </div>
+        )}
+        <div className="divide-y divide-border/50">
+          {filtered.map((t) => {
+            const acc = accMap.get(t.account_id);
+            const cat = t.category_id ? catMap.get(t.category_id) : null;
+            const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+            const amtColor = t.kind === "income"
+              ? "text-[color:var(--success)]"
+              : t.kind === "expense"
+              ? "text-[color:var(--destructive)]"
+              : "";
+            return (
+              <div key={t.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-xl h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    {cat?.icon ?? "💵"}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-serif font-black truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</span>
+                      <Badge variant="outline" className="capitalize text-[8px] px-1 py-0 scale-90 origin-left leading-none">{t.kind}</Badge>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      {acc?.name} {t.to_account_id && `→ ${accMap.get(t.to_account_id)?.name}`}
+                      <span className="mx-1">·</span>
+                      {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </div>
+                    {t.note && (
+                      <div className="text-[9px] text-muted-foreground italic truncate max-w-[160px] mt-0.5">
+                        {t.note}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`num font-serif text-xs font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setEditingTxn(t)}
+                      className="h-6 w-6 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Edit transaction"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteId(t.id)}
+                      className="h-6 w-6 flex items-center justify-center rounded bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                      title="Delete transaction"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

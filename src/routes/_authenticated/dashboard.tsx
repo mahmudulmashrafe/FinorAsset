@@ -81,15 +81,15 @@ function Dashboard() {
   const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
 
 
       {/* ── KPI Cards ── */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Net Worth" value={fmtMoney(net, currency)} icon={Wallet} accent />
         <StatCard label="Income this month" value={fmtMoney(income, currency)} icon={TrendingUp} positive />
         <StatCard label="Expenses this month" value={fmtMoney(expense, currency)} icon={TrendingDown} negative />
-        <div className="rounded-xl border bg-card py-4 px-5">
+        <div className="rounded-xl border bg-card py-3.5 px-4">
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Savings Rate</p>
             <Zap className="h-4 w-4 text-muted-foreground" />
@@ -101,16 +101,16 @@ function Dashboard() {
       </div>
 
       {/* ── Chart + Top Spending ── */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-3.5 lg:grid-cols-3">
         {/* Cashflow chart */}
-        <section className="rounded-xl border bg-card p-5 lg:col-span-2">
+        <section className="rounded-xl border bg-card p-4 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-serif text-2xl">Last 30 days</h2>
               <p className="text-xs text-muted-foreground">Daily net cashflow</p>
             </div>
           </div>
-          <div className="h-44 mt-3">
+          <div className="h-36 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={series}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -124,9 +124,9 @@ function Dashboard() {
         </section>
 
         {/* Top spending categories */}
-        <section className="rounded-xl border bg-card p-5">
+        <section className="rounded-xl border bg-card p-4">
           <h2 className="font-serif text-2xl">Top Spending</h2>
-          <p className="text-xs text-muted-foreground mb-3">This month by category</p>
+          <p className="text-xs text-muted-foreground mb-2">This month by category</p>
           {topCats.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-36 text-muted-foreground text-sm text-center gap-2">
               <Target className="h-8 w-8 opacity-40" />
@@ -166,10 +166,10 @@ function Dashboard() {
       </div>
 
       {/* ── Budget Health + Accounts + Recent ── */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-3.5 lg:grid-cols-3">
         {/* Budget health */}
-        <section className="rounded-xl border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
+        <section className="rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-serif text-2xl">Budget Health</h2>
             <Link to="/budgets" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
               All <ArrowRight className="h-3 w-3" />
@@ -202,8 +202,8 @@ function Dashboard() {
         </section>
 
         {/* Accounts */}
-        <section className="rounded-xl border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
+        <section className="rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-serif text-2xl">Accounts</h2>
             <Link to="/accounts" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
               All <ArrowRight className="h-3 w-3" />
@@ -232,8 +232,8 @@ function Dashboard() {
         </section>
 
         {/* Recent activity */}
-        <section className="rounded-xl border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
+        <section className="rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-serif text-2xl">Recent</h2>
             <Link to="/transactions" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
               All <ArrowRight className="h-3 w-3" />
@@ -274,7 +274,7 @@ function StatCard({ label, value, icon: Icon, accent, positive, negative }: {
 }) {
   const color = positive ? "text-[color:var(--success)]" : negative ? "text-[color:var(--destructive)]" : "";
   return (
-    <div className="rounded-xl border bg-card py-4 px-5">
+    <div className="rounded-xl border bg-card py-3.5 px-4">
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
         <Icon className="h-4 w-4 text-muted-foreground" />
