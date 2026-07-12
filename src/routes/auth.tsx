@@ -221,8 +221,8 @@ function AuthPage() {
       </header>
 
       {/* Main content - Centered Card */}
-      <main className="flex-1 flex flex-col items-center justify-center w-full px-6 py-4 relative z-10 overflow-y-auto thin-scroll">
-        <div className="w-full max-w-sm bg-card border rounded-2xl p-6 md:p-8 shadow-sm">
+      <main className="flex-1 flex flex-col items-center justify-center w-full px-4 py-6 md:px-6 md:py-8 relative z-10 overflow-y-auto thin-scroll">
+        <div className="w-full max-w-sm bg-transparent md:bg-card border-0 md:border rounded-2xl p-2 sm:p-4 md:p-8 shadow-none md:shadow-sm">
           <div className="text-center mb-6">
             <h1 className="font-serif text-3xl font-bold">
               {mode === "signin" && (useOtp ? "OTP Login" : "Welcome")}
