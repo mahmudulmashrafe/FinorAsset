@@ -232,7 +232,7 @@ function TxnsPage() {
       {/* Table */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[295px] md:max-h-[465px] thin-scroll">
-          <Table>
+          <Table className="min-w-[650px] md:min-w-full">
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
                 <TableHead className="py-2 md:py-3.5 px-2 md:px-4 text-xs md:text-sm">Date</TableHead>

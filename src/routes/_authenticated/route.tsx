@@ -365,7 +365,7 @@ function Layout() {
               </div>
             </div>
             {/* Bottom row: Greeting + Date */}
-            <div className="flex items-baseline justify-between w-full mt-1.5 border-t pt-1 border-border/40">
+            <div className="flex items-baseline justify-between w-full mt-1.5">
               <span className="text-xs font-serif font-black tracking-tight text-foreground select-none">
                 {greetTime()}, {displayName}.
               </span>

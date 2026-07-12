@@ -108,10 +108,29 @@ function Stats() {
   );
 
   return (
-    <div className="space-y-4 w-full">
-      {/* Desktop Filters (inline) */}
-      <div className="hidden md:flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3.5">
-        {filtersContent}
+    <div className="space-y-3 w-full">
+      {/* Desktop Filters (inline, side-by-side, compact h-8) */}
+      <div className="hidden md:flex flex-wrap items-center gap-4 rounded-xl border bg-card p-2 px-3">
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-36 h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent className="z-[100]">
+              <SelectItem value="all">All accounts</SelectItem>
+              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-40 h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent className="z-[100]">
+              {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Mobile Filters Trigger */}
@@ -142,53 +161,53 @@ function Stats() {
         </Dialog>
       </div>
 
-      <section className="rounded-xl border bg-card p-4">
-        <h2 className="font-serif text-lg font-bold">Income vs Expense — 6 months</h2>
-        <div className="h-48 mt-2">
+      <section className="rounded-xl border bg-card p-3">
+        <h2 className="font-serif text-base font-bold">Income vs Expense — 6 months</h2>
+        <div className="h-40 mt-1.5">
           <ResponsiveContainer>
             <BarChart data={monthly}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} width={64} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} width={56} />
               <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8 }} />
-              <Legend />
-              <Bar dataKey="income" fill="var(--success)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expense" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="income" fill="var(--success)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expense" fill="var(--accent)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border bg-card p-4">
-          <h2 className="font-serif text-lg font-bold">Spending by category</h2>
-          <p className="text-xs text-muted-foreground font-serif">This month · {fmtMoney(totalExp, currency)} total</p>
-          <div className="h-48 mt-2">
+      <section className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-xl border bg-card p-3">
+          <h2 className="font-serif text-base font-bold">Spending by category</h2>
+          <p className="text-[10px] text-muted-foreground font-serif">This month · {fmtMoney(totalExp, currency)} total</p>
+          <div className="h-40 mt-1.5">
             {byCat.length === 0 ? (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No expenses this month yet.</div>
             ) : (
               <ResponsiveContainer>
                 <PieChart>
-                  <Pie data={byCat} dataKey="value" nameKey="name" outerRadius={90} innerRadius={55} paddingAngle={2}>
+                  <Pie data={byCat} dataKey="value" nameKey="name" outerRadius={70} innerRadius={42} paddingAngle={2}>
                     {byCat.map((c, i) => <Cell key={i} fill={c.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8 }} formatter={(v: any) => fmtMoney(Number(v), currency)} />
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11 }} formatter={(v: any) => fmtMoney(Number(v), currency)} />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-4">
-          <h2 className="font-serif text-lg font-bold">Top categories</h2>
-          <ul className="mt-2 divide-y">
-            {byCat.slice(0, 8).map(c => (
-              <li key={c.name} className="flex items-center justify-between py-1 text-sm">
-                <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c.color }} />{c.name}</span>
+        <div className="rounded-xl border bg-card p-3">
+          <h2 className="font-serif text-base font-bold">Top categories</h2>
+          <ul className="mt-1.5 divide-y text-xs">
+            {byCat.slice(0, 6).map(c => (
+              <li key={c.name} className="flex items-center justify-between py-1">
+                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: c.color }} />{c.name}</span>
                 <span className="num font-serif font-bold">{fmtMoney(c.value, currency)}</span>
               </li>
             ))}
-            {byCat.length === 0 && <li className="py-6 text-sm text-muted-foreground">No data.</li>}
+            {byCat.length === 0 && <li className="py-4 text-xs text-muted-foreground text-center">No data.</li>}
           </ul>
         </div>
       </section>
