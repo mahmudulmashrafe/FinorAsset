@@ -413,7 +413,7 @@ function Layout() {
         </header>
 
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-20 md:pb-6">
-          <div className="flex-1">
+          <div key={path} className="flex-1 page-transition">
             <Outlet />
           </div>
           <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider">
