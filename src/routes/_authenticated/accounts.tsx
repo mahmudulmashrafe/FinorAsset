@@ -289,8 +289,8 @@ function AccountsPage() {
   return (
     <div className="space-y-6 w-full">
       <div className="flex justify-end">
-        <Button onClick={() => setNewOpen(true)} className="cursor-pointer">
-          <Plus className="h-4 w-4 mr-1" /> New account
+        <Button onClick={() => setNewOpen(true)} size="icon" className="rounded-full h-10 w-10 cursor-pointer" title="New account">
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
 

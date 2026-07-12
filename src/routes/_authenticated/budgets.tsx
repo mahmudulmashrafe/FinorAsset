@@ -113,8 +113,11 @@ function BudgetsPage() {
                 setCatId("");
                 setAmount("");
               }}
+              size="icon"
+              className="rounded-full h-10 w-10 cursor-pointer"
+              title="New budget"
             >
-              <Plus className="h-4 w-4 mr-1" /> New budget
+              <Plus className="h-5 w-5" />
             </Button>
           </DialogTrigger>
           <DialogContent>
