@@ -433,7 +433,7 @@ function Layout() {
           <div key={path} className="flex-1 page-transition relative">
             <Outlet />
           </div>
-          <footer className={`mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider${path !== "/" ? " hidden md:block" : ""}`}>
+          <footer className={`mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider${path === "/transactions" ? " hidden" : path !== "/" ? " hidden md:block" : ""}`}>
             © {new Date().getFullYear()} FINORASSET &middot; Personal Finance Compass &middot; Designed by Mahmudul Mashrafe
           </footer>
         </main>
