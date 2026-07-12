@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil } from "lucide-react";
@@ -378,15 +379,18 @@ function AccountsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Floatable Add Account Trigger */}
-      <Button 
-        onClick={() => setNewOpen(true)} 
-        size="icon" 
-        className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
-        title="New account"
-      >
-        <Plus className="h-5 w-5 md:h-6 md:w-6" />
-      </Button>
+      {/* Floatable Add Account Trigger — portaled to body to escape transform ancestor */}
+      {typeof document !== 'undefined' && createPortal(
+        <Button 
+          onClick={() => setNewOpen(true)} 
+          size="icon" 
+          className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
+          title="New account"
+        >
+          <Plus className="h-5 w-5 md:h-6 md:w-6" />
+        </Button>,
+        document.body
+      )}
     </div>
   );
 }

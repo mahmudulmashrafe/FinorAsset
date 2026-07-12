@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney } from "@/lib/finance";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Play, Plus, Cpu, Sparkles, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -480,20 +481,23 @@ function AutomationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Floatable Add Macro Trigger */}
-      <Button 
-        onClick={() => {
-          setEditingRule(null);
-          setName("");
-          setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
-          setCreateOpen(true);
-        }}
-        size="icon"
-        className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
-        title="Create Automation Macro"
-      >
-        <Plus className="h-5 w-5 md:h-6 md:w-6" />
-      </Button>
+      {/* Floatable Add Macro Trigger — portaled to body to escape transform ancestor */}
+      {typeof document !== 'undefined' && createPortal(
+        <Button 
+          onClick={() => {
+            setEditingRule(null);
+            setName("");
+            setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+            setCreateOpen(true);
+          }}
+          size="icon"
+          className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
+          title="Create Automation Macro"
+        >
+          <Plus className="h-5 w-5 md:h-6 md:w-6" />
+        </Button>,
+        document.body
+      )}
 
       <Dialog open={createOpen} onOpenChange={(val) => {
         setCreateOpen(val);
