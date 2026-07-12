@@ -174,7 +174,7 @@ function Dashboard() {
               <Link to="/budgets" className="text-xs text-accent hover:underline">Set a budget →</Link>
             </div>
           ) : (
-            <ul className="space-y-2 overflow-y-auto max-h-[125px] pr-1.5 pb-1 thin-scroll text-xs">
+            <ul className="space-y-2 overflow-y-auto max-h-[350px] pr-1.5 pb-1 thin-scroll text-xs">
               {budgetItems.map(({ b, spent, pct, over, cat }) => (
                 <li key={b.id}>
                   <div className="flex items-center justify-between mb-0.5">
@@ -201,7 +201,7 @@ function Dashboard() {
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[125px] pr-2 pb-1 thin-scroll text-xs">
+          <ul className="divide-y overflow-y-auto max-h-[350px] pr-2 pb-1 thin-scroll text-xs">
             {accounts.length === 0 && (
               <li className="py-4 text-xs text-muted-foreground text-center">
                 No accounts yet.{" "}
@@ -231,7 +231,7 @@ function Dashboard() {
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[125px] pr-2 pb-1 thin-scroll text-xs">
+          <ul className="divide-y overflow-y-auto max-h-[350px] pr-2 pb-1 thin-scroll text-xs">
             {recent.length === 0 && (
               <li className="py-4 text-xs text-muted-foreground text-center">No transactions yet.</li>
             )}
