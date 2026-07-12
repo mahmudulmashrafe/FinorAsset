@@ -70,7 +70,7 @@ function Dashboard() {
     return { b, spent, pct, over, cat: catMap.get(b.category_id) };
   }).slice(0, 3);
 
-  const recent = txns.slice(0, 6);
+  const recent = txns.slice(0, 7);
   const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
