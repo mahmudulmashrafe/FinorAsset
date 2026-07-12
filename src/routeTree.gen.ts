@@ -18,6 +18,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedBudgetsRouteImport } from './routes/_authenticated/budgets'
+import { Route as AuthenticatedAutomationRouteImport } from './routes/_authenticated/automation'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
 
 const AuthRoute = AuthRouteImport.update({
@@ -65,6 +66,11 @@ const AuthenticatedBudgetsRoute = AuthenticatedBudgetsRouteImport.update({
   path: '/budgets',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAutomationRoute = AuthenticatedAutomationRouteImport.update({
+  id: '/automation',
+  path: '/automation',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/accounts': typeof AuthenticatedAccountsRoute
+  '/automation': typeof AuthenticatedAutomationRoute
   '/budgets': typeof AuthenticatedBudgetsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/accounts': typeof AuthenticatedAccountsRoute
+  '/automation': typeof AuthenticatedAutomationRoute
   '/budgets': typeof AuthenticatedBudgetsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
+  '/_authenticated/automation': typeof AuthenticatedAutomationRoute
   '/_authenticated/budgets': typeof AuthenticatedBudgetsRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/accounts'
+    | '/automation'
     | '/budgets'
     | '/categories'
     | '/dashboard'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/accounts'
+    | '/automation'
     | '/budgets'
     | '/categories'
     | '/dashboard'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/accounts'
+    | '/_authenticated/automation'
     | '/_authenticated/budgets'
     | '/_authenticated/categories'
     | '/_authenticated/dashboard'
@@ -214,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBudgetsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/automation': {
+      id: '/_authenticated/automation'
+      path: '/automation'
+      fullPath: '/automation'
+      preLoaderRoute: typeof AuthenticatedAutomationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/accounts': {
       id: '/_authenticated/accounts'
       path: '/accounts'
@@ -226,6 +245,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
+  AuthenticatedAutomationRoute: typeof AuthenticatedAutomationRoute
   AuthenticatedBudgetsRoute: typeof AuthenticatedBudgetsRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -236,6 +256,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
+  AuthenticatedAutomationRoute: AuthenticatedAutomationRoute,
   AuthenticatedBudgetsRoute: AuthenticatedBudgetsRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,

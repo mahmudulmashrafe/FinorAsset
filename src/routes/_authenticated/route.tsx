@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp } from "lucide-react";
+import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -34,6 +34,7 @@ const items = [
   { title: "Accounts",     url: "/accounts",     icon: Wallet },
   { title: "Budgets",      url: "/budgets",      icon: PiggyBank },
   { title: "Stats",        url: "/stats",        icon: BarChart3 },
+  { title: "Automation",   url: "/automation",   icon: Cpu },
 ] as const;
 
 // ─── Time-of-day greeting ─────────────────────────────────────────────────────
