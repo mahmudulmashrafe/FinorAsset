@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, fmtMoney, type Transaction } from "@/lib/finance";
+import { api, fmtMoney, type Transaction, syncTransactionToLoan } from "@/lib/finance";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -89,9 +89,14 @@ function TxnsPage() {
   }
 
   async function confirmDelete(id: string) {
+    const txnToDelete = txns.find(t => t.id === id);
     const { error } = await supabase.from("transactions").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    if (txnToDelete) {
+      await syncTransactionToLoan("delete", txnToDelete);
+    }
     refresh();
+    qc.invalidateQueries({ queryKey: ["loans"] });
     toast.success("Transaction deleted");
   }
 

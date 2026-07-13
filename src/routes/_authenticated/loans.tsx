@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, fmtMoney } from "@/lib/finance";
+import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,11 +48,15 @@ function LoansPage() {
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
+  const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
+
+  const balances = computeAccountBalances(accounts, txns);
 
   // Dialog states
   const [open, setOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [deleteLoan, setDeleteLoan] = useState<{ id: string; name: string } | null>(null);
+  const [repayLoan, setRepayLoan] = useState<Loan | null>(null);
 
   // Form states
   const [personName, setPersonName] = useState("");
@@ -63,6 +67,12 @@ function LoansPage() {
   const [note, setNote] = useState("");
   const [occurredOn, setOccurredOn] = useState(new Date().toISOString().split("T")[0]);
   const [accountId, setAccountId] = useState<string>("none");
+  const [accountSplits, setAccountSplits] = useState<{ accountId: string; amount: number }[]>([
+    { accountId: "none", amount: 0 }
+  ]);
+  const [repaySplits, setRepaySplits] = useState<{ accountId: string; amount: number }[]>([
+    { accountId: "none", amount: 0 }
+  ]);
 
   // Load loans — try localStorage first (instant), then Supabase as background upgrade
   function loadLocalLoans(): Loan[] {
@@ -121,8 +131,9 @@ function LoansPage() {
   useEffect(() => {
     if (open && accounts.length && (accountId === "none" || !accountId) && !editingLoan) {
       setAccountId(accounts[0].id);
+      setAccountSplits([{ accountId: accounts[0].id, amount: Number(amount) || 0 }]);
     }
-  }, [open, accounts, accountId, editingLoan]);
+  }, [open, accounts, accountId, editingLoan, amount]);
 
   // Helper to find category ID dynamically
   const findLoanCategory = (targetName: "Borrow" | "Lent", txnKind: "income" | "expense") => {
@@ -135,6 +146,29 @@ function LoansPage() {
     if (!personName.trim()) return toast.error("Please enter a name");
     if (!amount || Number(amount) <= 0) return toast.error("Please enter a valid amount");
 
+    const accMap = new Map(accounts.map(a => [a.id, a]));
+
+    // Splits validation for new loans
+    if (!editingLoan) {
+      const totalAllocated = accountSplits.reduce((sum, s) => sum + s.amount, 0);
+      if (totalAllocated !== Number(amount)) {
+        return toast.error(`Total split amount (${fmtMoney(totalAllocated, currency)}) must match the loan amount (${fmtMoney(Number(amount), currency)})`);
+      }
+
+      if (kind === "lent") {
+        for (const split of accountSplits) {
+          if (split.accountId !== "none") {
+            const balance = balances.get(split.accountId) ?? 0;
+            if (balance < split.amount) {
+              return toast.error(`Insufficient funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+            }
+          }
+        }
+      }
+    }
+
+    const firstValidAccount = accountSplits.find(s => s.accountId !== "none")?.accountId || null;
+
     const payload = {
       person_name: personName.trim(),
       amount: Number(amount),
@@ -143,7 +177,7 @@ function LoansPage() {
       note: note.trim() || null,
       due_date: dueDate || null,
       occurred_on: occurredOn,
-      account_id: accountId === "none" ? null : accountId,
+      account_id: editingLoan ? (accountId === "none" ? null : accountId) : firstValidAccount,
     };
 
     setOpen(false);
@@ -184,29 +218,35 @@ function LoansPage() {
           qc.invalidateQueries({ queryKey: ["loans"] });
         }
 
-        // Always create a transaction in the transactions table if an account is linked
-        if (accountId !== "none" && accountId) {
-          const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
-          const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
-          const txnPayload: Record<string, any> = {
-            user_id: authUser?.id,
-            account_id: accountId,
-            amount: Number(amount),
-            kind: txnKind,
-            note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
-            occurred_on: occurredOn,
-          };
-          if (catId) txnPayload.category_id = catId;
-          const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
-          if (txnErr) {
-            console.error("Transaction insert error:", JSON.stringify(txnErr));
-            toast.error(`Transaction failed: ${txnErr.message}`);
-          } else {
-            toast.success("Transaction recorded!");
+        // Always create transactions in the transactions table if accounts are linked
+        let txnRecorded = false;
+        for (const split of accountSplits) {
+          if (split.accountId !== "none") {
+            const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
+            const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
+            const txnPayload: Record<string, any> = {
+              user_id: authUser?.id,
+              account_id: split.accountId,
+              amount: Number(split.amount),
+              kind: txnKind,
+              note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
+              occurred_on: occurredOn,
+            };
+            if (catId) txnPayload.category_id = catId;
+            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+            if (txnErr) {
+              console.error("Transaction insert error:", JSON.stringify(txnErr));
+              toast.error(`Transaction failed for ${accMap.get(split.accountId)?.name || 'account'}: ${txnErr.message}`);
+            } else {
+              txnRecorded = true;
+            }
           }
-          qc.invalidateQueries({ queryKey: ["transactions"] });
-          qc.invalidateQueries({ queryKey: ["accounts"] });
         }
+        if (txnRecorded) {
+          toast.success("Transaction(s) recorded!");
+        }
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        qc.invalidateQueries({ queryKey: ["accounts"] });
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -216,15 +256,82 @@ function LoansPage() {
     }
   }
 
-  // Toggle status directly
+  // Trigger repayment modal
+  function triggerRepayment(loan: Loan) {
+    setRepayLoan(loan);
+    setRepaySplits([{ accountId: loan.account_id || accounts[0]?.id || "none", amount: loan.amount }]);
+  }
+
+  // Toggle status
   async function toggleStatus(loan: Loan) {
-    const nextStatus = loan.status === "active" ? "paid" : "active";
+    if (loan.status === "active") {
+      triggerRepayment(loan);
+    } else {
+      setLoading(true);
+      try {
+        const { error } = await supabase.from("loans").update({ status: "active" }).eq("id", loan.id);
+        if (error) {
+          if (error.code === "42P01") {
+            const updated = loans.map((l) => (l.id === loan.id ? { ...l, status: "active" as const } : l));
+            localStorage.setItem("finorasset_loans", JSON.stringify(updated));
+            qc.setQueryData(["loans", authUser?.id], updated);
+            toast.success("Status updated locally");
+          } else {
+            throw error;
+          }
+        } else {
+          // Delete any balancing repayment transactions
+          const person = loan.person_name.trim();
+          await supabase
+            .from("transactions")
+            .delete()
+            .eq("user_id", authUser?.id)
+            .eq("account_id", loan.account_id)
+            .ilike("note", `Repayment: ${person}%`);
+
+          toast.success("Marked as active");
+          qc.invalidateQueries({ queryKey: ["loans"] });
+          qc.invalidateQueries({ queryKey: ["transactions"] });
+          qc.invalidateQueries({ queryKey: ["accounts"] });
+        }
+      } catch (err: any) {
+        toast.error(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+
+  // Submit repayment dialog splits
+  async function handleRepaySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!repayLoan) return;
+
+    const totalAllocated = repaySplits.reduce((sum, s) => sum + s.amount, 0);
+    if (totalAllocated !== repayLoan.amount) {
+      return toast.error(`Total repayment splits (${fmtMoney(totalAllocated, currency)}) must match the loan amount (${fmtMoney(repayLoan.amount, currency)})`);
+    }
+
+    const accMap = new Map(accounts.map(a => [a.id, a]));
+
+    // If borrowing, repaying it means money leaves our account -> validate balance
+    if (repayLoan.kind === "borrowed") {
+      for (const split of repaySplits) {
+        if (split.accountId !== "none") {
+          const balance = balances.get(split.accountId) ?? 0;
+          if (balance < split.amount) {
+            return toast.error(`Insufficient funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+          }
+        }
+      }
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.from("loans").update({ status: nextStatus }).eq("id", loan.id);
+      const { error } = await supabase.from("loans").update({ status: "paid" }).eq("id", repayLoan.id);
       if (error) {
         if (error.code === "42P01") {
-          const updated = loans.map((l) => (l.id === loan.id ? { ...l, status: nextStatus } : l));
+          const updated = loans.map((l) => (l.id === repayLoan.id ? { ...l, status: "paid" as const } : l));
           localStorage.setItem("finorasset_loans", JSON.stringify(updated));
           qc.setQueryData(["loans", authUser?.id], updated);
           toast.success("Status updated locally");
@@ -232,36 +339,34 @@ function LoansPage() {
           throw error;
         }
       } else {
-        // If marked as paid, create a balancing transaction
-        if (nextStatus === "paid" && loan.account_id) {
-          const txnKind = (loan.kind === "borrowed" ? "expense" : "income") as "income" | "expense";
-          const catId = findLoanCategory(loan.kind === "borrowed" ? "Lent" : "Borrow", txnKind);
-          const txnPayload: {
-            user_id: string | undefined;
-            account_id: string;
-            amount: number;
-            kind: "income" | "expense";
-            note: string;
-            occurred_on: string;
-            category_id?: string;
-          } = {
-            user_id: authUser?.id,
-            account_id: loan.account_id,
-            amount: Number(loan.amount),
-            kind: txnKind,
-            note: `Repayment: ${loan.person_name}${loan.note ? ` (${loan.note})` : ""}`,
-            occurred_on: new Date().toISOString().split("T")[0],
-          };
-          if (catId) txnPayload.category_id = catId;
-          const { error: txnErr } = await supabase.from("transactions").insert(txnPayload as any);
-          if (txnErr) {
-            console.error("Repayment Txn Error:", txnErr);
-            toast.error(`Failed to record repayment: ${txnErr.message}`);
-          } else {
-            toast.success("Balancing transaction added to account!");
+        // Create repayment transactions
+        let txnRecorded = false;
+        for (const split of repaySplits) {
+          if (split.accountId !== "none") {
+            const txnKind = (repayLoan.kind === "borrowed" ? "expense" : "income") as "income" | "expense";
+            const catId = findLoanCategory(repayLoan.kind === "borrowed" ? "Lent" : "Borrow", txnKind);
+            const txnPayload = {
+              user_id: authUser?.id,
+              account_id: split.accountId,
+              amount: Number(split.amount),
+              kind: txnKind,
+              note: `Repayment: ${repayLoan.person_name}${repayLoan.note ? ` (${repayLoan.note})` : ""}`,
+              occurred_on: new Date().toISOString().split("T")[0],
+              category_id: catId || undefined,
+            };
+            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload as any);
+            if (txnErr) {
+              console.error("Repayment Txn Error:", txnErr);
+              toast.error(`Failed to record repayment for ${accMap.get(split.accountId)?.name || 'account'}: ${txnErr.message}`);
+            } else {
+              txnRecorded = true;
+            }
           }
         }
-        toast.success(`Marked as ${nextStatus}`);
+        if (txnRecorded) {
+          toast.success("Repayment transaction(s) recorded!");
+        }
+        toast.success("Marked as paid");
         qc.invalidateQueries({ queryKey: ["loans"] });
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
@@ -270,6 +375,7 @@ function LoansPage() {
       toast.error(err.message);
     } finally {
       setLoading(false);
+      setRepayLoan(null);
     }
   }
 
@@ -525,7 +631,22 @@ function LoansPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="loan-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</Label>
-                <Input id="loan-amount" type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="rounded-xl h-11" required />
+                <Input 
+                  id="loan-amount" 
+                  type="number" 
+                  step="any" 
+                  value={amount} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAmount(val);
+                    if (accountSplits.length === 1) {
+                      setAccountSplits([{ ...accountSplits[0], amount: Number(val) || 0 }]);
+                    }
+                  }} 
+                  placeholder="0.00" 
+                  className="rounded-xl h-11" 
+                  required 
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="loan-kind" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</Label>
@@ -539,21 +660,30 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link Account (Optional)</Label>
-              <Select value={accountId} onValueChange={(val) => setAccountId(val)} disabled={!!editingLoan}>
-                <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent className="z-[100]">
-                  <SelectItem value="none">Do not link account</SelectItem>
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground leading-normal mt-1">
-                Linking an account automatically records the financial inflow/outflow as a transaction in that account.
-              </p>
-            </div>
+            {!editingLoan ? (
+              <AccountSplitsSelector
+                splits={accountSplits}
+                setSplits={setAccountSplits}
+                totalAmount={Number(amount) || 0}
+                accounts={accounts}
+                balances={balances}
+                currency={currency}
+                showBalanceCheck={kind === "lent"}
+              />
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Linked Account</Label>
+                <Select value={accountId} onValueChange={(val) => setAccountId(val)} disabled>
+                  <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    <SelectItem value="none">Do not link account</SelectItem>
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -588,6 +718,39 @@ function LoansPage() {
               <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="rounded-xl h-11 cursor-pointer">Cancel</Button>
               <Button type="submit" className="rounded-xl h-11 font-bold cursor-pointer" disabled={loading}>
                 {loading ? "Saving..." : "Save Record"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Repay Loan Dialog */}
+      <Dialog open={!!repayLoan} onOpenChange={(val) => { if (!val) setRepayLoan(null); }}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md rounded-xl z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Repay Loan: {repayLoan?.person_name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRepaySubmit} className="space-y-4 py-3">
+            <p className="text-xs text-muted-foreground leading-normal">
+              Specify the account(s) and amounts to record the repayment of <strong>{repayLoan ? fmtMoney(repayLoan.amount, currency) : ""}</strong>.
+            </p>
+
+            {repayLoan && (
+              <AccountSplitsSelector
+                splits={repaySplits}
+                setSplits={setRepaySplits}
+                totalAmount={repayLoan.amount}
+                accounts={accounts}
+                balances={balances}
+                currency={currency}
+                showBalanceCheck={repayLoan.kind === "borrowed"}
+              />
+            )}
+
+            <DialogFooter className="pt-2 gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => setRepayLoan(null)} className="rounded-xl h-11 cursor-pointer">Cancel</Button>
+              <Button type="submit" className="rounded-xl h-11 font-bold cursor-pointer" disabled={loading}>
+                {loading ? "Recording..." : "Confirm Repayment"}
               </Button>
             </DialogFooter>
           </form>
@@ -638,3 +801,130 @@ function LoansPage() {
     </div>
   );
 }
+
+function AccountSplitsSelector({
+  splits,
+  setSplits,
+  totalAmount,
+  accounts,
+  balances,
+  currency,
+  showBalanceCheck,
+}: {
+  splits: { accountId: string; amount: number }[];
+  setSplits: React.Dispatch<React.SetStateAction<{ accountId: string; amount: number }[]>>;
+  totalAmount: number;
+  accounts: Account[];
+  balances: Map<string, number>;
+  currency: string;
+  showBalanceCheck: boolean;
+}) {
+  const handleAddSplit = () => {
+    setSplits([...splits, { accountId: accounts[0]?.id || "none", amount: 0 }]);
+  };
+
+  const handleRemoveSplit = (idx: number) => {
+    setSplits(splits.filter((_, i) => i !== idx));
+  };
+
+  const handleSplitChange = (idx: number, field: "accountId" | "amount", value: any) => {
+    const updated = splits.map((s, i) => {
+      if (i === idx) {
+        return { ...s, [field]: value };
+      }
+      return s;
+    });
+    setSplits(updated);
+  };
+
+  const allocated = splits.reduce((sum, s) => sum + s.amount, 0);
+  const remaining = totalAmount - allocated;
+
+  return (
+    <div className="space-y-2 border-t pt-3 mt-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Account Source / Splits
+        </Label>
+        <button
+          type="button"
+          onClick={handleAddSplit}
+          className="text-xs text-accent hover:underline flex items-center gap-0.5 cursor-pointer"
+        >
+          + Add Account Split
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {splits.map((split, idx) => {
+          const balance = balances.get(split.accountId) ?? 0;
+          const isOverdrawn = showBalanceCheck && split.accountId !== "none" && balance < split.amount;
+
+          return (
+            <div key={idx} className="flex gap-2 items-start">
+              <div className="flex-1 min-w-0">
+                <Select
+                  value={split.accountId}
+                  onValueChange={(val) => handleSplitChange(idx, "accountId", val)}
+                >
+                  <SelectTrigger className="w-full h-10 bg-background rounded-lg text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-[250]">
+                    <SelectItem value="none">Do not link account</SelectItem>
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {split.accountId !== "none" && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5 px-1 flex justify-between">
+                    <span>Available: {fmtMoney(balance, currency)}</span>
+                    {isOverdrawn && <span className="text-destructive font-semibold">Insufficient funds</span>}
+                  </div>
+                )}
+              </div>
+
+              <div className="w-28 flex-shrink-0">
+                <Input
+                  type="number"
+                  step="any"
+                  value={split.amount || ""}
+                  onChange={(e) => handleSplitChange(idx, "amount", Number(e.target.value) || 0)}
+                  placeholder="0.00"
+                  className={`rounded-lg h-10 text-xs ${isOverdrawn ? "border-destructive text-destructive" : ""}`}
+                />
+              </div>
+
+              {splits.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveSplit(idx)}
+                  className="h-10 w-10 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="text-[10px] flex justify-between px-1 pt-1">
+        <span className={Math.abs(remaining) < 0.01 ? "text-success font-medium" : "text-muted-foreground"}>
+          Allocated: {fmtMoney(allocated, currency)} / {fmtMoney(totalAmount, currency)}
+        </span>
+        {Math.abs(remaining) >= 0.01 && (
+          <span className="text-destructive font-medium">
+            {remaining > 0 ? `Remaining: ${fmtMoney(remaining, currency)}` : `Over-allocated by ${fmtMoney(Math.abs(remaining), currency)}`}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+

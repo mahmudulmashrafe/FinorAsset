@@ -61,3 +61,45 @@ export function computeAccountBalances(accounts: Account[], txns: Transaction[])
   }
   return map;
 }
+
+export async function syncTransactionToLoan(action: "update" | "delete", txn: Transaction, nextAmt?: number) {
+  const noteStr = txn.note ?? "";
+  let personName = "";
+  let isRepayment = false;
+  let isLoanInitial = false;
+
+  if (noteStr.startsWith("Loan: Borrowed from ")) {
+    personName = noteStr.replace("Loan: Borrowed from ", "").split("(")[0].trim();
+    isLoanInitial = true;
+  } else if (noteStr.startsWith("Loan: Lent to ")) {
+    personName = noteStr.replace("Loan: Lent to ", "").split("(")[0].trim();
+    isLoanInitial = true;
+  } else if (noteStr.startsWith("Repayment: ")) {
+    personName = noteStr.replace("Repayment: ", "").split("(")[0].trim();
+    isRepayment = true;
+  }
+
+  if (!personName) return;
+
+  const { data: matchedLoans } = await supabase
+    .from("loans")
+    .select("*")
+    .eq("person_name", personName)
+    .eq("user_id", txn.user_id);
+
+  if (!matchedLoans || matchedLoans.length === 0) return;
+  const matchedLoan = matchedLoans[0];
+
+  if (action === "delete") {
+    if (isLoanInitial) {
+      await supabase.from("loans").delete().eq("id", matchedLoan.id);
+    } else if (isRepayment) {
+      await supabase.from("loans").update({ status: "active" }).eq("id", matchedLoan.id);
+    }
+  } else if (action === "update" && nextAmt !== undefined) {
+    if (isLoanInitial) {
+      await supabase.from("loans").update({ amount: nextAmt }).eq("id", matchedLoan.id);
+    }
+  }
+}
+

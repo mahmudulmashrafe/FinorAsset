@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type TxnKind, type Transaction } from "@/lib/finance";
+import { api, type TxnKind, type Transaction, syncTransactionToLoan } from "@/lib/finance";
 import { toast } from "sonner";
 import { Plus, PlusCircle, X } from "lucide-react";
 import { z } from "zod";
@@ -272,6 +272,7 @@ export function TransactionDialog({
 
       setSaving(false);
       if (error) return toast.error(error.message);
+      await syncTransactionToLoan("update", editingTransaction!, parsed.data.amount);
       toast.success("Transaction updated!");
     } else {
       // INSERT new transaction
@@ -295,6 +296,7 @@ export function TransactionDialog({
 
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["accounts"] });
+    qc.invalidateQueries({ queryKey: ["loans"] });
     setOpen(false);
     if (!isEdit) reset();
   }
