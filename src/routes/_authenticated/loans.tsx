@@ -193,7 +193,10 @@ function LoansPage() {
               category_id: findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind),
             };
             const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
-            if (!txnErr) {
+            if (txnErr) {
+              console.error("Txn Error:", txnErr);
+              toast.error(`Failed to record transaction: ${txnErr.message}`);
+            } else {
               toast.success("Transaction recorded in selected account!");
             }
           }
@@ -240,7 +243,10 @@ function LoansPage() {
             category_id: findLoanCategory(loan.kind === "borrowed" ? "Lent" : "Borrow", txnKind),
           };
           const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
-          if (!txnErr) {
+          if (txnErr) {
+            console.error("Repayment Txn Error:", txnErr);
+            toast.error(`Failed to record repayment: ${txnErr.message}`);
+          } else {
             toast.success("Balancing transaction added to account!");
           }
         }
