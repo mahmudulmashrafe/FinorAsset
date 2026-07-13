@@ -117,6 +117,13 @@ function LoansPage() {
     }
   }, [loans]);
 
+  // Auto-select first account for new loans
+  useEffect(() => {
+    if (open && accounts.length && (accountId === "none" || !accountId) && !editingLoan) {
+      setAccountId(accounts[0].id);
+    }
+  }, [open, accounts, accountId, editingLoan]);
+
   // Helper to find category ID dynamically
   const findLoanCategory = (targetName: "Borrow" | "Lent", txnKind: "income" | "expense") => {
     return cats.find(c => c.name.toLowerCase() === targetName.toLowerCase() && c.kind === txnKind)?.id || null;
