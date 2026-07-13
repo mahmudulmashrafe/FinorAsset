@@ -182,19 +182,28 @@ function LoansPage() {
         } else {
           // Successfully created loan in DB — now create transaction in DB if linked
           if (accountId !== "none") {
-            const txnKind = kind === "borrowed" ? "income" : "expense";
-            const txnPayload = {
+            const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
+            const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
+            const txnPayload: {
+              user_id: string | undefined;
+              account_id: string;
+              amount: number;
+              kind: "income" | "expense";
+              note: string;
+              occurred_on: string;
+              category_id?: string;
+            } = {
               user_id: authUser?.id,
               account_id: accountId,
               amount: Number(amount),
-              kind: txnKind, 
+              kind: txnKind,
               note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
               occurred_on: occurredOn,
-              category_id: findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind),
             };
-            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+            if (catId) txnPayload.category_id = catId;
+            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload as any);
             if (txnErr) {
-              console.error("Txn Error:", txnErr);
+              console.error("Txn insert error:", txnErr);
               toast.error(`Failed to record transaction: ${txnErr.message}`);
             } else {
               toast.success("Transaction recorded in selected account!");
@@ -232,17 +241,26 @@ function LoansPage() {
       } else {
         // If marked as paid, create a balancing transaction
         if (nextStatus === "paid" && loan.account_id) {
-          const txnKind = loan.kind === "borrowed" ? "expense" : "income";
-          const txnPayload = {
+          const txnKind = (loan.kind === "borrowed" ? "expense" : "income") as "income" | "expense";
+          const catId = findLoanCategory(loan.kind === "borrowed" ? "Lent" : "Borrow", txnKind);
+          const txnPayload: {
+            user_id: string | undefined;
+            account_id: string;
+            amount: number;
+            kind: "income" | "expense";
+            note: string;
+            occurred_on: string;
+            category_id?: string;
+          } = {
             user_id: authUser?.id,
             account_id: loan.account_id,
             amount: Number(loan.amount),
             kind: txnKind,
             note: `Repayment: ${loan.person_name}${loan.note ? ` (${loan.note})` : ""}`,
             occurred_on: new Date().toISOString().split("T")[0],
-            category_id: findLoanCategory(loan.kind === "borrowed" ? "Lent" : "Borrow", txnKind),
           };
-          const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+          if (catId) txnPayload.category_id = catId;
+          const { error: txnErr } = await supabase.from("transactions").insert(txnPayload as any);
           if (txnErr) {
             console.error("Repayment Txn Error:", txnErr);
             toast.error(`Failed to record repayment: ${txnErr.message}`);

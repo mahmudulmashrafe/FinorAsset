@@ -72,6 +72,12 @@ function TxnsPage() {
       if (!hay.includes(q.toLowerCase())) return false;
     }
     return true;
+  }).sort((a, b) => {
+    // Primary: occurred_on descending
+    const dateDiff = new Date(b.occurred_on).getTime() - new Date(a.occurred_on).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    // Secondary: created_at descending (newest first within same date)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   }), [txns, kind, account, monthFilter, q, catMap, accMap]);
 
   function refresh() {
