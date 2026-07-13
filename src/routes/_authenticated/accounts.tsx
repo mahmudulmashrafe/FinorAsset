@@ -37,7 +37,7 @@ const CURRENCIES = [
   { code: "BDT", name: "Bangladeshi Taka (৳)" },
 ];
 
-const TYPES = ["cash", "bank", "card", "savings", "investment", "mobile_banking", "other"] as const;
+const TYPES = ["cash", "bank", "card", "savings", "investment", "mobile_banking", "loan", "other"] as const;
 
 const TYPE_LABELS: Record<string, string> = {
   cash: "Cash",
@@ -46,6 +46,7 @@ const TYPE_LABELS: Record<string, string> = {
   savings: "Savings",
   investment: "Investment",
   mobile_banking: "Mobile Banking",
+  loan: "Loan",
   other: "Other",
 };
 

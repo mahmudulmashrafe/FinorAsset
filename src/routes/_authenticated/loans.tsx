@@ -47,6 +47,7 @@ function LoansPage() {
   const { currency, authUser } = useUserProfile();
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
+  const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
 
   // Dialog states
   const [open, setOpen] = useState(false);
@@ -116,6 +117,12 @@ function LoansPage() {
     }
   }, [loans]);
 
+  // Helper to find category ID dynamically
+  const findLoanCategory = (txnKind: "income" | "expense") => {
+    const targetName = txnKind === "income" ? "Loan Inflow" : "Loan Outflow";
+    return cats.find(c => c.name.toLowerCase() === targetName.toLowerCase() && c.kind === txnKind)?.id || null;
+  };
+
   // Form submission: save or update
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -169,13 +176,15 @@ function LoansPage() {
         } else {
           // Successfully created loan in DB — now create transaction in DB if linked
           if (accountId !== "none") {
+            const txnKind = kind === "borrowed" ? "income" : "expense";
             const txnPayload = {
               user_id: authUser?.id,
               account_id: accountId,
               amount: Number(amount),
-              kind: kind === "borrowed" ? "income" : "expense", // borrowing is income, lending is expense
+              kind: txnKind, // borrowing is income, lending is expense
               note: `Loan: ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
               occurred_on: occurredOn,
+              category_id: findLoanCategory(txnKind),
             };
             const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
             if (!txnErr) {
@@ -214,13 +223,15 @@ function LoansPage() {
       } else {
         // If marked as paid, create a balancing transaction
         if (nextStatus === "paid" && loan.account_id) {
+          const txnKind = loan.kind === "borrowed" ? "expense" : "income";
           const txnPayload = {
             user_id: authUser?.id,
             account_id: loan.account_id,
             amount: Number(loan.amount),
-            kind: loan.kind === "borrowed" ? "expense" : "income", // repaying borrowed is expense, returned lent is income
+            kind: txnKind, // repaying borrowed is expense, returned lent is income
             note: `Repayment: ${loan.person_name}${loan.note ? ` (${loan.note})` : ""}`,
             occurred_on: new Date().toISOString().split("T")[0],
+            category_id: findLoanCategory(txnKind),
           };
           const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
           if (!txnErr) {
