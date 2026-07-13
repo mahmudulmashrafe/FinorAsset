@@ -37,6 +37,7 @@ interface Loan {
   note?: string;
   due_date?: string;
   occurred_on: string;
+  account_id?: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -44,6 +45,8 @@ const generateId = () => Math.random().toString(36).substring(2, 15);
 function LoansPage() {
   const qc = useQueryClient();
   const { currency, authUser } = useUserProfile();
+
+  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
 
   // Dialog states
   const [open, setOpen] = useState(false);
@@ -58,6 +61,7 @@ function LoansPage() {
   const [dueDate, setDueDate] = useState("");
   const [note, setNote] = useState("");
   const [occurredOn, setOccurredOn] = useState(new Date().toISOString().split("T")[0]);
+  const [accountId, setAccountId] = useState<string>("none");
 
   // Load loans — try localStorage first (instant), then Supabase as background upgrade
   function loadLocalLoans(): Loan[] {
@@ -75,6 +79,7 @@ function LoansPage() {
           note: l.note || "",
           due_date: l.due_date || "",
           occurred_on: l.occurred_on || new Date().toISOString().split("T")[0],
+          account_id: l.account_id || "",
         }));
       }
     } catch {
@@ -125,6 +130,7 @@ function LoansPage() {
       note: note.trim() || null,
       due_date: dueDate || null,
       occurred_on: occurredOn,
+      account_id: accountId === "none" ? null : accountId,
     };
 
     setOpen(false);
@@ -161,8 +167,25 @@ function LoansPage() {
             throw error;
           }
         } else {
+          // Successfully created loan in DB — now create transaction in DB if linked
+          if (accountId !== "none") {
+            const txnPayload = {
+              user_id: authUser?.id,
+              account_id: accountId,
+              amount: Number(amount),
+              kind: kind === "borrowed" ? "income" : "expense", // borrowing is income, lending is expense
+              note: `Loan: ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
+              occurred_on: occurredOn,
+            };
+            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+            if (!txnErr) {
+              toast.success("Transaction recorded in selected account!");
+            }
+          }
           toast.success("Loan created");
           qc.invalidateQueries({ queryKey: ["loans"] });
+          qc.invalidateQueries({ queryKey: ["transactions"] });
+          qc.invalidateQueries({ queryKey: ["accounts"] });
         }
       }
     } catch (err: any) {
@@ -176,6 +199,7 @@ function LoansPage() {
   // Toggle status directly
   async function toggleStatus(loan: Loan) {
     const nextStatus = loan.status === "active" ? "paid" : "active";
+    setLoading(true);
     try {
       const { error } = await supabase.from("loans").update({ status: nextStatus }).eq("id", loan.id);
       if (error) {
@@ -188,11 +212,30 @@ function LoansPage() {
           throw error;
         }
       } else {
+        // If marked as paid, create a balancing transaction
+        if (nextStatus === "paid" && loan.account_id) {
+          const txnPayload = {
+            user_id: authUser?.id,
+            account_id: loan.account_id,
+            amount: Number(loan.amount),
+            kind: loan.kind === "borrowed" ? "expense" : "income", // repaying borrowed is expense, returned lent is income
+            note: `Repayment: ${loan.person_name}${loan.note ? ` (${loan.note})` : ""}`,
+            occurred_on: new Date().toISOString().split("T")[0],
+          };
+          const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+          if (!txnErr) {
+            toast.success("Balancing transaction added to account!");
+          }
+        }
         toast.success(`Marked as ${nextStatus}`);
         qc.invalidateQueries({ queryKey: ["loans"] });
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        qc.invalidateQueries({ queryKey: ["accounts"] });
       }
     } catch (err: any) {
       toast.error(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -229,6 +272,7 @@ function LoansPage() {
     setDueDate("");
     setNote("");
     setOccurredOn(new Date().toISOString().split("T")[0]);
+    setAccountId("none");
   };
 
   const handleEdit = (loan: Loan) => {
@@ -240,6 +284,7 @@ function LoansPage() {
     setDueDate(loan.due_date || "");
     setNote(loan.note || "");
     setOccurredOn(loan.occurred_on);
+    setAccountId(loan.account_id || "none");
     setOpen(true);
   };
 
@@ -247,6 +292,8 @@ function LoansPage() {
   const activeBorrowed = loans.filter(l => l.kind === "borrowed" && l.status === "active").reduce((sum, l) => sum + l.amount, 0);
   const activeLent = loans.filter(l => l.kind === "lent" && l.status === "active").reduce((sum, l) => sum + l.amount, 0);
   const netBalance = activeLent - activeBorrowed; // positive means others owe you
+
+  const accMap = new Map(accounts.map(a => [a.id, a]));
 
   return (
     <div className="space-y-6 w-full pb-10">
@@ -325,6 +372,7 @@ function LoansPage() {
                     <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
                       <span>Date: {new Date(loan.occurred_on).toLocaleDateString()}</span>
                       {loan.due_date && <span className="text-destructive font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
+                      {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
                     </div>
                     {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
                   </div>
@@ -332,9 +380,11 @@ function LoansPage() {
                   <div className="flex items-center gap-3">
                     <span className="font-serif font-bold text-base num text-destructive">{fmtMoney(loan.amount, currency)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title={loan.status === "active" ? "Mark as Paid" : "Mark as Active"}>
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      </button>
+                      {loan.status === "active" && (
+                        <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button onClick={() => handleEdit(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -384,6 +434,7 @@ function LoansPage() {
                     <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
                       <span>Date: {new Date(loan.occurred_on).toLocaleDateString()}</span>
                       {loan.due_date && <span className="text-success font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
+                      {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
                     </div>
                     {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
                   </div>
@@ -391,9 +442,11 @@ function LoansPage() {
                   <div className="flex items-center gap-3">
                     <span className="font-serif font-bold text-base num text-success">{fmtMoney(loan.amount, currency)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title={loan.status === "active" ? "Mark as Paid" : "Mark as Active"}>
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      </button>
+                      {loan.status === "active" && (
+                        <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button onClick={() => handleEdit(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -436,6 +489,22 @@ function LoansPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link Account (Optional)</Label>
+              <Select value={accountId} onValueChange={(val) => setAccountId(val)} disabled={!!editingLoan}>
+                <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent className="z-[100]">
+                  <SelectItem value="none">Do not link account</SelectItem>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground leading-normal mt-1">
+                Linking an account automatically records the financial inflow/outflow as a transaction in that account.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
