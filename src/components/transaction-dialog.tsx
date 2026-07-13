@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 // ─── Validation Schema ────────────────────────────────────────────────────────
 const transactionSchema = z
   .object({
-    kind: z.enum(["income", "expense", "transfer", "loan"]),
+    kind: z.enum(["income", "expense", "transfer"]),
     amount: z.number({ invalid_type_error: "Enter a valid amount" }).positive("Amount must be greater than 0"),
     accountId: z.string().min(1, "Select an account"),
     toAccountId: z.string().optional(),
@@ -79,7 +79,7 @@ function CategoryCreatorDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  kind: "income" | "expense" | "loan";
+  kind: "income" | "expense";
   onCreated: (id: string) => void;
 }) {
   const qc = useQueryClient();
@@ -309,7 +309,6 @@ export function TransactionDialog({
         <ToggleGroupItem value="expense" id="kind-expense">Expense</ToggleGroupItem>
         <ToggleGroupItem value="income" id="kind-income">Income</ToggleGroupItem>
         <ToggleGroupItem value="transfer" id="kind-transfer">Transfer</ToggleGroupItem>
-        <ToggleGroupItem value="loan" id="kind-loan">Loan</ToggleGroupItem>
       </ToggleGroup>
 
       <div className="grid grid-cols-2 gap-3">
@@ -364,7 +363,7 @@ export function TransactionDialog({
             <CategoryCreatorDialog
               open={showNewCat}
               onOpenChange={setShowNewCat}
-              kind={kind as any}
+              kind={kind as "income" | "expense"}
               onCreated={(id) => { setCategoryId(id); setShowNewCat(false); }}
             />
           </div>

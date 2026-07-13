@@ -268,10 +268,9 @@ function AccountsPage() {
   const qc = useQueryClient();
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
-  const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { currency: profileCurrency } = useUserProfile();
 
-  const balances = computeAccountBalances(accounts, txns, categories);
+  const balances = computeAccountBalances(accounts, txns);
 
   const [newOpen, setNewOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);

@@ -23,7 +23,7 @@ function Dashboard() {
 
   const catMap = new Map(cats.map(c => [c.id, c]));
 
-  const balances = computeAccountBalances(accounts, txns, cats);
+  const balances = computeAccountBalances(accounts, txns);
   const net = Array.from(balances.values()).reduce((s, n) => s + n, 0);
 
   const now = new Date();
@@ -32,37 +32,8 @@ function Dashboard() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const income = monthTxns.reduce((s, t) => {
-    const amt = Number(t.amount);
-    if (t.kind === "income") return s + amt;
-    if (t.kind === "loan" && t.category_id) {
-      const cat = catMap.get(t.category_id);
-      if (cat) {
-        const catName = cat.name.toLowerCase();
-        const isRepayment = t.note?.toLowerCase().includes("repayment");
-        if ((catName === "borrow" && !isRepayment) || (catName === "lent" && isRepayment)) {
-          return s + amt;
-        }
-      }
-    }
-    return s;
-  }, 0);
-
-  const expense = monthTxns.reduce((s, t) => {
-    const amt = Number(t.amount);
-    if (t.kind === "expense") return s + amt;
-    if (t.kind === "loan" && t.category_id) {
-      const cat = catMap.get(t.category_id);
-      if (cat) {
-        const catName = cat.name.toLowerCase();
-        const isRepayment = t.note?.toLowerCase().includes("repayment");
-        if ((catName === "lent" && !isRepayment) || (catName === "borrow" && isRepayment)) {
-          return s + amt;
-        }
-      }
-    }
-    return s;
-  }, 0);
+  const income = monthTxns.filter(t => t.kind === "income").reduce((s, t) => s + Number(t.amount), 0);
+  const expense = monthTxns.filter(t => t.kind === "expense").reduce((s, t) => s + Number(t.amount), 0);
   const savingsRate = income > 0 ? Math.max(0, Math.round(((income - expense) / income) * 100)) : 0;
 
   // Last 30 days cashflow

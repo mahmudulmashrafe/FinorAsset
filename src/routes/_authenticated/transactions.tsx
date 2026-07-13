@@ -117,7 +117,6 @@ function TxnsPage() {
             <SelectItem value="income">Income</SelectItem>
             <SelectItem value="expense">Expense</SelectItem>
             <SelectItem value="transfer">Transfer</SelectItem>
-            <SelectItem value="loan">Loan</SelectItem>
           </SelectContent>
         </Select>
 
@@ -178,7 +177,6 @@ function TxnsPage() {
                     <SelectItem value="income">Income</SelectItem>
                     <SelectItem value="expense">Expense</SelectItem>
                     <SelectItem value="transfer">Transfer</SelectItem>
-                    <SelectItem value="loan">Loan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -257,36 +255,12 @@ function TxnsPage() {
               {filtered.map((t) => {
                 const acc = accMap.get(t.account_id);
                 const cat = t.category_id ? catMap.get(t.category_id) : null;
-                
-                let sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
-                let amtColor = t.kind === "income"
+                const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                const amtColor = t.kind === "income"
                   ? "text-[color:var(--success)]"
                   : t.kind === "expense"
                   ? "text-[color:var(--destructive)]"
                   : "";
-
-                if (t.kind === "loan" && cat) {
-                  const catName = cat.name.toLowerCase();
-                  const isRepayment = t.note?.toLowerCase().includes("repayment");
-                  if (catName === "borrow") {
-                    if (isRepayment) {
-                      sign = "−";
-                      amtColor = "text-[color:var(--destructive)]";
-                    } else {
-                      sign = "+";
-                      amtColor = "text-[color:var(--success)]";
-                    }
-                  } else if (catName === "lent") {
-                    if (isRepayment) {
-                      sign = "+";
-                      amtColor = "text-[color:var(--success)]";
-                    } else {
-                      sign = "−";
-                      amtColor = "text-[color:var(--destructive)]";
-                    }
-                  }
-                }
-
                 return (
                   <TableRow key={t.id} className="group">
                     <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
@@ -351,36 +325,12 @@ function TxnsPage() {
           {filtered.map((t) => {
             const acc = accMap.get(t.account_id);
             const cat = t.category_id ? catMap.get(t.category_id) : null;
-            
-            let sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
-            let amtColor = t.kind === "income"
+            const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+            const amtColor = t.kind === "income"
               ? "text-[color:var(--success)]"
               : t.kind === "expense"
               ? "text-[color:var(--destructive)]"
               : "";
-
-            if (t.kind === "loan" && cat) {
-              const catName = cat.name.toLowerCase();
-              const isRepayment = t.note?.toLowerCase().includes("repayment");
-              if (catName === "borrow") {
-                if (isRepayment) {
-                  sign = "−";
-                  amtColor = "text-[color:var(--destructive)]";
-                } else {
-                  sign = "+";
-                  amtColor = "text-[color:var(--success)]";
-                }
-              } else if (catName === "lent") {
-                if (isRepayment) {
-                  sign = "+";
-                  amtColor = "text-[color:var(--success)]";
-                } else {
-                  sign = "−";
-                  amtColor = "text-[color:var(--destructive)]";
-                }
-              }
-            }
-
             return (
               <div key={t.id} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
