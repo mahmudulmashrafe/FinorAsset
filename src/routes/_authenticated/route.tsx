@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu } from "lucide-react";
+import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -29,12 +29,13 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const items = [
-  { title: "Dashboard",    url: "/dashboard",    icon: LayoutDashboard },
-  { title: "Transactions", url: "/transactions", icon: Receipt },
-  { title: "Accounts",     url: "/accounts",     icon: Wallet },
-  { title: "Budgets",      url: "/budgets",      icon: PiggyBank },
-  { title: "Stats",        url: "/stats",        icon: BarChart3 },
-  { title: "Automation",   url: "/automation",   icon: Cpu },
+  { title: "Dashboard",    url: "/dashboard",    icon: LayoutDashboard,  mobile: true },
+  { title: "Transactions", url: "/transactions", icon: Receipt,          mobile: true },
+  { title: "Accounts",     url: "/accounts",     icon: Wallet,           mobile: true },
+  { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: true },
+  { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: true },
+  { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
+  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
 ] as const;
 
 // ─── Time-of-day greeting ─────────────────────────────────────────────────────
@@ -127,6 +128,19 @@ function ProfileDropdownContent({
       </div>
 
       {/* Menu items */}
+      <div className="md:hidden">
+        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2.5">
+          <Link to="/stats" className="w-full flex items-center gap-3">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="font-medium text-sm">Stats & Trends</p>
+              <p className="text-xs text-muted-foreground">Analyze your spending</p>
+            </div>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+      </div>
+
       <DropdownMenuItem onClick={onOpenCategories} className="flex items-center gap-3 cursor-pointer py-2.5">
         <Tag className="h-4 w-4 text-muted-foreground" />
         <div>
@@ -250,7 +264,7 @@ function MobileBottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/80 backdrop-blur-md md:hidden flex items-center justify-around px-2 pb-safe shadow-sm">
-      {items.map((it) => {
+      {items.filter(it => it.mobile).map((it) => {
         const isActive = path === it.url;
         return (
           <Link
