@@ -76,8 +76,11 @@ function TxnsPage() {
     // Primary: occurred_on descending
     const dateDiff = new Date(b.occurred_on).getTime() - new Date(a.occurred_on).getTime();
     if (dateDiff !== 0) return dateDiff;
-    // Secondary: created_at descending (newest first within same date)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    // Secondary: created_at descending (newest added first within same date)
+    const createdDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (createdDiff !== 0) return createdDiff;
+    // Tertiary: stable tiebreaker by id
+    return b.id.localeCompare(a.id);
   }), [txns, kind, account, monthFilter, q, catMap, accMap]);
 
   function refresh() {

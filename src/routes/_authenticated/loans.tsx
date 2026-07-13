@@ -167,7 +167,7 @@ function LoansPage() {
           qc.invalidateQueries({ queryKey: ["loans"] });
         }
       } else {
-        // Insert
+        // Insert loan (DB or local fallback)
         const newId = generateId();
         const { error } = await supabase.from("loans").insert({ ...payload, user_id: authUser?.id });
         if (error) {
@@ -180,37 +180,30 @@ function LoansPage() {
             throw error;
           }
         } else {
-          // Successfully created loan in DB — now create transaction in DB if linked
-          if (accountId !== "none") {
-            const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
-            const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
-            const txnPayload: {
-              user_id: string | undefined;
-              account_id: string;
-              amount: number;
-              kind: "income" | "expense";
-              note: string;
-              occurred_on: string;
-              category_id?: string;
-            } = {
-              user_id: authUser?.id,
-              account_id: accountId,
-              amount: Number(amount),
-              kind: txnKind,
-              note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
-              occurred_on: occurredOn,
-            };
-            if (catId) txnPayload.category_id = catId;
-            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload as any);
-            if (txnErr) {
-              console.error("Txn insert error:", txnErr);
-              toast.error(`Failed to record transaction: ${txnErr.message}`);
-            } else {
-              toast.success("Transaction recorded in selected account!");
-            }
-          }
           toast.success("Loan created");
           qc.invalidateQueries({ queryKey: ["loans"] });
+        }
+
+        // Always create a transaction in the transactions table if an account is linked
+        if (accountId !== "none" && accountId) {
+          const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
+          const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
+          const txnPayload: Record<string, any> = {
+            user_id: authUser?.id,
+            account_id: accountId,
+            amount: Number(amount),
+            kind: txnKind,
+            note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
+            occurred_on: occurredOn,
+          };
+          if (catId) txnPayload.category_id = catId;
+          const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+          if (txnErr) {
+            console.error("Transaction insert error:", JSON.stringify(txnErr));
+            toast.error(`Transaction failed: ${txnErr.message}`);
+          } else {
+            toast.success("Transaction recorded!");
+          }
           qc.invalidateQueries({ queryKey: ["transactions"] });
           qc.invalidateQueries({ queryKey: ["accounts"] });
         }
