@@ -212,7 +212,7 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 - **Dashboard Grid (2x2)**: Configured the dashboard KPI cards wrapper to use `grid-cols-2 lg:grid-cols-4`, displaying exactly 4 statistic blocks in 2 rows on mobile viewports.
 - **Loans Summary Grid (3 Columns)**: Changed the loan page stats grid to `grid-cols-3` on mobile. Optimized label strings (truncated), text sizes, and icon widths, and hid explanatory subtext to ensure the 3 blocks fit perfectly on a single horizontal row on all mobile devices.
 - **Loans List Scroll Limit (4 Mobile / 8 Web)**: Replaced static max-height limits on the active borrowed/lent list containers with `max-h-[290px] md:max-h-[580px]`. This naturally limits the visible cards list to 4 items on mobile screens and 8 items on desktop screens before scrollbars initiate.
-- **Automation Icon-Only Add Action**: Removed the text "New Macro" and "New Subscription" from the create buttons in `automation.tsx`. Replaced them with a simple, clean `+` icon button that dynamically calls the corresponding creation dialog based on which tab (Macros or Subscriptions) is active.
+- **Automation Dynamic Bottom-Right FAB**: Removed the tab-level add buttons entirely. Programmed the existing bottom-right Floating Action Button (FAB) to check the active tab dynamically: clicking it launches **Add New Macro** if viewing the *Macros* tab, or **Add New Subscription** (resetting form fields) if viewing the *Subscriptions* tab.
 
 ## Live URL
 
