@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CategoriesDialog } from "@/components/categories-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
-import { NotificationBell } from "@/components/notification-bell";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -320,211 +319,6 @@ function Layout() {
     enabled: !!authUser,
   });
 
-  const { data: subscriptions = [] } = useQuery({
-    queryKey: ["subscriptions"],
-    queryFn: async () => {
-      try {
-        return await api.listSubscriptions();
-      } catch (err: any) {
-        // Safe check for table not existing yet during initial deployment
-        if (err.code === "42P01") return [];
-        throw err;
-      }
-    },
-    enabled: !!authUser,
-  });
-
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (!authUser || accounts.length === 0) {
-      setNotifications([]);
-      return;
-    }
-
-    const list: any[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split("T")[0];
-    const latestBalances = computeAccountBalances(accounts, txns);
-    const currency = profile?.currency || "USD";
-
-    // 1. Subscriptions Notifications
-    for (const sub of subscriptions) {
-      const nextDue = new Date(sub.next_due_date);
-      nextDue.setHours(0, 0, 0, 0);
-
-      let hasEnough = true;
-      if (sub.is_split && sub.kind !== "transfer") {
-        const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
-        for (const split of splitsList) {
-          const balance = latestBalances.get(split.accountId) ?? 0;
-          if (balance < Number(split.amount)) {
-            hasEnough = false;
-            break;
-          }
-        }
-      } else {
-        const balance = sub.account_id ? (latestBalances.get(sub.account_id) ?? 0) : 0;
-        if (balance < Number(sub.amount)) {
-          hasEnough = false;
-        }
-      }
-
-      const diffTime = nextDue.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays >= 0 && diffDays <= 3) {
-        list.push({
-          id: `sub-due-${sub.id}-${diffDays}`,
-          title: `Upcoming Subscription`,
-          message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
-          type: "warning",
-        });
-      } else if (diffDays < 0 && !hasEnough) {
-        list.push({
-          id: `sub-overdue-${sub.id}`,
-          title: `Subscription Overdue`,
-          message: `"${sub.name}" is overdue! Insufficient funds to auto-deduct.`,
-          type: "critical",
-        });
-      }
-    }
-
-    // 2. Loans Notifications
-    for (const loan of loans) {
-      if (loan.status !== "active" || !loan.due_date) continue;
-
-      const due = new Date(loan.due_date);
-      due.setHours(0, 0, 0, 0);
-
-      const diffTime = due.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays >= 0 && diffDays <= 3) {
-        list.push({
-          id: `loan-due-${loan.id}-${diffDays}`,
-          title: `Loan Due Soon`,
-          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
-          type: "warning",
-        });
-      } else if (diffDays < 0) {
-        list.push({
-          id: `loan-overdue-${loan.id}`,
-          title: `Loan Overdue`,
-          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
-          type: "critical",
-        });
-      }
-    }
-
-    setNotifications(list);
-  }, [subscriptions, loans, accounts, txns, authUser, profile?.currency]);
-
-  // Auto-deduction loop
-  const [runningDeduction, setRunningDeduction] = useState(false);
-
-  useEffect(() => {
-    if (!authUser || subscriptions.length === 0 || runningDeduction || accounts.length === 0) return;
-
-    const todayStr = new Date().toISOString().split("T")[0];
-    const dueSubs = subscriptions.filter(s => s.next_due_date <= todayStr);
-
-    if (dueSubs.length === 0) return;
-
-    async function runAutoDeductions() {
-      setRunningDeduction(true);
-      const updatedAccounts = [...accounts];
-      const updatedTxns = [...txns];
-
-      for (const sub of dueSubs) {
-        const balances = computeAccountBalances(updatedAccounts, updatedTxns);
-        let hasEnough = true;
-
-        if (sub.is_split && sub.kind !== "transfer") {
-          const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
-          for (const split of splitsList) {
-            const accId = split.accountId;
-            const required = Number(split.amount);
-            const balance = balances.get(accId) ?? 0;
-            if (balance < required) {
-              hasEnough = false;
-              break;
-            }
-          }
-        } else {
-          const accId = sub.account_id;
-          const required = Number(sub.amount);
-          const balance = accId ? (balances.get(accId) ?? 0) : 0;
-          if (balance < required) {
-            hasEnough = false;
-          }
-        }
-
-        if (hasEnough) {
-          try {
-            const inserts: any[] = [];
-            const timestamp = new Date().toISOString();
-            
-            if (sub.is_split && sub.kind !== "transfer") {
-              const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
-              for (const split of splitsList) {
-                inserts.push({
-                  user_id: authUser.id,
-                  account_id: split.accountId,
-                  amount: Number(split.amount),
-                  kind: sub.kind,
-                  category_id: sub.category_id || null,
-                  note: `Auto-Paid: ${sub.name}${sub.note ? ` (${sub.note})` : ""}`,
-                  occurred_on: sub.next_due_date,
-                });
-              }
-            } else {
-              inserts.push({
-                user_id: authUser.id,
-                account_id: sub.account_id,
-                to_account_id: sub.to_account_id || null,
-                amount: Number(sub.amount),
-                kind: sub.kind,
-                category_id: sub.category_id || null,
-                note: `Auto-Paid: ${sub.name}${sub.note ? ` (${sub.note})` : ""}`,
-                occurred_on: sub.next_due_date,
-              });
-            }
-
-            const { error: txnErr } = await supabase.from("transactions").insert(inserts);
-            if (txnErr) throw txnErr;
-
-            const nextDueDate = new Date(sub.next_due_date);
-            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-            const nextDueDateStr = nextDueDate.toISOString().split("T")[0];
-
-            const { error: subErr } = await supabase
-              .from("subscriptions")
-              .update({
-                next_due_date: nextDueDateStr,
-                last_payment_date: todayStr,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", sub.id);
-            if (subErr) throw subErr;
-
-            toast.success(`Subscription "${sub.name}" auto-deducted successfully!`);
-
-            qc.invalidateQueries({ queryKey: ["transactions"] });
-            qc.invalidateQueries({ queryKey: ["accounts"] });
-            qc.invalidateQueries({ queryKey: ["subscriptions"] });
-          } catch (err: any) {
-            console.error("Auto-deduction failed", err);
-          }
-        }
-      }
-      setRunningDeduction(false);
-    }
-
-    runAutoDeductions();
-  }, [subscriptions, accounts, txns, authUser, runningDeduction, qc]);
-
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -602,7 +396,6 @@ function Layout() {
             <div className="flex items-center justify-between w-full">
               <TopBarLogo />
               <div className="flex items-center gap-2">
-                <NotificationBell notifications={notifications} />
                 <TransactionDialog
                   trigger={
                     <Button 
@@ -655,7 +448,6 @@ function Layout() {
 
           {/* Desktop Right Actions */}
           <div className="hidden md:flex ml-auto items-center gap-3 z-10">
-            <NotificationBell notifications={notifications} />
             <TransactionDialog
               trigger={
                 <Button 

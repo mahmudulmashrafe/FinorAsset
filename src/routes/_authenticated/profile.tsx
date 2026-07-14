@@ -122,11 +122,7 @@ function ProfilePage() {
       }
 
       // 3. Clear auth session and redirect
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        // ignore signout errors since auth user is already deleted
-      }
+      await supabase.auth.signOut();
       toast.success("Account deleted successfully.");
       window.location.href = "/auth";
     } catch (err: any) {
