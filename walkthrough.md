@@ -136,6 +136,8 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 ## 17. Updated Post-Deletion Redirect Location
 - **Problem**: After deleting an account, the app redirected users to the `/login` route, which is not the correct auth endpoint.
 - **Solution**: Updated both the Profile page and Profile settings popup handlers to redirect users to `/auth` after a successful account deletion.
+  - Wrapped `supabase.auth.signOut()` in a local `try-catch` block. Since the user was already deleted on the database backend in the prior step, the subsequent `signOut()` API call would throw a network authorization exception. Capturing and ignoring this exception ensures that the redirect execution block (`window.location.href = "/auth"`) is always successfully fired.
+
 
 
 

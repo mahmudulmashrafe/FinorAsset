@@ -5,6 +5,7 @@ export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 export type Budget = Database["public"]["Tables"]["budgets"]["Row"];
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 export type TxnKind = "income" | "expense" | "transfer";
 
 export function fmtMoney(n: number, currency = "USD") {
@@ -44,6 +45,14 @@ export const api = {
     const { data, error } = await supabase.from("budgets").select("*").eq("period_month", period);
     if (error) throw error;
     return data as Budget[];
+  },
+  async listSubscriptions() {
+    const { data, error } = await supabase.from("subscriptions").select("*").order("name");
+    if (error) {
+      if (error.code === "42P01") return [];
+      throw error;
+    }
+    return data as Subscription[];
   },
 };
 
