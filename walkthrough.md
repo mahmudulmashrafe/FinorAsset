@@ -205,6 +205,15 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 - **Problem**: In the Loan tab, when the "New Loan" or "Repay Loan" modal opened on small mobile screens, the form height exceeded the viewport. Since the dialog had no max-height or scroll properties, the header (title & cross button) and the footer (Cancel & Save buttons) were pushed outside the viewport and rendered unreachable.
 - **Solution**: Updated `DialogContent` wrappers in `loans.tsx` to include `max-h-[90vh] overflow-y-auto thin-scroll` styles. This limits the overlay's maximum height on mobile screen viewports and wraps long forms in a clean, touch-friendly scroll layout, ensuring all headers, cross buttons, and Cancel/Save buttons are fully visible and clickable.
 
+
+---
+
+## 26. Optimizations for Mobile and Layout Limits
+- **Dashboard Grid (2x2)**: Configured the dashboard KPI cards wrapper to use `grid-cols-2 lg:grid-cols-4`, displaying exactly 4 statistic blocks in 2 rows on mobile viewports.
+- **Loans Summary Grid (3 Columns)**: Changed the loan page stats grid to `grid-cols-3` on mobile. Optimized label strings (truncated), text sizes, and icon widths, and hid explanatory subtext to ensure the 3 blocks fit perfectly on a single horizontal row on all mobile devices.
+- **Loans List Scroll Limit (4 Mobile / 8 Web)**: Replaced static max-height limits on the active borrowed/lent list containers with `max-h-[290px] md:max-h-[580px]`. This naturally limits the visible cards list to 4 items on mobile screens and 8 items on desktop screens before scrollbars initiate.
+- **Automation Icon-Only Add Action**: Removed the text "New Macro" and "New Subscription" from the create buttons in `automation.tsx`. Replaced them with a simple, clean `+` icon button that dynamically calls the corresponding creation dialog based on which tab (Macros or Subscriptions) is active.
+
 ## Live URL
 
 Your website is live at:
