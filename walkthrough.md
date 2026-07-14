@@ -216,6 +216,8 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 - **Static Headers and Footers with Scrollable Forms (All Forms)**: Refactored all input dialogs/forms across the app (New/Edit Transaction, Account Creator, Macro Creator, Subscription Creator, Loan Creator, Repay Loan, and Budget Dialogs) to use a fixed flex column grid design (`h-[90vh] max-h-[600px] flex flex-col p-0`). Enforces the headers (Titles & Cross close button) and footers (Cancel & Save action buttons) to remain completely locked (static) in view, wrapping only the form fields block in a scrollable (`overflow-y-auto`) container.
 
 - **Fixed Automation Page Render Crash**: Fixed a runtime error where the automation page failed to render due to `DialogFooter` being missing from the imports of `"@/components/ui/dialog"`. Additionally, added a `typeof window` / `typeof localStorage` check inside the `loadLocalRules()` utility to safeguard the query's initial data execution against SSR pre-rendering crashes.
+- **Budget Dialog Height Optimization**: Updated the Budget Creator/Editor Dialog layout by changing the height configuration to `max-h-[85vh]` instead of forcing it to `h-[90vh]`. The form dialog now fits its content automatically without excessive vertical spacing.
+- **Fixed Transaction Form Toggle Buttons**: Moved the *Expense / Income / Transfer* toggle button group in the Transaction Creator Dialog (`transaction-dialog.tsx`) out of the middle scrollable area and placed it inside a static sub-header block right below the main header. The category transaction kind select remains static at the top and never scrolls out of view.
 ## Live URL
 
 Your website is live at:
