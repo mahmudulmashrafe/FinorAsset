@@ -131,6 +131,13 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - Replaced the heavy `bg-black/80` overlay style with a sleek glassmorphic combination: a light tint (`bg-black/10`) coupled with a soft backdrop blur (`backdrop-blur-sm`).
   - This keeps the page background completely visible and elegantly blurred when modals open.
 
+---
+
+## 17. Updated Post-Deletion Redirect Location
+- **Problem**: After deleting an account, the app redirected users to the `/login` route, which is not the correct auth endpoint.
+- **Solution**: Updated both the Profile page and Profile settings popup handlers to redirect users to `/auth` after a successful account deletion.
+
+
 
 
 ## Live URL
