@@ -122,6 +122,16 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - Wrapped the `DELETE FROM auth.users` call in a PL/pgSQL `EXCEPTION` block, capturing the exact Postgres error using `SQLERRM` and returning it back to the client.
   - The front-end now toasts the specific database error description on failure, providing immediate clarity.
 
+---
+
+## 16. Glassmorphic Transparent Dialog Backdrops
+- **Problem**: Opening Dialogs or Alert Dialogs dimmed the page background to a heavy, near-solid pitch black overlay (`bg-black/80`), which felt jarring and disconnected.
+- **Solution**:
+  - Modified both `DialogOverlay` and `AlertDialogOverlay` component styles in the UI library.
+  - Replaced the heavy `bg-black/80` overlay style with a sleek glassmorphic combination: a light tint (`bg-black/10`) coupled with a soft backdrop blur (`backdrop-blur-sm`).
+  - This keeps the page background completely visible and elegantly blurred when modals open.
+
+
 
 ## Live URL
 
