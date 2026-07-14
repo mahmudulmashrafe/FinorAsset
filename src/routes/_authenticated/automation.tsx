@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, fmtMoney } from "@/lib/finance";
+import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +48,7 @@ function AutomationPage() {
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
+  const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
 
   // Load rules — try localStorage first (instant), then Supabase as background upgrade
   function loadLocalRules(): AutomationRule[] {
@@ -251,6 +252,27 @@ function AutomationPage() {
     if (!authUser?.id) {
       return toast.error("User session expired. Please sign in again.");
     }
+
+    // Balance check validation
+    const accountMap = new Map(accounts.map((a) => [a.id, a]));
+    const balances = computeAccountBalances(accounts, txns);
+    const deductions = new Map<string, number>();
+
+    for (const act of rule.actions) {
+      const amount = Number(act.amount);
+      if (act.kind === "expense" || act.kind === "transfer") {
+        deductions.set(act.account_id, (deductions.get(act.account_id) ?? 0) + amount);
+      }
+    }
+
+    for (const [accountId, totalDeduction] of deductions.entries()) {
+      const balance = balances.get(accountId) ?? 0;
+      if (balance < totalDeduction) {
+        const accName = accountMap.get(accountId)?.name || "selected account";
+        return toast.error(`Insufficient funds to run macro "${rule.name}". ${accName} has ${fmtMoney(balance, currency)}, but macro requires ${fmtMoney(totalDeduction, currency)}.`);
+      }
+    }
+
     setExecutingId(rule.id);
 
     try {

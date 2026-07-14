@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type TxnKind, type Transaction, syncTransactionToLoan } from "@/lib/finance";
+import { api, type TxnKind, type Transaction, syncTransactionToLoan, computeAccountBalances, fmtMoney } from "@/lib/finance";
 import { toast } from "sonner";
-import { Plus, PlusCircle, X } from "lucide-react";
+import { Plus, PlusCircle, X, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 const transactionSchema = z
@@ -197,8 +198,15 @@ export function TransactionDialog({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [showNewCat, setShowNewCat] = useState(false);
 
+  // Splits states
+  const [isSplit, setIsSplit] = useState(false);
+  const [splits, setSplits] = useState<{ accountId: string; amount: number }[]>([]);
+
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts, enabled: open });
   const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories, enabled: open });
+  const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000), enabled: open });
+
+  const balances = computeAccountBalances(accounts, txns);
 
   // Pre-fill form when editing or set defaults for new
   useEffect(() => {
@@ -211,6 +219,7 @@ export function TransactionDialog({
       setCategoryId(editingTransaction.category_id ?? "");
       setNote(editingTransaction.note ?? "");
       setDate(editingTransaction.occurred_on);
+      setIsSplit(false);
     } else {
       setKind("expense");
       setAmount("");
@@ -218,15 +227,23 @@ export function TransactionDialog({
       setCategoryId("");
       setNote("");
       setDate(new Date().toISOString().slice(0, 10));
+      setIsSplit(false);
+      if (accounts.length) {
+        setSplits([{ accountId: accounts[0].id, amount: 0 }]);
+      }
     }
     setErrors({});
     setShowNewCat(false);
-  }, [open, editingTransaction]);
+  }, [open, editingTransaction, accounts]);
 
   // Auto-select first account for new transactions
   useEffect(() => {
-    if (open && accounts.length && !accountId && !isEdit) setAccountId(accounts[0].id);
-  }, [open, accounts, accountId, isEdit]);
+    if (open && accounts.length && !accountId && !isEdit) {
+      const defaultId = accounts[0].id;
+      setAccountId(defaultId);
+      setSplits([{ accountId: defaultId, amount: Number(amount) || 0 }]);
+    }
+  }, [open, accounts, accountId, isEdit, amount]);
 
   // Reset category + new-cat form when switching kind
   useEffect(() => {
@@ -239,7 +256,6 @@ export function TransactionDialog({
     setAmount(""); setNote(""); setCategoryId(""); setToAccountId("");
     setErrors({}); setShowNewCat(false); setAccountId("");
   }
-
   async function submit() {
     setErrors({});
     const parsed = transactionSchema.safeParse({
@@ -257,8 +273,21 @@ export function TransactionDialog({
     }
 
     setSaving(true);
+    const { currency } = useUserProfile();
 
     if (isEdit) {
+      // Balance validation for editing a transaction
+      if (kind === "expense" || kind === "transfer") {
+        const originalAmt = Number(editingTransaction!.amount);
+        const currentBal = balances.get(accountId) ?? 0;
+        const available = currentBal + (editingTransaction!.kind === kind && editingTransaction!.account_id === accountId ? originalAmt : 0);
+        if (available < parsed.data.amount) {
+          const accName = accounts.find(a => a.id === accountId)?.name || "selected account";
+          setSaving(false);
+          return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(available, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+        }
+      }
+
       // UPDATE existing transaction
       const { error } = await supabase.from("transactions").update({
         account_id: accountId,
@@ -279,19 +308,66 @@ export function TransactionDialog({
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) { setSaving(false); return; }
 
-      const { error } = await supabase.from("transactions").insert({
-        user_id: u.user.id,
-        account_id: accountId,
-        to_account_id: kind === "transfer" ? toAccountId : null,
-        category_id: kind === "transfer" ? null : (categoryId || null),
-        kind,
-        amount: parsed.data.amount,
-        note: note || null,
-        occurred_on: date,
-      });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Transaction added!");
+      if (isSplit) {
+        // Splits validation
+        const totalAllocated = splits.reduce((sum, s) => sum + s.amount, 0);
+        if (Math.abs(totalAllocated - parsed.data.amount) >= 0.01) {
+          setSaving(false);
+          return toast.error(`Total split amount (${fmtMoney(totalAllocated, currency)}) must match the transaction amount (${fmtMoney(parsed.data.amount, currency)})`);
+        }
+
+        if (kind === "expense") {
+          for (const split of splits) {
+            const currentBal = balances.get(split.accountId) ?? 0;
+            if (currentBal < split.amount) {
+              const accName = accounts.find(a => a.id === split.accountId)?.name || "selected account";
+              setSaving(false);
+              return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(currentBal, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+            }
+          }
+        }
+
+        // Insert multiple split transactions
+        const insertPayloads = splits.map(split => ({
+          user_id: u.user.id,
+          account_id: split.accountId,
+          to_account_id: null,
+          category_id: categoryId || null,
+          kind,
+          amount: Number(split.amount),
+          note: note || null,
+          occurred_on: date,
+        }));
+
+        const { error } = await supabase.from("transactions").insert(insertPayloads);
+        setSaving(false);
+        if (error) return toast.error(error.message);
+        toast.success("Split transactions added!");
+      } else {
+        // Single transaction balance validation
+        if (kind === "expense" || kind === "transfer") {
+          const currentBal = balances.get(accountId) ?? 0;
+          if (currentBal < parsed.data.amount) {
+            const accName = accounts.find(a => a.id === accountId)?.name || "selected account";
+            setSaving(false);
+            return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(currentBal, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+          }
+        }
+
+        const { error } = await supabase.from("transactions").insert({
+          user_id: u.user.id,
+          account_id: accountId,
+          to_account_id: kind === "transfer" ? toAccountId : null,
+          category_id: kind === "transfer" ? null : (categoryId || null),
+          kind,
+          amount: parsed.data.amount,
+          note: note || null,
+          occurred_on: date,
+        });
+        setSaving(false);
+        if (error) return toast.error(error.message);
+        toast.success("Transaction added!");
+      }
     }
 
     qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -317,19 +393,57 @@ export function TransactionDialog({
         <div className="col-span-2">
           <Label htmlFor="txn-amount">Amount</Label>
           <Input id="txn-amount" type="number" step="0.01" min="0.01"
-            value={amount} onChange={(e) => setAmount(e.target.value)}
+            value={amount} onChange={(e) => {
+              const val = e.target.value;
+              setAmount(val);
+              if (splits.length === 1) {
+                setSplits([{ ...splits[0], amount: Number(val) || 0 }]);
+              }
+            }}
             placeholder="0.00" aria-invalid={!!errors.amount} autoFocus={isEdit} />
           {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount}</p>}
         </div>
 
-        <div>
-          <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
-          <Select value={accountId} onValueChange={setAccountId}>
-            <SelectTrigger id="txn-account" aria-invalid={!!errors.accountId}><SelectValue placeholder="Select" /></SelectTrigger>
-            <SelectContent className="z-[150]">{accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-          </Select>
-          {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
-        </div>
+        {!isEdit && kind !== "transfer" && (
+          <div className="col-span-2 flex items-center justify-between border-y py-2.5 my-1">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-semibold">Split across multiple accounts</Label>
+              <p className="text-[10px] text-muted-foreground">Allocate this transaction's amount to more than one account</p>
+            </div>
+            <Switch
+              checked={isSplit}
+              onCheckedChange={(checked) => {
+                setIsSplit(checked);
+                if (checked) {
+                  setSplits([{ accountId: accountId || accounts[0]?.id || "", amount: Number(amount) || 0 }]);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {isSplit ? (
+          <div className="col-span-2">
+            <AccountSplitsSelector
+              splits={splits}
+              setSplits={setSplits}
+              totalAmount={Number(amount) || 0}
+              accounts={accounts}
+              balances={balances}
+              currency={useUserProfile().currency}
+              showBalanceCheck={kind === "expense"}
+            />
+          </div>
+        ) : (
+          <div>
+            <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger id="txn-account" aria-invalid={!!errors.accountId}><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent className="z-[150]">{accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+            </Select>
+            {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
+          </div>
+        )}
 
         {kind === "transfer" ? (
           <div>
@@ -341,7 +455,7 @@ export function TransactionDialog({
             {errors.toAccountId && <p className="mt-1 text-xs text-destructive">{errors.toAccountId}</p>}
           </div>
         ) : (
-          <div>
+          <div className={isSplit ? "col-span-2" : ""}>
             <Label htmlFor="txn-category">Category</Label>
             <Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setShowNewCat(false); }}>
               <SelectTrigger id="txn-category"><SelectValue placeholder="Select or create" /></SelectTrigger>
@@ -359,7 +473,7 @@ export function TransactionDialog({
               </SelectContent>
             </Select>
             <button type="button" onClick={() => setShowNewCat(true)}
-              className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
               <PlusCircle className="h-3.5 w-3.5" /> Create new category
             </button>
             <CategoryCreatorDialog
@@ -414,3 +528,127 @@ export function TransactionDialog({
     </Dialog>
   );
 }
+
+function AccountSplitsSelector({
+  splits,
+  setSplits,
+  totalAmount,
+  accounts,
+  balances,
+  currency,
+  showBalanceCheck,
+}: {
+  splits: { accountId: string; amount: number }[];
+  setSplits: React.Dispatch<React.SetStateAction<{ accountId: string; amount: number }[]>>;
+  totalAmount: number;
+  accounts: any[];
+  balances: Map<string, number>;
+  currency: string;
+  showBalanceCheck: boolean;
+}) {
+  const handleAddSplit = () => {
+    setSplits([...splits, { accountId: accounts[0]?.id || "", amount: 0 }]);
+  };
+
+  const handleRemoveSplit = (idx: number) => {
+    setSplits(splits.filter((_, i) => i !== idx));
+  };
+
+  const handleSplitChange = (idx: number, field: "accountId" | "amount", value: any) => {
+    const updated = splits.map((s, i) => {
+      if (i === idx) {
+        return { ...s, [field]: value };
+      }
+      return s;
+    });
+    setSplits(updated);
+  };
+
+  const allocated = splits.reduce((sum, s) => sum + s.amount, 0);
+  const remaining = totalAmount - allocated;
+
+  return (
+    <div className="space-y-2 border-t pt-2 mt-1">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Account Source / Splits
+        </Label>
+        <button
+          type="button"
+          onClick={handleAddSplit}
+          className="text-xs text-accent hover:underline flex items-center gap-0.5 cursor-pointer"
+        >
+          + Add Account Split
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {splits.map((split, idx) => {
+          const balance = balances.get(split.accountId) ?? 0;
+          const isOverdrawn = showBalanceCheck && balance < split.amount;
+
+          return (
+            <div key={idx} className="flex gap-2 items-start">
+              <div className="flex-1 min-w-0">
+                <Select
+                  value={split.accountId}
+                  onValueChange={(val) => handleSplitChange(idx, "accountId", val)}
+                >
+                  <SelectTrigger className="w-full h-8 bg-background rounded-lg text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-[250]">
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-[10px] text-muted-foreground mt-0.5 px-1 flex justify-between">
+                  <span>Available: {fmtMoney(balance, currency)}</span>
+                  {isOverdrawn && <span className="text-destructive font-semibold">Insufficient funds</span>}
+                </div>
+              </div>
+
+              <div className="w-28 flex-shrink-0">
+                <Input
+                  type="number"
+                  step="any"
+                  value={split.amount || ""}
+                  onChange={(e) => handleSplitChange(idx, "amount", Number(e.target.value) || 0)}
+                  placeholder="0.00"
+                  className={`rounded-lg h-8 text-xs ${isOverdrawn ? "border-destructive text-destructive" : ""}`}
+                />
+              </div>
+
+              {splits.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveSplit(idx)}
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="text-[10px] flex justify-between px-1 pt-1">
+        <span className={Math.abs(remaining) < 0.01 ? "text-success font-medium" : "text-muted-foreground"}>
+          Allocated: {fmtMoney(allocated, currency)} / {fmtMoney(totalAmount, currency)}
+        </span>
+        {Math.abs(remaining) >= 0.01 && (
+          <span className="text-destructive font-medium">
+            {remaining > 0 ? `Remaining: ${fmtMoney(remaining, currency)}` : `Over-allocated by ${fmtMoney(Math.abs(remaining), currency)}`}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
