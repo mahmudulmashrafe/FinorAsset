@@ -696,7 +696,7 @@ function LoansPage() {
 
       {/* Adding/Editing Dialog */}
       <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) resetForm(); }}>
-        <DialogContent className="max-w-[90vw] sm:max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[99]">
+        <DialogContent className="max-w-[90vw] sm:max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif">{editingLoan ? "Edit Loan" : "New Loan"}</DialogTitle>
           </DialogHeader>
@@ -842,7 +842,7 @@ function LoansPage() {
 
       {/* Repay Loan Dialog */}
       <Dialog open={!!repayLoan} onOpenChange={(val) => { if (!val) setRepayLoan(null); }}>
-        <DialogContent className="max-w-[90vw] sm:max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[99]">
+        <DialogContent className="max-w-[90vw] sm:max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif">Repay Loan: {repayLoan?.person_name}</DialogTitle>
           </DialogHeader>

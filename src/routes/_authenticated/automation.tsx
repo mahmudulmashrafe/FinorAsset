@@ -848,7 +848,7 @@ function AutomationPage() {
           setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
         }
       }}>
-        <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[100]">
+        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[100] overflow-hidden">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif text-2xl">
               {editingRule ? "Edit Automation Macro" : "New Automation Macro"}
@@ -1089,7 +1089,7 @@ function AutomationPage() {
         setCreateSubOpen(val);
         if (!val) resetSubForm();
       }}>
-        <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[100]">
+        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[100] overflow-hidden">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif text-2xl">
               {editingSub ? "Edit Subscription" : "New Subscription"}

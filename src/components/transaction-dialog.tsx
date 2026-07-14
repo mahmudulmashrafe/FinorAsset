@@ -379,7 +379,7 @@ export function TransactionDialog({
   }
 
   const dialogContent = (
-    <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[99]">
+    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
       <DialogHeader className="p-4 border-b">
         <DialogTitle className="font-serif">{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle>
       </DialogHeader>

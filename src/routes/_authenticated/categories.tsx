@@ -182,7 +182,7 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg flex flex-col h-[90vh] max-h-[600px] p-0 z-[90]">
+      <DialogContent className="max-w-lg flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[90] overflow-hidden">
         <DialogHeader className="p-4 border-b">
           <DialogTitle className="font-serif">{isEdit ? "Edit category" : "New category"}</DialogTitle>
         </DialogHeader>

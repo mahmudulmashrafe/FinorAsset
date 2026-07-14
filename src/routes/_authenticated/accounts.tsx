@@ -181,7 +181,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[90]">
+      <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[90] overflow-hidden">
         <DialogHeader className="p-4 border-b">
           <DialogTitle className="font-serif">{isEdit ? "Edit account" : "New account"}</DialogTitle>
         </DialogHeader>
