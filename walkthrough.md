@@ -209,7 +209,7 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 ---
 
 ## 26. Optimizations for Mobile and Layout Limits
-- **Dashboard Grid (2x2)**: Configured the dashboard KPI cards wrapper to use `grid-cols-2 lg:grid-cols-4`, displaying exactly 4 statistic blocks in 2 rows on mobile viewports.
+- **Dashboard Grid (2x2)**: Configured the dashboard KPI cards wrapper to use `grid-cols-2 lg:grid-cols-4`, displaying exactly 4 statistic blocks in 2 rows on mobile viewports. Reduced font sizes (`text-[9px]` for labels and `text-base` for numerical values) and icon sizes (`h-3.5 w-3.5`) on mobile widths to fit beautifully in the split 2-column configuration.
 - **Loans Summary Grid (3 Columns)**: Changed the loan page stats grid to `grid-cols-3` on mobile. Optimized label strings (truncated), text sizes, and icon widths, and hid explanatory subtext to ensure the 3 blocks fit perfectly on a single horizontal row on all mobile devices.
 - **Loans List Scroll Limit (4 Items)**: Capped the max-height of the active borrowed and lent list containers at `max-h-[290px]` globally. This enforces a limit of exactly 4 visible cards on both mobile viewports and desktop web view before vertical scrollbars initiate.
 - **Automation Dynamic Bottom-Right FAB**: Removed the tab-level add buttons entirely. Programmed the existing bottom-right Floating Action Button (FAB) to check the active tab dynamically: clicking it launches **Add New Macro** if viewing the *Macros* tab, or **Add New Subscription** (resetting form fields) if viewing the *Subscriptions* tab.
