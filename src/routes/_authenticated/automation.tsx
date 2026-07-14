@@ -398,17 +398,7 @@ function AutomationPage() {
 
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Automation</p>
-          <h1 className="mt-1 font-serif text-4xl">Creator</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setCreateOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm">
-            <Plus className="h-4 w-4 mr-1" /> New Macro
-          </Button>
-        </div>
-      </div>
+
 
       {rules.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4 mt-12">

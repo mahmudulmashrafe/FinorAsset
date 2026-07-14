@@ -137,6 +137,17 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 - **Problem**: After deleting an account, the app redirected users to the `/login` route, which is not the correct auth endpoint.
 - **Solution**: Updated both the Profile page and Profile settings popup handlers to redirect users to `/auth` after a successful account deletion.
 
+---
+
+## 18. Removed Subscriptions & Notifications
+- **Problem**: The project owner requested to completely remove the Subscriptions tracking and the Notification Bell system.
+- **Solution**:
+  - **Layout Header**: Removed the `<NotificationBell>` component and its imports from both desktop and mobile header layouts inside `route.tsx`.
+  - **Notification State & Logic**: Cleared out the `notifications` state, `useQuery` query loaders for subscription lists, and `useEffect` notification calculation hooks from the root authenticated layout.
+  - **Auto-Deductions**: Removed the background auto-deduction effects that automatically generated billing entries for overdue subscriptions.
+  - **Automation Creator Tabs**: Replaced the multi-tab layout (Macros vs. Subscriptions) on the **Automation Creator** page with a pure macros listing, and deleted all subscription form variables, dialog states, and mutation logic.
+
+
 
 
 
