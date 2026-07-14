@@ -177,6 +177,7 @@ export function TransactionDialog({
   onOpenChange: controlledOnOpenChange,
 }: TransactionDialogProps) {
   const qc = useQueryClient();
+  const { currency } = useUserProfile();
   const isEdit = !!editingTransaction;
 
   // Support both controlled (edit mode) and uncontrolled (trigger button) open state
@@ -273,7 +274,6 @@ export function TransactionDialog({
     }
 
     setSaving(true);
-    const { currency } = useUserProfile();
 
     if (isEdit) {
       // Balance validation for editing a transaction
@@ -430,7 +430,7 @@ export function TransactionDialog({
               totalAmount={Number(amount) || 0}
               accounts={accounts}
               balances={balances}
-              currency={useUserProfile().currency}
+              currency={currency}
               showBalanceCheck={kind === "expense"}
             />
           </div>
