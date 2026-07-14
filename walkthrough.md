@@ -188,6 +188,13 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - **Dynamic Generation**: Set up a background `useEffect` in `route.tsx` that inspects subscriptions/loans, creates pending alerts, and pushes them to Supabase on-load.
   - **Badge & Bell UI**: Modified `<NotificationBell>` to display only the count of unread (`read: false`) notifications, added a "Mark all as read" button to trigger a database update, and configured the list to display the last 5 notifications.
 
+---
+
+## 23. Fixed Global Page Layout Shifting
+- **Problem**: When a button was clicked to open a dialog modal, select input, or dropdown menu, the scrollbar lock mechanism in Radix UI recalculated and injected a padding-right adjustment onto the body. Because the viewport scrollbar gutter was already styled as stable, this caused the entire page layout to shift ~15px to the side.
+- **Solution**: Added a global CSS rule in `styles.css` targeting `html[data-scroll-locked]`. When Radix UI locks the body, it overrides `--removed-body-scroll-bar-size` to `0px !important`, completely neutralizing layout shifts and keeping all content, buttons, and headers stationary.
+
+
 ## Live URL
 
 Your website is live at:
