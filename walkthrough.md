@@ -195,6 +195,16 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 - **Solution**: Added a global CSS rule in `styles.css` targeting `html[data-scroll-locked]`. When Radix UI locks the body, it overrides `--removed-body-scroll-bar-size` to `0px !important`, completely neutralizing layout shifts and keeping all content, buttons, and headers stationary.
 
 
+---
+
+## 24. Cleaned Automation Page Header
+- **Problem**: The large text headers "Automation" and "Creator" occupied too much screen real estate and looked bulky.
+- **Solution**: Removed the headers container entirely from `automation.tsx`. Repositioned the "+ New Macro" and "+ New Subscription" trigger buttons directly onto the right side of the **Tabs Selector row** (`flex justify-between`), making the interface compact and intuitive.
+
+## 25. Fixed Modal Dialog Height Clipping on Mobile View
+- **Problem**: In the Loan tab, when the "New Loan" or "Repay Loan" modal opened on small mobile screens, the form height exceeded the viewport. Since the dialog had no max-height or scroll properties, the header (title & cross button) and the footer (Cancel & Save buttons) were pushed outside the viewport and rendered unreachable.
+- **Solution**: Updated `DialogContent` wrappers in `loans.tsx` to include `max-h-[90vh] overflow-y-auto thin-scroll` styles. This limits the overlay's maximum height on mobile screen viewports and wraps long forms in a clean, touch-friendly scroll layout, ensuring all headers, cross buttons, and Cancel/Save buttons are fully visible and clickable.
+
 ## Live URL
 
 Your website is live at:
