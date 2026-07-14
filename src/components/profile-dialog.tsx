@@ -9,6 +9,15 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { User, Mail, DollarSign, Calendar, Save } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CURRENCIES = [
   { code: "USD", name: "US Dollar ($)" },
@@ -42,6 +51,11 @@ export function ProfileDialog({
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  // Deletion state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const { profile, authUser, isLoading } = useUserProfile();
 
@@ -137,6 +151,39 @@ export function ProfileDialog({
       toast.success("Password updated successfully!");
       setOldPassword("");
       setNewPassword("");
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!deletePassword) return toast.error("Password is required");
+    setDeletingAccount(true);
+
+    try {
+      // 1. Verify password by logging in
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({
+        email: authUser?.email ?? "",
+        password: deletePassword,
+      });
+
+      if (verifyErr) {
+        setDeletingAccount(false);
+        return toast.error("Incorrect password. Verification failed.");
+      }
+
+      // 2. Call secure delete account RPC function
+      const { error: deleteErr } = await supabase.rpc("delete_current_user");
+      if (deleteErr) {
+        setDeletingAccount(false);
+        return toast.error(`Deletion failed: ${deleteErr.message}`);
+      }
+
+      // 3. Clear auth session and redirect
+      await supabase.auth.signOut();
+      toast.success("Account deleted successfully.");
+      window.location.href = "/login";
+    } catch (err: any) {
+      toast.error(err.message);
+      setDeletingAccount(false);
     }
   }
 
@@ -298,10 +345,67 @@ export function ProfileDialog({
                 </form>
               </div>
 
+              <hr className="border-border/60" />
+
+              {/* Danger Zone */}
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="font-serif text-lg text-destructive font-semibold">Danger Zone</h3>
+                  <p className="text-[10px] text-muted-foreground">Irreversible actions regarding your account data.</p>
+                </div>
+                <div className="border-t border-destructive/10 pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-semibold text-foreground">Delete Account</span>
+                    <p className="text-[10px] text-muted-foreground">Permanently delete your profile and all linked financial accounts, transactions, and loans.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="cursor-pointer font-bold text-xs self-start sm:self-center"
+                  >
+                    Delete Account...
+                  </Button>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
       </DialogContent>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-md rounded-xl z-[200]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-destructive">Confirm Account Deletion</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This action is permanent and cannot be undone. To verify you are the account owner, please enter your password.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2.5 py-3">
+            <Label htmlFor="dialog-delete-confirm-password" className="text-xs font-semibold">Enter Password</Label>
+            <Input
+              id="dialog-delete-confirm-password"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletePassword("")}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deletingAccount || !deletePassword}
+              onClick={handleDeleteAccount}
+              className="cursor-pointer font-bold text-xs"
+            >
+              {deletingAccount ? "Deleting Account..." : "Permanently Delete"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
