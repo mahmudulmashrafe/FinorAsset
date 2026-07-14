@@ -142,6 +142,9 @@
     scrollbar-gutter: stable;
     overflow-y: scroll;
   }
+  html[data-scroll-locked] {
+    --removed-body-scroll-bar-size: 0px !important;
+  }
   * { border-color: var(--color-border); }
   body {
     background-color: var(--color-background);
