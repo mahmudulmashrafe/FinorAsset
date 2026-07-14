@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Switch } from "@/components/ui/switch";
@@ -56,6 +56,7 @@ function AutomationPage() {
 
   // Load rules — try localStorage first (instant), then Supabase as background upgrade
   function loadLocalRules(): AutomationRule[] {
+    if (typeof window === "undefined" || typeof localStorage === "undefined") return [];
     const stored = localStorage.getItem("finorasset_automations");
     if (!stored) return [];
     try {
