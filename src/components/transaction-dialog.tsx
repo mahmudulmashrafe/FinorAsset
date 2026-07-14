@@ -15,6 +15,7 @@ import { Plus, PlusCircle, X, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 const transactionSchema = z
