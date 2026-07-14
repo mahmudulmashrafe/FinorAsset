@@ -384,13 +384,15 @@ export function TransactionDialog({
         <DialogTitle className="font-serif">{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle>
       </DialogHeader>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+      <div className="px-4 py-3 border-b bg-muted/5 shrink-0">
         <ToggleGroup type="single" value={kind} onValueChange={(v) => v && setKind(v as TxnKind)} className="justify-start">
           <ToggleGroupItem value="expense" id="kind-expense">Expense</ToggleGroupItem>
           <ToggleGroupItem value="income" id="kind-income">Income</ToggleGroupItem>
           <ToggleGroupItem value="transfer" id="kind-transfer">Transfer</ToggleGroupItem>
         </ToggleGroup>
+      </div>
 
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <Label htmlFor="txn-amount">Amount</Label>

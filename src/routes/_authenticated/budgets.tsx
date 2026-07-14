@@ -201,7 +201,7 @@ function BudgetsPage() {
           setAmount("");
         }
       }}>
-        <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[90]">
+        <DialogContent className="max-w-md flex flex-col max-h-[85vh] p-0 z-[90]">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif">
               {editingBudget ? "Edit budget" : "New monthly budget"}
