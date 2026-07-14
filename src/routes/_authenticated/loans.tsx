@@ -64,6 +64,8 @@ function LoansPage() {
   const [borrowedCollapsed, setBorrowedCollapsed] = useState(true);
   const [lentCollapsed, setLentCollapsed] = useState(true);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [borrowedListOpen, setBorrowedListOpen] = useState(false);
+  const [lentListOpen, setLentListOpen] = useState(false);
 
   // Form states
   const [personName, setPersonName] = useState("");
@@ -495,45 +497,68 @@ function LoansPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <div className="rounded-xl border bg-card p-2.5 sm:p-4 flex items-center justify-between shadow-sm min-w-0">
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">Borrowed</p>
-            <h3 className="mt-0.5 sm:mt-1 font-serif text-sm sm:text-2xl font-bold text-destructive truncate">{fmtMoney(activeBorrowed, currency)}</h3>
-            <p className="hidden sm:block text-[10px] text-muted-foreground mt-1">Total active debts you owe</p>
-          </div>
-          <div className="hidden xs:flex h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-destructive/10 items-center justify-center text-destructive shrink-0 ml-1">
-            <TrendingDown className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-          </div>
-        </div>
-
-        <div className="rounded-xl border bg-card p-2.5 sm:p-4 flex items-center justify-between shadow-sm min-w-0">
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">Lent</p>
-            <h3 className="mt-0.5 sm:mt-1 font-serif text-sm sm:text-2xl font-bold text-success truncate">{fmtMoney(activeLent, currency)}</h3>
-            <p className="hidden sm:block text-[10px] text-muted-foreground mt-1">Total active funds lent out</p>
-          </div>
-          <div className="hidden xs:flex h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-success/10 items-center justify-center text-success shrink-0 ml-1">
-            <TrendingUp className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-          </div>
-        </div>
-
-        <div className="rounded-xl border bg-card p-2.5 sm:p-4 flex items-center justify-between shadow-sm min-w-0">
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">Net Position</p>
-            <h3 className={`mt-0.5 sm:mt-1 font-serif text-sm sm:text-2xl font-bold truncate ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Net Position (Row 1 on Mobile, Col 3 on Desktop) */}
+        <div className="order-1 md:order-3 rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Net Debt Position</p>
+            <h3 className={`mt-1 font-serif text-2xl font-bold ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
               {netBalance >= 0 ? "+" : ""}{fmtMoney(netBalance, currency)}
             </h3>
-            <p className="hidden sm:block text-[10px] text-muted-foreground mt-1">Lent minus borrowed</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Lent minus borrowed</p>
           </div>
-          <div className="hidden xs:flex h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-accent/10 items-center justify-center text-accent shrink-0 ml-1">
-            <CircleDollarSign className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+          <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
+            <CircleDollarSign className="h-5 w-5" />
+          </div>
+        </div>
+
+        {/* Borrowed (Row 2 on Mobile, Col 1 on Desktop) */}
+        <div 
+          onClick={() => {
+            if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+              setBorrowedListOpen(true);
+            }
+          }}
+          className="order-2 md:order-1 rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+        >
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+              I Take Loan (Borrowed)
+              <span className="md:hidden text-[9px] font-sans bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
+            </p>
+            <h3 className="mt-1 font-serif text-2xl font-bold text-destructive">{fmtMoney(activeBorrowed, currency)}</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">Total active debts you owe</p>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+            <TrendingDown className="h-5 w-5" />
+          </div>
+        </div>
+
+        {/* Lent (Row 3 on Mobile, Col 2 on Desktop) */}
+        <div 
+          onClick={() => {
+            if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+              setLentListOpen(true);
+            }
+          }}
+          className="order-3 md:order-2 rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+        >
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+              I Give Loan (Lent)
+              <span className="md:hidden text-[9px] font-sans bg-success/10 text-success px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
+            </p>
+            <h3 className="mt-1 font-serif text-2xl font-bold text-success">{fmtMoney(activeLent, currency)}</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">Total active funds lent out</p>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success">
+            <TrendingUp className="h-5 w-5" />
           </div>
         </div>
       </div>
 
-      {/* Main content tabs/grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Main content tabs/grid (Hidden on Mobile, visible on desktop) */}
+      <div className="hidden md:grid gap-6 lg:grid-cols-2">
         {/* Part 1: I Take Loan (Borrowed) */}
         <section className="rounded-xl border bg-card p-4 shadow-sm flex flex-col justify-between">
           <div>
@@ -975,6 +1000,108 @@ function LoansPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+
+      {/* Mobile popup lists */}
+      <Dialog open={borrowedListOpen} onOpenChange={setBorrowedListOpen}>
+        <DialogContent className="max-w-[95vw] rounded-xl max-h-[85vh] overflow-y-auto thin-scroll z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg flex items-center gap-2">
+              <TrendingDown className="h-5 w-5 text-destructive" />
+              I Take Loan (Borrowed)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-3">
+            {loans.filter(l => l.kind === "borrowed").length === 0 && (
+              <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
+            )}
+            {loans.filter(l => l.kind === "borrowed").map((loan) => (
+              <div 
+                key={loan.id} 
+                onClick={() => { 
+                  setSelectedLoan(loan); 
+                  setBorrowedListOpen(false); 
+                }} 
+                className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"} w-full min-w-0 overflow-hidden`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif font-bold text-sm truncate">{loan.person_name}</span>
+                    {loan.status === "paid" ? (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> Paid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-destructive/15 text-destructive font-medium">
+                        <Clock className="h-2.5 w-2.5" /> Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span>Date: {new Date(loan.occurred_on).toLocaleDateString()}</span>
+                    {loan.due_date && <span className="text-destructive font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
+                    {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
+                  </div>
+                  {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-serif font-bold text-base num text-destructive">{fmtMoney(loan.amount, currency)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={lentListOpen} onOpenChange={setLentListOpen}>
+        <DialogContent className="max-w-[95vw] rounded-xl max-h-[85vh] overflow-y-auto thin-scroll z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-success" />
+              I Give Loan (Lent)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-3">
+            {loans.filter(l => l.kind === "lent").length === 0 && (
+              <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
+            )}
+            {loans.filter(l => l.kind === "lent").map((loan) => (
+              <div 
+                key={loan.id} 
+                onClick={() => { 
+                  setSelectedLoan(loan); 
+                  setLentListOpen(false); 
+                }} 
+                className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"} w-full min-w-0 overflow-hidden`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif font-bold text-sm truncate">{loan.person_name}</span>
+                    {loan.status === "paid" ? (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> Paid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
+                        <Clock className="h-2.5 w-2.5" /> Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span>Date: {new Date(loan.occurred_on).toLocaleDateString()}</span>
+                    {loan.due_date && <span className="text-destructive font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
+                    {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
+                  </div>
+                  {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-serif font-bold text-base num text-success">{fmtMoney(loan.amount, currency)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
