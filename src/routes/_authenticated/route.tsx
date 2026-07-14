@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CategoriesDialog } from "@/components/categories-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
-import { NotificationBell } from "@/components/notification-bell";
+import { NotificationBell, NotificationItem } from "@/components/notification-bell";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -335,22 +335,48 @@ function Layout() {
     enabled: !!authUser,
   });
 
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const { data: dbNotifications = [] } = useQuery({
+    queryKey: ["notifications", authUser?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("notifications")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (error.code === "42P01") return [];
+        throw error;
+      }
+      return data as NotificationItem[];
+    },
+    enabled: !!authUser,
+  });
+
+  const unreadCount = dbNotifications.filter((n) => !n.read).length;
+  const last5Notifications = dbNotifications.slice(0, 5);
+
+  async function markAllNotificationsRead() {
+    if (!authUser) return;
+    const { error } = await (supabase.from as any)("notifications")
+      .update({ read: true })
+      .eq("user_id", authUser.id)
+      .eq("read", false);
+    if (error) {
+      console.error("Failed to mark notifications read:", error);
+    } else {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  }
 
   useEffect(() => {
-    if (!authUser || accounts.length === 0) {
-      setNotifications([]);
-      return;
-    }
+    if (!authUser || accounts.length === 0) return;
 
-    const list: any[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split("T")[0];
     const latestBalances = computeAccountBalances(accounts, txns);
     const currency = profile?.currency || "USD";
 
-    // 1. Subscriptions Notifications
+    const newAlerts: any[] = [];
+
+    // 1. Subscriptions Notifications Check
     for (const sub of subscriptions) {
       const nextDue = new Date(sub.next_due_date);
       nextDue.setHours(0, 0, 0, 0);
@@ -374,25 +400,28 @@ function Layout() {
 
       const diffTime = nextDue.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const identifier = `sub-${sub.id}-${sub.next_due_date}`;
 
       if (diffDays >= 0 && diffDays <= 3) {
-        list.push({
-          id: `sub-due-${sub.id}-${diffDays}`,
-          title: `Upcoming Subscription`,
+        newAlerts.push({
+          user_id: authUser.id,
+          title: "Upcoming Subscription",
           message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
           type: "warning",
+          identifier,
         });
       } else if (diffDays < 0 && !hasEnough) {
-        list.push({
-          id: `sub-overdue-${sub.id}`,
-          title: `Subscription Overdue`,
+        newAlerts.push({
+          user_id: authUser.id,
+          title: "Subscription Overdue",
           message: `"${sub.name}" is overdue! Insufficient funds to auto-deduct.`,
           type: "critical",
+          identifier: `sub-overdue-${sub.id}-${sub.next_due_date}`,
         });
       }
     }
 
-    // 2. Loans Notifications
+    // 2. Loans Notifications Check
     for (const loan of loans) {
       if (loan.status !== "active" || !loan.due_date) continue;
 
@@ -401,26 +430,44 @@ function Layout() {
 
       const diffTime = due.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const identifier = `loan-${loan.id}-${loan.due_date}`;
 
       if (diffDays >= 0 && diffDays <= 3) {
-        list.push({
-          id: `loan-due-${loan.id}-${diffDays}`,
-          title: `Loan Due Soon`,
+        newAlerts.push({
+          user_id: authUser.id,
+          title: "Loan Due Soon",
           message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
           type: "warning",
+          identifier,
         });
       } else if (diffDays < 0) {
-        list.push({
-          id: `loan-overdue-${loan.id}`,
-          title: `Loan Overdue`,
+        newAlerts.push({
+          user_id: authUser.id,
+          title: "Loan Overdue",
           message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
           type: "critical",
+          identifier: `loan-overdue-${loan.id}-${loan.due_date}`,
         });
       }
     }
 
-    setNotifications(list);
-  }, [subscriptions, loans, accounts, txns, authUser, profile?.currency]);
+    if (newAlerts.length === 0) return;
+
+    async function insertAlerts() {
+      try {
+        const { error } = await (supabase.from as any)("notifications").insert(newAlerts);
+        if (error && error.code !== "23505" && error.code !== "42P01") {
+          console.error("Failed to insert notifications:", error);
+        } else {
+          qc.invalidateQueries({ queryKey: ["notifications"] });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    insertAlerts();
+  }, [subscriptions, loans, accounts, txns, authUser, profile?.currency, qc]);
 
   // Auto-deduction loop
   const [runningDeduction, setRunningDeduction] = useState(false);
@@ -603,7 +650,11 @@ function Layout() {
             <div className="flex items-center justify-between w-full">
               <TopBarLogo />
               <div className="flex items-center gap-2">
-                <NotificationBell notifications={notifications} />
+                <NotificationBell 
+                  notifications={last5Notifications} 
+                  unreadCount={unreadCount} 
+                  onMarkAllRead={markAllNotificationsRead} 
+                />
                 <TransactionDialog
                   trigger={
                     <Button 
@@ -656,7 +707,11 @@ function Layout() {
 
           {/* Desktop Right Actions */}
           <div className="hidden md:flex ml-auto items-center gap-3 z-10">
-            <NotificationBell notifications={notifications} />
+            <NotificationBell 
+              notifications={last5Notifications} 
+              unreadCount={unreadCount} 
+              onMarkAllRead={markAllNotificationsRead} 
+            />
             <TransactionDialog
               trigger={
                 <Button 
