@@ -43,6 +43,9 @@ function TxnsPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBatchDelete, setShowBatchDelete] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
@@ -95,10 +98,50 @@ function TxnsPage() {
     if (txnToDelete) {
       await syncTransactionToLoan("delete", txnToDelete);
     }
+    setSelectedIds(prev => prev.filter(x => x !== id));
     refresh();
     qc.invalidateQueries({ queryKey: ["loans"] });
     toast.success("Transaction deleted");
   }
+
+  async function confirmBatchDelete() {
+    setBatchLoading(true);
+    try {
+      const txnsToDelete = txns.filter(t => selectedIds.includes(t.id));
+      const { error } = await supabase.from("transactions").delete().in("id", selectedIds);
+      if (error) throw error;
+      
+      for (const t of txnsToDelete) {
+        await syncTransactionToLoan("delete", t);
+      }
+      
+      toast.success(`Successfully deleted ${selectedIds.length} transactions`);
+      setSelectedIds([]);
+      refresh();
+      qc.invalidateQueries({ queryKey: ["loans"] });
+    } catch (err: any) {
+      toast.error(`Delete failed: ${err.message}`);
+    } finally {
+      setBatchLoading(false);
+      setShowBatchDelete(false);
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllVisible = () => {
+    const visibleIds = filtered.map(t => t.id);
+    const allSelected = visibleIds.every(id => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
 
   return (
     <div className="space-y-6 w-full h-[calc(100svh-14rem)] md:h-[calc(100vh-12rem)] flex flex-col overflow-hidden">
@@ -249,6 +292,14 @@ function TxnsPage() {
           <Table className="w-full">
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
+                <TableHead className="w-12 py-3 px-4 text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                    checked={filtered.length > 0 && filtered.every(t => selectedIds.includes(t.id))}
+                    onChange={toggleAllVisible}
+                  />
+                </TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Date</TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Type</TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Category</TableHead>
@@ -261,7 +312,7 @@ function TxnsPage() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                     No transactions match.
                   </TableCell>
                 </TableRow>
@@ -275,8 +326,17 @@ function TxnsPage() {
                   : t.kind === "expense"
                   ? "text-[color:var(--destructive)]"
                   : "";
+                const isSelected = selectedIds.includes(t.id);
                 return (
-                  <TableRow key={t.id} className="group">
+                  <TableRow key={t.id} className={`group ${isSelected ? 'bg-accent/10 hover:bg-accent/15' : ''}`}>
+                    <TableCell className="w-12 py-3 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(t.id)}
+                      />
+                    </TableCell>
                     <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
                       {new Date(t.occurred_on).toLocaleDateString()}
                     </TableCell>
@@ -345,13 +405,20 @@ function TxnsPage() {
               : t.kind === "expense"
               ? "text-[color:var(--destructive)]"
               : "";
+            const isSelected = selectedIds.includes(t.id);
             return (
-              <div key={t.id} className="py-2.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={t.id} className={`py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg ${isSelected ? 'bg-accent/10' : ''}`}>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer flex-shrink-0"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(t.id)}
+                  />
                   <span className="text-xl h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     {cat?.icon ?? "💵"}
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-serif font-black truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</span>
                       <Badge variant="outline" className="capitalize text-[9px] px-1 py-0 scale-90 origin-left leading-none">{t.kind}</Badge>
@@ -415,6 +482,55 @@ function TxnsPage() {
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Floating Batch Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[40] flex items-center gap-3 px-4 py-2.5 rounded-full border bg-background/95 backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-5 duration-300">
+          <span className="text-xs font-serif font-black text-foreground">
+            {selectedIds.length} selected
+          </span>
+          <div className="h-4 w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedIds([])}
+            className="h-7 text-xs font-semibold hover:bg-muted rounded-full cursor-pointer text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowBatchDelete(true)}
+            className="h-7 px-3 text-xs font-bold rounded-full cursor-pointer flex items-center gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>Delete</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Batch Deletion confirmation alert dialog */}
+      <AlertDialog open={showBatchDelete} onOpenChange={setShowBatchDelete}>
+        <AlertDialogContent className="z-[99]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete {selectedIds.length} Transactions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete these {selectedIds.length} selected transactions? This action will permanently remove all of them from your records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBatchDelete} 
+              disabled={batchLoading}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            >
+              {batchLoading ? "Deleting..." : "Delete All"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
