@@ -52,6 +52,7 @@ function AutomationPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
+  const balances = computeAccountBalances(accounts, txns);
 
   // Load rules — try localStorage first (instant), then Supabase as background upgrade
   function loadLocalRules(): AutomationRule[] {
@@ -316,7 +317,6 @@ function AutomationPage() {
 
     // Balance check validation
     const accountMap = new Map(accounts.map((a) => [a.id, a]));
-    const balances = computeAccountBalances(accounts, txns);
     const deductions = new Map<string, number>();
 
     for (const act of rule.actions) {
