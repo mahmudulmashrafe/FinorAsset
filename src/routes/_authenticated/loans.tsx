@@ -1013,7 +1013,7 @@ function LoansPage() {
               I Take Loan (Borrowed)
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 pt-3">
+          <div className="space-y-3 pt-3 max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll">
             {loans.filter(l => l.kind === "borrowed").length === 0 && (
               <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
             )}
@@ -1063,7 +1063,7 @@ function LoansPage() {
               I Give Loan (Lent)
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 pt-3">
+          <div className="space-y-3 pt-3 max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll">
             {loans.filter(l => l.kind === "lent").length === 0 && (
               <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
             )}
