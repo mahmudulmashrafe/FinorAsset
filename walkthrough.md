@@ -179,6 +179,14 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - Safely cast `supabase.rpc` call context to `any` for the custom secure RPC endpoint.
   - Verified compilation completes successfully and generates clean build outputs.
 
+---
+
+## 22. Persistent Database-Backed Notifications
+- **Problem**: Notifications were previously calculated dynamically in client-side state. The user wanted a persistent database table (`notifications`) to track read states, show 0 on mark all read, but still display the last 5 records when clicking the bell.
+- **Solution**:
+  - **Database Schema**: Created `20260714204500_create_notifications.sql` adding `public.notifications` table with `read` boolean, `user_id`, type, and a composite `unique_user_notification_identifier` deduplication constraint.
+  - **Dynamic Generation**: Set up a background `useEffect` in `route.tsx` that inspects subscriptions/loans, creates pending alerts, and pushes them to Supabase on-load.
+  - **Badge & Bell UI**: Modified `<NotificationBell>` to display only the count of unread (`read: false`) notifications, added a "Mark all as read" button to trigger a database update, and configured the list to display the last 5 notifications.
 
 ## Live URL
 
