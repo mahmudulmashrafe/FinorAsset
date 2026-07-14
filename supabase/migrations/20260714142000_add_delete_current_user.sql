@@ -1,13 +1,20 @@
--- Create security definer function to allow users to delete their own account
+-- Create security definer function that returns text for diagnostic exception handling
 CREATE OR REPLACE FUNCTION public.delete_current_user()
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_user_id uuid;
 BEGIN
-  -- auth.uid() returns the ID of the user calling the RPC
-  IF auth.uid() IS NOT NULL THEN
-    DELETE FROM auth.users WHERE id = auth.uid();
-  ELSE
-    RAISE EXCEPTION 'Not authenticated';
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RETURN 'Not authenticated';
   END IF;
+
+  BEGIN
+    DELETE FROM auth.users WHERE id = v_user_id;
+    RETURN 'OK';
+  EXCEPTION WHEN OTHERS THEN
+    RETURN SQLERRM;
+  END;
 END;
 $$;
 

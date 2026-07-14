@@ -89,6 +89,13 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
     - Restored the FinorAsset logo on mobile by adjusting the expanded state check (`state === 'expanded' && !isMobile`) in the TopBarLogo component.
     - Kept a single-line top bar layout (`h-20` on all viewports) and positioned the personalized greeting and short date in the center of the bar next to the logo and action items. Removed the horizontal separator border line on mobile viewports.
 
+## 14. Secure Account Deletion with Password Verification
+- **Problem**: Users lacked the ability to permanently delete their accounts and wipe all transaction data from the platform.
+- **Solution**:
+  - **Supabase RPC Migration**: Created `20260714142000_add_delete_current_user.sql` which implements a database-level `SECURITY DEFINER` function `delete_current_user()` to securely delete the calling user's row in `auth.users` (which cascadingly wipes all profiles, accounts, loans, and transactions).
+  - **Password Verification**: Integrated verification checks in both the Profile page and the Profile settings popup. Before the RPC is executed, the user is prompted to verify their password using `supabase.auth.signInWithPassword`.
+  - **Danger Zone Layout**: Styled a red highlighted "Danger Zone" block at the bottom of the profile settings layouts containing the action button.
+
 20. **Dashboard List Margin & Padding Enhancements**:
     - Added right padding (`pr-3`) to the scrollable lists inside the Accounts and Recent Transactions dashboard widgets. This keeps the vertical scrollbar separated from the balance and transaction amount text values.
 
