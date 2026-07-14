@@ -552,7 +552,7 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className={`space-y-3 max-h-[290px] md:max-h-[580px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
+            <div className={`space-y-3 max-h-[290px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
               {loans.filter(l => l.kind === "borrowed").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
               )}
@@ -619,7 +619,7 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className={`space-y-3 max-h-[290px] md:max-h-[580px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${lentCollapsed ? "hidden md:block" : "block"}`}>
+            <div className={`space-y-3 max-h-[290px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${lentCollapsed ? "hidden md:block" : "block"}`}>
               {loans.filter(l => l.kind === "lent").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
               )}
