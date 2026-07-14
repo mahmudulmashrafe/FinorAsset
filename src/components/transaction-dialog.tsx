@@ -591,13 +591,16 @@ function AccountSplitsSelector({
             <div key={idx} className="flex gap-2 items-start">
               <div className="flex-1 min-w-0">
                 <Select
-                  value={split.accountId}
-                  onValueChange={(val) => handleSplitChange(idx, "accountId", val)}
+                  value={split.accountId || "none"}
+                  onValueChange={(val) => handleSplitChange(idx, "accountId", val === "none" ? "" : val)}
                 >
                   <SelectTrigger className="w-full h-8 bg-background rounded-lg text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-[250]">
+                    {(!split.accountId || split.accountId === "none") && (
+                      <SelectItem value="none">Select account...</SelectItem>
+                    )}
                     {accounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
