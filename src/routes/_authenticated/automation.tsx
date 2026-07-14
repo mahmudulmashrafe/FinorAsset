@@ -537,38 +537,24 @@ function AutomationPage() {
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
       
-      {/* Tabs Selector + Actions */}
-      <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setActiveTab("macros")}
-            className={`text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer pb-0.5 ${
-              activeTab === "macros" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Macros
-          </button>
-          <button
-            onClick={() => setActiveTab("subscriptions")}
-            className={`text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer pb-0.5 ${
-              activeTab === "subscriptions" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Subscriptions
-          </button>
-        </div>
-
-        <div className="flex items-center">
-          {activeTab === "macros" ? (
-            <Button onClick={() => setCreateOpen(true)} size="icon" className="rounded-full cursor-pointer bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 w-8" title="Add new macro">
-              <Plus className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={() => setCreateSubOpen(true)} size="icon" className="rounded-full cursor-pointer bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 w-8" title="Add new subscription">
-              <Plus className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+      {/* Tabs Selector */}
+      <div className="flex border-b border-border/40 gap-6">
+        <button
+          onClick={() => setActiveTab("macros")}
+          className={`pb-2.5 text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer ${
+            activeTab === "macros" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Macros
+        </button>
+        <button
+          onClick={() => setActiveTab("subscriptions")}
+          className={`pb-2.5 text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer ${
+            activeTab === "subscriptions" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Subscriptions
+        </button>
       </div>
 
       {activeTab === "macros" ? (
@@ -830,18 +816,23 @@ function AutomationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Floatable Add Macro Trigger — portaled to body to escape transform ancestor */}
+      {/* Floatable Add Trigger — portaled to body to escape transform ancestor */}
       {typeof document !== 'undefined' && createPortal(
         <Button 
           onClick={() => {
-            setEditingRule(null);
-            setName("");
-            setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
-            setCreateOpen(true);
+            if (activeTab === "macros") {
+              setEditingRule(null);
+              setName("");
+              setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+              setCreateOpen(true);
+            } else {
+              resetSubForm();
+              setCreateSubOpen(true);
+            }
           }}
           size="icon"
           className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
-          title="Create Automation Macro"
+          title={activeTab === "macros" ? "Create Automation Macro" : "Create Subscription"}
         >
           <Plus className="h-5 w-5 md:h-6 md:w-6" />
         </Button>,
