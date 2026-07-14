@@ -111,8 +111,17 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
     - Created an **Automation** page enabling users to save templates for common/recurring transactions (macros).
     - Added an interactive trigger engine that logs transactions directly to Supabase with one click and dynamically syncs account balances and charts.
     - Registered the page in the main layout route menu tree to show in both the desktop sidebar and mobile bottom navigation bar.
+  - **Danger Zone Layout**: Styled a red highlighted "Danger Zone" block at the bottom of the profile settings layouts containing the action button.
 
 ---
+
+## 15. Catching Database Deletion Exceptions (RPC Diagnosis)
+- **Problem**: When `delete_current_user()` failed inside Postgres (due to any database-level restriction or foreign key check), the generic RPC failure was swallowed, showing only a vague "deletion failed" message.
+- **Solution**:
+  - Overwrote the migration function in `20260714142000_add_delete_current_user.sql` to return `text` rather than `void`.
+  - Wrapped the `DELETE FROM auth.users` call in a PL/pgSQL `EXCEPTION` block, capturing the exact Postgres error using `SQLERRM` and returning it back to the client.
+  - The front-end now toasts the specific database error description on failure, providing immediate clarity.
+
 
 ## Live URL
 
