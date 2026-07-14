@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/automation")({
   component: AutomationPage,
@@ -34,6 +35,8 @@ interface AutomationAction {
   to_account_id?: string;
   amount: number;
   note?: string;
+  isSplit?: boolean;
+  splits?: { accountId: string; amount: number }[];
 }
 
 interface AutomationRule {
@@ -103,7 +106,7 @@ function AutomationPage() {
   // Form states
   const [name, setName] = useState("");
   const [actions, setActions] = useState<Omit<AutomationAction, "id">[]>([
-    { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }
+    { kind: "expense", account_id: "", category_id: "", amount: 0, note: "", isSplit: false, splits: [] }
   ]);
 
   // Sync editing rule to form state
@@ -116,7 +119,7 @@ function AutomationPage() {
   }, [editingRule]);
 
   function addActionForm() {
-    setActions([...actions, { kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+    setActions([...actions, { kind: "expense", account_id: accounts[0]?.id || "", category_id: "", amount: 0, note: "", isSplit: false, splits: [] }]);
   }
 
   function removeActionForm(index: number) {
@@ -128,11 +131,46 @@ function AutomationPage() {
   function updateActionField(index: number, field: string, value: any) {
     const next = [...actions];
     next[index] = { ...next[index], [field]: value };
+    
+    // Auto-initialize or sync single split if it's the only one
+    if (field === "amount") {
+      const splitsList = next[index].splits || [];
+      if (splitsList.length <= 1) {
+        next[index].splits = [{ accountId: next[index].account_id || accounts[0]?.id || "", amount: Number(value) || 0 }];
+      }
+    }
+    
     // Reset dependency fields if kind transitions
     if (field === "kind") {
       next[index].category_id = "";
       next[index].to_account_id = "";
+      next[index].isSplit = false;
+      next[index].splits = [];
     }
+    setActions(next);
+  }
+
+  function updateActionSplit(actionIndex: number, splitIndex: number, field: "accountId" | "amount", value: any) {
+    const next = [...actions];
+    const nextSplits = [...(next[actionIndex].splits || [])];
+    nextSplits[splitIndex] = { ...nextSplits[splitIndex], [field]: value };
+    next[actionIndex] = { ...next[actionIndex], splits: nextSplits };
+    setActions(next);
+  }
+
+  function addActionSplit(actionIndex: number) {
+    const next = [...actions];
+    const nextSplits = [...(next[actionIndex].splits || [])];
+    nextSplits.push({ accountId: accounts[0]?.id || "", amount: 0 });
+    next[actionIndex] = { ...next[actionIndex], splits: nextSplits };
+    setActions(next);
+  }
+
+  function removeActionSplit(actionIndex: number, splitIndex: number) {
+    const next = [...actions];
+    const nextSplits = [...(next[actionIndex].splits || [])];
+    nextSplits.splice(splitIndex, 1);
+    next[actionIndex] = { ...next[actionIndex], splits: nextSplits };
     setActions(next);
   }
 
@@ -144,7 +182,24 @@ function AutomationPage() {
     for (let i = 0; i < actions.length; i++) {
       const act = actions[i];
       const prefix = `Transaction #${i + 1}: `;
-      if (!act.account_id) return toast.error(`${prefix}Please select an account`);
+      if (act.isSplit) {
+        const splits = act.splits || [];
+        const totalAllocated = splits.reduce((sum, s) => sum + s.amount, 0);
+        if (Math.abs(totalAllocated - Number(act.amount)) >= 0.01) {
+          return toast.error(`${prefix}Total split amount (${fmtMoney(totalAllocated, currency)}) must match transaction amount (${fmtMoney(Number(act.amount), currency)})`);
+        }
+        for (const split of splits) {
+          if (!split.accountId) {
+            return toast.error(`${prefix}Please select an account for all splits`);
+          }
+          if (!split.amount || split.amount <= 0) {
+            return toast.error(`${prefix}Split amounts must be positive`);
+          }
+        }
+      } else {
+        if (!act.account_id) return toast.error(`${prefix}Please select an account`);
+      }
+      
       if (act.kind === "transfer" && !act.to_account_id) return toast.error(`${prefix}Please select a destination account`);
       if (act.kind === "transfer" && act.account_id === act.to_account_id) return toast.error(`${prefix}Source and destination accounts must differ`);
       if (act.kind !== "transfer" && !act.category_id) return toast.error(`${prefix}Please select a category`);
@@ -162,6 +217,8 @@ function AutomationPage() {
       category_id: act.category_id || undefined,
       amount: Number(act.amount),
       note: act.note?.trim() || undefined,
+      isSplit: !!act.isSplit,
+      splits: act.isSplit ? act.splits : undefined,
     }));
 
     if (editingRule) {
@@ -219,7 +276,7 @@ function AutomationPage() {
 
     // Reset Form
     setName("");
-    setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+    setActions([{ kind: "expense", account_id: accounts[0]?.id || "", category_id: "", amount: 0, note: "", isSplit: false, splits: [] }]);
     setEditingRule(null);
     setCreateOpen(false);
     qc.invalidateQueries({ queryKey: ["macros"] });
@@ -259,9 +316,19 @@ function AutomationPage() {
     const deductions = new Map<string, number>();
 
     for (const act of rule.actions) {
-      const amount = Number(act.amount);
-      if (act.kind === "expense" || act.kind === "transfer") {
-        deductions.set(act.account_id, (deductions.get(act.account_id) ?? 0) + amount);
+      if (act.isSplit) {
+        const splits = act.splits || [];
+        for (const split of splits) {
+          const amount = Number(split.amount);
+          if (act.kind === "expense") {
+            deductions.set(split.accountId, (deductions.get(split.accountId) ?? 0) + amount);
+          }
+        }
+      } else {
+        const amount = Number(act.amount);
+        if (act.kind === "expense" || act.kind === "transfer") {
+          deductions.set(act.account_id, (deductions.get(act.account_id) ?? 0) + amount);
+        }
       }
     }
 
@@ -276,23 +343,42 @@ function AutomationPage() {
     setExecutingId(rule.id);
 
     try {
-      const inserts = rule.actions.map((act) => ({
-        user_id: authUser.id, // Authenticated user ID matches DB RLS policies
-        kind: act.kind,
-        category_id: act.kind !== "transfer" ? act.category_id || null : null,
-        account_id: act.account_id,
-        to_account_id: act.kind === "transfer" ? act.to_account_id || null : null,
-        amount: Number(act.amount),
-        note: act.note || `Automation shortcut: ${rule.name}`,
-        occurred_on: new Date().toISOString().split("T")[0],
-      }));
+      const inserts: any[] = [];
+      for (const act of rule.actions) {
+        if (act.isSplit) {
+          const splits = act.splits || [];
+          for (const split of splits) {
+            inserts.push({
+              user_id: authUser.id,
+              kind: act.kind,
+              category_id: act.category_id || null,
+              account_id: split.accountId,
+              to_account_id: null,
+              amount: Number(split.amount),
+              note: act.note || `Automation shortcut: ${rule.name}`,
+              occurred_on: new Date().toISOString().split("T")[0],
+            });
+          }
+        } else {
+          inserts.push({
+            user_id: authUser.id,
+            kind: act.kind,
+            category_id: act.kind !== "transfer" ? act.category_id || null : null,
+            account_id: act.account_id,
+            to_account_id: act.kind === "transfer" ? act.to_account_id || null : null,
+            amount: Number(act.amount),
+            note: act.note || `Automation shortcut: ${rule.name}`,
+            occurred_on: new Date().toISOString().split("T")[0],
+          });
+        }
+      }
 
       const { error } = await supabase.from("transactions").insert(inserts);
 
       if (error) {
         toast.error(`Execution failed: ${error.message}`);
       } else {
-        toast.success(`Executed "${rule.name}"! Logged ${rule.actions.length} transactions successfully.`);
+        toast.success(`Executed "${rule.name}"! Logged ${inserts.length} transactions successfully.`);
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
       }
@@ -589,42 +675,80 @@ function AutomationPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold">
-                        {act.kind === "transfer" ? "Source Account" : "Account"}
-                      </Label>
-                      <Select value={act.account_id} onValueChange={(v) => updateActionField(idx, "account_id", v)}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent className="z-[150]">
-                          {accounts.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
-                              {a.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {act.kind !== "transfer" && (
+                    <div className="flex items-center justify-between border-y py-1.5 my-1 bg-muted/20 px-2 rounded-lg">
+                      <Label className="text-[10px] font-semibold">Split across multiple accounts</Label>
+                      <Switch
+                        checked={!!act.isSplit}
+                        onCheckedChange={(checked) => {
+                          updateActionField(idx, "isSplit", checked);
+                          if (checked) {
+                            updateActionField(idx, "splits", [{ accountId: act.account_id || accounts[0]?.id || "", amount: Number(act.amount) || 0 }]);
+                          }
+                        }}
+                      />
                     </div>
+                  )}
 
-                    {act.kind === "transfer" ? (
-                      <div className="space-y-1">
-                        <Label className="text-[10px] font-semibold">Destination Account</Label>
-                        <Select value={act.to_account_id || ""} onValueChange={(v) => updateActionField(idx, "to_account_id", v)}>
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select account" />
-                          </SelectTrigger>
-                          <SelectContent className="z-[150]">
-                            {accounts.map((a) => (
-                              <SelectItem key={a.id} value={a.id}>
-                                {a.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                  {act.isSplit && act.kind !== "transfer" ? (
+                    <div className="space-y-2 border-t pt-2 mt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-bold uppercase text-muted-foreground">Account Splits</span>
+                        <button
+                          type="button"
+                          onClick={() => addActionSplit(idx)}
+                          className="text-[10px] text-accent hover:underline cursor-pointer"
+                        >
+                          + Add Account Split
+                        </button>
                       </div>
-                    ) : (
+                      <div className="space-y-2">
+                        {(act.splits || []).map((split, sIdx) => {
+                          return (
+                            <div key={sIdx} className="flex gap-2 items-center">
+                              <Select
+                                value={split.accountId || "none"}
+                                onValueChange={(val) => updateActionSplit(idx, sIdx, "accountId", val === "none" ? "" : val)}
+                              >
+                                <SelectTrigger className="flex-1 h-8 text-xs bg-background">
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[160]">
+                                  {(!split.accountId || split.accountId === "none") && (
+                                    <SelectItem value="none">Select account...</SelectItem>
+                                  )}
+                                  {accounts.map((a) => (
+                                    <SelectItem key={a.id} value={a.id}>
+                                      {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                type="number"
+                                step="any"
+                                className="w-24 h-8 text-xs bg-background"
+                                value={split.amount || ""}
+                                onChange={(e) => updateActionSplit(idx, sIdx, "amount", Number(e.target.value) || 0)}
+                                placeholder="0.00"
+                              />
+                              {(act.splits || []).length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeActionSplit(idx, sIdx)}
+                                  className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="text-[9px] text-muted-foreground flex justify-between px-1">
+                        <span>Allocated: {fmtMoney((act.splits || []).reduce((sum, s) => sum + s.amount, 0), currency)} / {fmtMoney(Number(act.amount) || 0, currency)}</span>
+                      </div>
+                      
                       <div className="space-y-1">
                         <Label className="text-[10px] font-semibold">Category</Label>
                         <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
@@ -640,8 +764,62 @@ function AutomationPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-semibold">
+                          {act.kind === "transfer" ? "Source Account" : "Account"}
+                        </Label>
+                        <Select value={act.account_id} onValueChange={(v) => updateActionField(idx, "account_id", v)}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select account" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[150]">
+                            {accounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>
+                                {a.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {act.kind === "transfer" ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold">Destination Account</Label>
+                          <Select value={act.to_account_id || ""} onValueChange={(v) => updateActionField(idx, "to_account_id", v)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[150]">
+                              {accounts.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold">Category</Label>
+                          <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[150]">
+                              {cats.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.icon} {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <Label className="text-[10px] font-semibold">Optional Note</Label>

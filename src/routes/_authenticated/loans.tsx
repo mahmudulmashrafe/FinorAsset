@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,7 @@ function LoansPage() {
   const [note, setNote] = useState("");
   const [occurredOn, setOccurredOn] = useState(new Date().toISOString().split("T")[0]);
   const [accountId, setAccountId] = useState<string>("none");
+  const [isSplit, setIsSplit] = useState(false);
   const [accountSplits, setAccountSplits] = useState<{ accountId: string; amount: number }[]>([
     { accountId: "none", amount: 0 }
   ]);
@@ -150,18 +152,28 @@ function LoansPage() {
 
     // Splits validation for new loans
     if (!editingLoan) {
-      const totalAllocated = accountSplits.reduce((sum, s) => sum + s.amount, 0);
-      if (totalAllocated !== Number(amount)) {
-        return toast.error(`Total split amount (${fmtMoney(totalAllocated, currency)}) must match the loan amount (${fmtMoney(Number(amount), currency)})`);
-      }
+      if (isSplit) {
+        const totalAllocated = accountSplits.reduce((sum, s) => sum + s.amount, 0);
+        if (totalAllocated !== Number(amount)) {
+          return toast.error(`Total split amount (${fmtMoney(totalAllocated, currency)}) must match the loan amount (${fmtMoney(Number(amount), currency)})`);
+        }
 
-      if (kind === "lent") {
-        for (const split of accountSplits) {
-          if (split.accountId !== "none") {
-            const balance = balances.get(split.accountId) ?? 0;
-            if (balance < split.amount) {
-              return toast.error(`Insufficient funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+        if (kind === "lent") {
+          for (const split of accountSplits) {
+            if (split.accountId !== "none") {
+              const balance = balances.get(split.accountId) ?? 0;
+              if (balance < split.amount) {
+                return toast.error(`Insufficient funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+              }
             }
+          }
+        }
+      } else {
+        // Single account balance check
+        if (kind === "lent" && accountId !== "none") {
+          const balance = balances.get(accountId) ?? 0;
+          if (balance < Number(amount)) {
+            return toast.error(`Insufficient funds in ${accMap.get(accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(Number(amount), currency)}`);
           }
         }
       }
@@ -177,7 +189,7 @@ function LoansPage() {
       note: note.trim() || null,
       due_date: dueDate || null,
       occurred_on: occurredOn,
-      account_id: editingLoan ? (accountId === "none" ? null : accountId) : firstValidAccount,
+      account_id: editingLoan ? (accountId === "none" ? null : accountId) : (isSplit ? firstValidAccount : (accountId === "none" ? null : accountId)),
     };
 
     setOpen(false);
@@ -219,31 +231,53 @@ function LoansPage() {
         }
 
         // Always create transactions in the transactions table if accounts are linked
-        let txnRecorded = false;
-        for (const split of accountSplits) {
-          if (split.accountId !== "none") {
+        if (isSplit) {
+          let txnRecorded = false;
+          for (const split of accountSplits) {
+            if (split.accountId !== "none") {
+              const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
+              const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
+              const txnPayload: Record<string, any> = {
+                user_id: authUser?.id,
+                account_id: split.accountId,
+                amount: Number(split.amount),
+                kind: txnKind,
+                note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
+                occurred_on: occurredOn,
+              };
+              if (catId) txnPayload.category_id = catId;
+              const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+              if (txnErr) {
+                console.error("Transaction insert error:", JSON.stringify(txnErr));
+                toast.error(`Transaction failed for ${accMap.get(split.accountId)?.name || 'account'}: ${txnErr.message}`);
+              } else {
+                txnRecorded = true;
+              }
+            }
+          }
+          if (txnRecorded) {
+            toast.success("Split transactions recorded!");
+          }
+        } else {
+          if (accountId !== "none") {
             const txnKind = (kind === "borrowed" ? "income" : "expense") as "income" | "expense";
             const catId = findLoanCategory(kind === "borrowed" ? "Borrow" : "Lent", txnKind);
-            const txnPayload: Record<string, any> = {
+            const txnPayload = {
               user_id: authUser?.id,
-              account_id: split.accountId,
-              amount: Number(split.amount),
+              account_id: accountId,
+              amount: Number(amount),
               kind: txnKind,
               note: `Loan: ${kind === "borrowed" ? "Borrowed from" : "Lent to"} ${personName.trim()}${note.trim() ? ` (${note.trim()})` : ""}`,
               occurred_on: occurredOn,
+              category_id: catId || undefined,
             };
-            if (catId) txnPayload.category_id = catId;
-            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload);
+            const { error: txnErr } = await supabase.from("transactions").insert(txnPayload as any);
             if (txnErr) {
-              console.error("Transaction insert error:", JSON.stringify(txnErr));
-              toast.error(`Transaction failed for ${accMap.get(split.accountId)?.name || 'account'}: ${txnErr.message}`);
+              toast.error(`Transaction failed: ${txnErr.message}`);
             } else {
-              txnRecorded = true;
+              toast.success("Transaction recorded!");
             }
           }
-        }
-        if (txnRecorded) {
-          toast.success("Transaction(s) recorded!");
         }
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
@@ -660,16 +694,52 @@ function LoansPage() {
               </div>
             </div>
 
+            {!editingLoan && (
+              <div className="flex items-center justify-between border-y py-2.5 my-1">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-semibold">Split across multiple accounts</Label>
+                  <p className="text-[10px] text-muted-foreground">Allocate this loan's amount to more than one account</p>
+                </div>
+                <Switch
+                  checked={isSplit}
+                  onCheckedChange={(checked) => {
+                    setIsSplit(checked);
+                    if (checked) {
+                      setAccountSplits([{ accountId: accountId !== "none" ? accountId : (accounts[0]?.id || "none"), amount: Number(amount) || 0 }]);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
             {!editingLoan ? (
-              <AccountSplitsSelector
-                splits={accountSplits}
-                setSplits={setAccountSplits}
-                totalAmount={Number(amount) || 0}
-                accounts={accounts}
-                balances={balances}
-                currency={currency}
-                showBalanceCheck={kind === "lent"}
-              />
+              isSplit ? (
+                <AccountSplitsSelector
+                  splits={accountSplits}
+                  setSplits={setAccountSplits}
+                  totalAmount={Number(amount) || 0}
+                  accounts={accounts}
+                  balances={balances}
+                  currency={currency}
+                  showBalanceCheck={kind === "lent"}
+                />
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link Account (Optional)</Label>
+                  <Select value={accountId} onValueChange={(val) => setAccountId(val)}>
+                    <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="none">Do not link account</SelectItem>
+                      {accounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground leading-normal mt-1">
+                    Linking an account automatically records the financial inflow/outflow as a transaction in that account.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="space-y-1.5">
                 <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Linked Account</Label>
@@ -864,7 +934,7 @@ function AccountSplitsSelector({
             <div key={idx} className="flex gap-2 items-start">
               <div className="flex-1 min-w-0">
                 <Select
-                  value={split.accountId}
+                  value={split.accountId || "none"}
                   onValueChange={(val) => handleSplitChange(idx, "accountId", val)}
                 >
                   <SelectTrigger className="w-full h-10 bg-background rounded-lg text-xs">
