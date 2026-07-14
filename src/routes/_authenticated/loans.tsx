@@ -495,39 +495,39 @@ function LoansPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Summary Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">I Take Loan (Borrowed)</p>
-            <h3 className="mt-1 font-serif text-2xl font-bold text-destructive">{fmtMoney(activeBorrowed, currency)}</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Total active debts you owe</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="rounded-xl border bg-card p-2.5 sm:p-4 flex items-center justify-between shadow-sm min-w-0">
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">Borrowed</p>
+            <h3 className="mt-0.5 sm:mt-1 font-serif text-sm sm:text-2xl font-bold text-destructive truncate">{fmtMoney(activeBorrowed, currency)}</h3>
+            <p className="hidden sm:block text-[10px] text-muted-foreground mt-1">Total active debts you owe</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <TrendingDown className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">I Give Loan (Lent)</p>
-            <h3 className="mt-1 font-serif text-2xl font-bold text-success">{fmtMoney(activeLent, currency)}</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Total active funds lent out</p>
-          </div>
-          <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success">
-            <TrendingUp className="h-5 w-5" />
+          <div className="hidden xs:flex h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-destructive/10 items-center justify-center text-destructive shrink-0 ml-1">
+            <TrendingDown className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Net Debt Position</p>
-            <h3 className={`mt-1 font-serif text-2xl font-bold ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
+        <div className="rounded-xl border bg-card p-2.5 sm:p-4 flex items-center justify-between shadow-sm min-w-0">
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">Lent</p>
+            <h3 className="mt-0.5 sm:mt-1 font-serif text-sm sm:text-2xl font-bold text-success truncate">{fmtMoney(activeLent, currency)}</h3>
+            <p className="hidden sm:block text-[10px] text-muted-foreground mt-1">Total active funds lent out</p>
+          </div>
+          <div className="hidden xs:flex h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-success/10 items-center justify-center text-success shrink-0 ml-1">
+            <TrendingUp className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-card p-2.5 sm:p-4 flex items-center justify-between shadow-sm min-w-0">
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">Net Position</p>
+            <h3 className={`mt-0.5 sm:mt-1 font-serif text-sm sm:text-2xl font-bold truncate ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
               {netBalance >= 0 ? "+" : ""}{fmtMoney(netBalance, currency)}
             </h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Lent minus borrowed</p>
+            <p className="hidden sm:block text-[10px] text-muted-foreground mt-1">Lent minus borrowed</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
-            <CircleDollarSign className="h-5 w-5" />
+          <div className="hidden xs:flex h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-accent/10 items-center justify-center text-accent shrink-0 ml-1">
+            <CircleDollarSign className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
           </div>
         </div>
       </div>
@@ -552,7 +552,7 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className={`space-y-3 max-h-[420px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
+            <div className={`space-y-3 max-h-[290px] md:max-h-[580px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
               {loans.filter(l => l.kind === "borrowed").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
               )}
@@ -619,7 +619,7 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className={`space-y-3 max-h-[420px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${lentCollapsed ? "hidden md:block" : "block"}`}>
+            <div className={`space-y-3 max-h-[290px] md:max-h-[580px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${lentCollapsed ? "hidden md:block" : "block"}`}>
               {loans.filter(l => l.kind === "lent").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
               )}

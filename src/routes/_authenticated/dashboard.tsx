@@ -85,7 +85,7 @@ function Dashboard() {
     <div className="space-y-2.5">
 
       {/* ── KPI Cards ── */}
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <StatCard label="Net Worth" value={fmtMoney(net, currency)} icon={Wallet} accent />
         <StatCard label="Income this month" value={fmtMoney(income, currency)} icon={TrendingUp} positive />
         <StatCard label="Expenses this month" value={fmtMoney(expense, currency)} icon={TrendingDown} negative />

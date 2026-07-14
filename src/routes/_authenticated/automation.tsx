@@ -560,12 +560,12 @@ function AutomationPage() {
 
         <div className="flex items-center">
           {activeTab === "macros" ? (
-            <Button onClick={() => setCreateOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 px-3.5">
-              <Plus className="h-3.5 w-3.5 mr-1" /> New Macro
+            <Button onClick={() => setCreateOpen(true)} size="icon" className="rounded-full cursor-pointer bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 w-8" title="Add new macro">
+              <Plus className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={() => setCreateSubOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 px-3.5">
-              <Plus className="h-3.5 w-3.5 mr-1" /> New Subscription
+            <Button onClick={() => setCreateSubOpen(true)} size="icon" className="rounded-full cursor-pointer bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 w-8" title="Add new subscription">
+              <Plus className="h-4 w-4" />
             </Button>
           )}
         </div>
