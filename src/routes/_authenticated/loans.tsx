@@ -151,6 +151,7 @@ function LoansPage() {
   // Form submission: save or update
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!authUser) return toast.error("Not logged in");
     if (!personName.trim()) return toast.error("Please enter a name");
     if (!amount || Number(amount) <= 0) return toast.error("Please enter a valid amount");
 
@@ -221,7 +222,7 @@ function LoansPage() {
       } else {
         // Insert loan (DB or local fallback)
         const newId = generateId();
-        const { error } = await supabase.from("loans").insert({ ...payload, user_id: authUser?.id });
+        const { error } = await supabase.from("loans").insert({ ...payload, user_id: authUser.id });
         if (error) {
           if (error.code === "42P01") {
             const updated = [{ id: newId, ...payload }, ...loans];
@@ -304,6 +305,7 @@ function LoansPage() {
 
   // Toggle status
   async function toggleStatus(loan: Loan) {
+    if (!authUser) return;
     if (loan.status === "active") {
       triggerRepayment(loan);
     } else {
@@ -314,7 +316,7 @@ function LoansPage() {
           if (error.code === "42P01") {
             const updated = loans.map((l) => (l.id === loan.id ? { ...l, status: "active" as const } : l));
             localStorage.setItem("finorasset_loans", JSON.stringify(updated));
-            qc.setQueryData(["loans", authUser?.id], updated);
+            qc.setQueryData(["loans", authUser.id], updated);
             toast.success("Status updated locally");
           } else {
             throw error;
@@ -325,8 +327,8 @@ function LoansPage() {
           await supabase
             .from("transactions")
             .delete()
-            .eq("user_id", authUser?.id)
-            .eq("account_id", loan.account_id)
+            .eq("user_id", authUser.id)
+            .eq("account_id", loan.account_id || "")
             .ilike("note", `Repayment: ${person}%`);
 
           toast.success("Marked as active");
@@ -421,6 +423,7 @@ function LoansPage() {
 
   // Delete confirm
   async function confirmDelete(id: string) {
+    if (!authUser) return;
     try {
       const loan = loans.find((l) => l.id === id);
       if (loan) {
@@ -429,8 +432,8 @@ function LoansPage() {
         await supabase
           .from("transactions")
           .delete()
-          .eq("user_id", authUser?.id)
-          .eq("account_id", loan.account_id)
+          .eq("user_id", authUser.id)
+          .eq("account_id", loan.account_id || "")
           .or(`note.ilike.Loan: %${person}%,note.ilike.Repayment: %${person}%`);
       }
 
@@ -439,7 +442,7 @@ function LoansPage() {
         if (error.code === "42P01") {
           const updated = loans.filter((l) => l.id !== id);
           localStorage.setItem("finorasset_loans", JSON.stringify(updated));
-          qc.setQueryData(["loans", authUser?.id], updated);
+          qc.setQueryData(["loans", authUser.id], updated);
           toast.success("Loan deleted locally");
         } else {
           throw error;
@@ -1006,7 +1009,7 @@ function AccountSplitsSelector({
   splits: { accountId: string; amount: number }[];
   setSplits: React.Dispatch<React.SetStateAction<{ accountId: string; amount: number }[]>>;
   totalAmount: number;
-  accounts: Account[];
+  accounts: any[];
   balances: Map<string, number>;
   currency: string;
   showBalanceCheck: boolean;

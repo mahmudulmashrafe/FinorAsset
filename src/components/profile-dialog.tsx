@@ -171,7 +171,7 @@ export function ProfileDialog({
       }
 
       // 2. Call secure delete account RPC function
-      const { data, error: deleteErr } = await supabase.rpc("delete_current_user");
+      const { data, error: deleteErr } = await (supabase.rpc as any)("delete_current_user");
       if (deleteErr) {
         setDeletingAccount(false);
         return toast.error(`Deletion failed: ${deleteErr.message}`);

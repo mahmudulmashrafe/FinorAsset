@@ -19,6 +19,7 @@ import {
 import { CategoriesDialog } from "@/components/categories-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
 import { NotificationBell } from "@/components/notification-bell";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -356,10 +357,10 @@ function Layout() {
 
       let hasEnough = true;
       if (sub.is_split && sub.kind !== "transfer") {
-        const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
+        const splitsList = (Array.isArray(sub.splits) ? sub.splits : []) as any[];
         for (const split of splitsList) {
-          const balance = latestBalances.get(split.accountId) ?? 0;
-          if (balance < Number(split.amount)) {
+          const balance = latestBalances.get(split?.accountId) ?? 0;
+          if (balance < Number(split?.amount)) {
             hasEnough = false;
             break;
           }
@@ -442,10 +443,10 @@ function Layout() {
         let hasEnough = true;
 
         if (sub.is_split && sub.kind !== "transfer") {
-          const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
+          const splitsList = (Array.isArray(sub.splits) ? sub.splits : []) as any[];
           for (const split of splitsList) {
-            const accId = split.accountId;
-            const required = Number(split.amount);
+            const accId = split?.accountId;
+            const required = Number(split?.amount);
             const balance = balances.get(accId) ?? 0;
             if (balance < required) {
               hasEnough = false;
@@ -461,18 +462,18 @@ function Layout() {
           }
         }
 
-        if (hasEnough) {
+        if (hasEnough && authUser) {
           try {
             const inserts: any[] = [];
             const timestamp = new Date().toISOString();
             
             if (sub.is_split && sub.kind !== "transfer") {
-              const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
+              const splitsList = (Array.isArray(sub.splits) ? sub.splits : []) as any[];
               for (const split of splitsList) {
                 inserts.push({
                   user_id: authUser.id,
-                  account_id: split.accountId,
-                  amount: Number(split.amount),
+                  account_id: split?.accountId,
+                  amount: Number(split?.amount),
                   kind: sub.kind,
                   category_id: sub.category_id || null,
                   note: `Auto-Paid: ${sub.name}${sub.note ? ` (${sub.note})` : ""}`,

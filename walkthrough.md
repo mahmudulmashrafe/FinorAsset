@@ -145,7 +145,23 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - **Layout Header**: Removed the `<NotificationBell>` component and its imports from both desktop and mobile header layouts inside `route.tsx`.
   - **Notification State & Logic**: Cleared out the `notifications` state, `useQuery` query loaders for subscription lists, and `useEffect` notification calculation hooks from the root authenticated layout.
   - **Auto-Deductions**: Removed the background auto-deduction effects that automatically generated billing entries for overdue subscriptions.
-  - **Automation Creator Tabs**: Replaced the multi-tab layout (Macros vs. Subscriptions) on the **Automation Creator** page with a pure macros listing, and deleted all subscription form variables, dialog states, and mutation logic.
+  - **Automation Creator Tabs**: Replaced the multi-tab layout (Macros vs. Subscriptions) on the **Automation Creator** page with a pure macros listing, and deleted all subscription form variables, dialog states, and mutation logic. *(Note: Restored in subsequent updates).*
+
+---
+
+## 19. Restored Subscriptions & Notifications
+- **Problem**: The project owner requested to bring back both Subscriptions (with multi-account auto-deductions and pre-flight balance checking) and Notifications.
+- **Solution**: Restored the code setup for both subsystems, rendering them exactly as requested under the Automation page tab selectors.
+
+---
+
+## 20. Fixed Mobile Loan Cards Overflow
+- **Problem**: On narrow mobile viewports, the horizontal layout of loan records (name + status badge + dates + amount + three action buttons) overflowed past the right edge of the screen, clipping content.
+- **Solution**:
+  - **Inline Action Buttons**: Hid check/edit/delete buttons on mobile screen widths (`hidden md:flex`) to save space.
+  - **Loan Details Dialog Action**: Added a red **Delete** button directly inside the Loan Details Dialog, so mobile users can manage all actions (mark paid, edit, delete) inside the popup.
+  - **Responsive Layout Constraint**: Added `w-full min-w-0 overflow-hidden` and name text boundary limits to force cards to fit beautifully inside mobile screens.
+
 
 ---
 

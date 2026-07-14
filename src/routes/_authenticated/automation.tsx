@@ -95,7 +95,7 @@ function AutomationPage() {
         if (error.code === "42P01") return loadLocalRules();
         throw error;
       }
-      return data as AutomationRule[];
+      return (data as unknown) as AutomationRule[];
     }
   });
 
@@ -189,8 +189,10 @@ function AutomationPage() {
     if (subKind !== "transfer" && !subCategoryId) return toast.error("Please select a category");
     if (!subAmount || Number(subAmount) <= 0) return toast.error("Please enter a valid amount");
 
+    if (!authUser) return toast.error("Not logged in");
+
     const payload = {
-      user_id: authUser?.id,
+      user_id: authUser.id,
       name: subName.trim(),
       amount: Number(subAmount),
       kind: subKind,
@@ -820,7 +822,7 @@ function AutomationPage() {
                       setSelectedRule(null);
                     }
                   }}
-                  disabled={selectedRule && executingId === selectedRule.id}
+                  disabled={!!selectedRule && executingId === selectedRule.id}
                   className="gap-1.5 rounded-full cursor-pointer h-9 px-5 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
                 >
                   <Play className="h-3.5 w-3.5 fill-current shrink-0" />
