@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQueryClient, useIsFetching, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import {
@@ -17,11 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CategoriesDialog } from "@/components/categories-dialog";
 import { ProfileDialog } from "@/components/profile-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
-import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -264,52 +259,6 @@ function HeaderProfileMenu({
   );
 }
 
-function NotificationBell({ notifications }: { notifications: any[] }) {
-  const count = notifications.length;
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="relative h-10 w-10 rounded-full bg-accent/10 hover:bg-accent/20 flex items-center justify-center text-accent-foreground cursor-pointer transition-colors">
-          <Bell className="h-5 w-5" />
-          {count > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center ring-2 ring-background animate-in zoom-in-50">
-              {count}
-            </span>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0 rounded-2xl z-[150] shadow-xl border">
-        <div className="p-4 border-b flex items-center justify-between">
-          <span className="font-serif font-bold text-base">Notifications</span>
-          {count > 0 && (
-            <Badge variant="destructive" className="text-[10px] font-bold px-1.5 py-0.5 leading-none rounded-full">
-              {count} Active
-            </Badge>
-          )}
-        </div>
-        <div className="max-h-[300px] overflow-y-auto divide-y divide-border/60 thin-scroll">
-          {count === 0 ? (
-            <div className="p-8 text-center text-xs text-muted-foreground">
-              No active alerts or reminders.
-            </div>
-          ) : (
-            notifications.map((n) => (
-              <div key={n.id} className="p-3.5 flex gap-2.5 items-start hover:bg-muted/30 transition-colors">
-                <span className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${n.type === "critical" ? "bg-destructive animate-pulse" : "bg-warning"}`} />
-                <div className="space-y-0.5 min-w-0">
-                  <span className="text-xs font-bold text-foreground block">{n.title}</span>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed break-words">{n.message}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // ─── Mobile Bottom Navigation ─────────────────────────────────────────────────
 function MobileBottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -340,230 +289,9 @@ function Layout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isPending = useRouterState({ select: (s) => s.status === "pending" });
   const isFetching = useIsFetching({ fetchStatus: "fetching" });
-  const { profile, authUser, currency } = useUserProfile();
+  const { profile, authUser } = useUserProfile();
   const displayName = profile?.display_name || authUser?.email?.split("@")[0] || "there";
   const isTxnsPage = path === "/transactions";
-
-  const { data: accountsData } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
-  const accounts = accountsData || [];
-
-  const { data: txnsData } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
-  const txns = txnsData || [];
-
-  const { data: loansData } = useQuery({
-    queryKey: ["loans", authUser?.id],
-    enabled: !!authUser,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("loans")
-        .select("*")
-        .order("occurred_on", { ascending: false });
-      if (error) {
-        if (error.code === "42P01") return [];
-        throw error;
-      }
-      return (data || []).map(l => ({ ...l, amount: Number(l.amount) }));
-    }
-  });
-  const loans = loansData || [];
-
-  const { data: subscriptionsData } = useQuery({
-    queryKey: ["subscriptions", authUser?.id],
-    enabled: !!authUser,
-    queryFn: api.listSubscriptions,
-  });
-  const subscriptions = subscriptionsData || [];
-
-  // Auto-deduction loop
-  const [runningDeduction, setRunningDeduction] = useState(false);
-
-  useEffect(() => {
-    if (!authUser || subscriptions.length === 0 || runningDeduction || accounts.length === 0) return;
-
-    const todayStr = new Date().toISOString().split("T")[0];
-    const dueSubs = subscriptions.filter(s => s.next_due_date <= todayStr);
-
-    if (dueSubs.length === 0) return;
-
-    async function runAutoDeductions() {
-      setRunningDeduction(true);
-      const updatedAccounts = [...accounts];
-      const updatedTxns = [...txns];
-
-      for (const sub of dueSubs) {
-        const balances = computeAccountBalances(updatedAccounts, updatedTxns);
-        let hasEnough = true;
-
-        if (sub.is_split && sub.kind !== "transfer") {
-          const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
-          for (const split of splitsList) {
-            const accId = split.accountId;
-            const required = Number(split.amount);
-            const balance = balances.get(accId) ?? 0;
-            if (balance < required) {
-              hasEnough = false;
-              break;
-            }
-          }
-        } else {
-          const accId = sub.account_id;
-          const required = Number(sub.amount);
-          const balance = accId ? (balances.get(accId) ?? 0) : 0;
-          if (balance < required) {
-            hasEnough = false;
-          }
-        }
-
-        if (hasEnough) {
-          try {
-            const inserts: any[] = [];
-            const timestamp = new Date().toISOString();
-            
-            if (sub.is_split && sub.kind !== "transfer") {
-              const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
-              for (const split of splitsList) {
-                inserts.push({
-                  user_id: authUser.id,
-                  account_id: split.accountId,
-                  amount: Number(split.amount),
-                  kind: sub.kind,
-                  category_id: sub.category_id || null,
-                  note: `Auto-Paid: ${sub.name}${sub.note ? ` (${sub.note})` : ""}`,
-                  occurred_on: sub.next_due_date,
-                });
-              }
-            } else {
-              inserts.push({
-                user_id: authUser.id,
-                account_id: sub.account_id,
-                to_account_id: sub.to_account_id || null,
-                amount: Number(sub.amount),
-                kind: sub.kind,
-                category_id: sub.category_id || null,
-                note: `Auto-Paid: ${sub.name}${sub.note ? ` (${sub.note})` : ""}`,
-                occurred_on: sub.next_due_date,
-              });
-            }
-
-            const { error: txnErr } = await supabase.from("transactions").insert(inserts);
-            if (txnErr) throw txnErr;
-
-            const nextDueDate = new Date(sub.next_due_date);
-            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-            const nextDueDateStr = nextDueDate.toISOString().split("T")[0];
-
-            const { error: subErr } = await supabase
-              .from("subscriptions")
-              .update({
-                next_due_date: nextDueDateStr,
-                last_payment_date: todayStr,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", sub.id);
-            if (subErr) throw subErr;
-
-            toast.success(`Subscription "${sub.name}" auto-deducted successfully!`);
-
-            qc.invalidateQueries({ queryKey: ["transactions"] });
-            qc.invalidateQueries({ queryKey: ["accounts"] });
-            qc.invalidateQueries({ queryKey: ["subscriptions"] });
-          } catch (err: any) {
-            console.error("Auto-deduction failed", err);
-          }
-        }
-      }
-      setRunningDeduction(false);
-    }
-
-    runAutoDeductions();
-  }, [subscriptions, accounts, txns, authUser, runningDeduction, qc]);
-
-  // Notifications calculation
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (!authUser || accounts.length === 0) {
-      setNotifications([]);
-      return;
-    }
-
-    const list: any[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split("T")[0];
-    const latestBalances = computeAccountBalances(accounts, txns);
-
-    // 1. Subscriptions
-    for (const sub of subscriptions) {
-      const nextDue = new Date(sub.next_due_date);
-      nextDue.setHours(0, 0, 0, 0);
-
-      let hasEnough = true;
-      if (sub.is_split && sub.kind !== "transfer") {
-        const splitsList = Array.isArray(sub.splits) ? sub.splits : [];
-        for (const split of splitsList) {
-          const balance = latestBalances.get(split.accountId) ?? 0;
-          if (balance < Number(split.amount)) {
-            hasEnough = false;
-            break;
-          }
-        }
-      } else {
-        const balance = sub.account_id ? (latestBalances.get(sub.account_id) ?? 0) : 0;
-        if (balance < Number(sub.amount)) {
-          hasEnough = false;
-        }
-      }
-
-      const diffTime = nextDue.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays >= 0 && diffDays <= 3) {
-        list.push({
-          id: `sub-due-${sub.id}-${diffDays}`,
-          title: `Upcoming Subscription`,
-          message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
-          type: "warning",
-        });
-      } else if (diffDays < 0 && !hasEnough) {
-        list.push({
-          id: `sub-overdue-${sub.id}`,
-          title: `Subscription Overdue`,
-          message: `"${sub.name}" is overdue! Insufficient funds to auto-deduct.`,
-          type: "critical",
-        });
-      }
-    }
-
-    // 2. Loans
-    for (const loan of loans) {
-      if (loan.status !== "active" || !loan.due_date) continue;
-
-      const due = new Date(loan.due_date);
-      due.setHours(0, 0, 0, 0);
-
-      const diffTime = due.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays >= 0 && diffDays <= 3) {
-        list.push({
-          id: `loan-due-${loan.id}-${diffDays}`,
-          title: `Loan Due Soon`,
-          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
-          type: "warning",
-        });
-      } else if (diffDays < 0) {
-        list.push({
-          id: `loan-overdue-${loan.id}`,
-          title: `Loan Overdue`,
-          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
-          type: "critical",
-        });
-      }
-    }
-
-    setNotifications(list);
-  }, [subscriptions, loans, accounts, txns, authUser, currency]);
 
   // Show loader overlay when navigation is pending OR during initial queries fetching
   const showLoader = isPending || (isFetching > 0 && (!qc.getQueryData(["transactions"]) || !qc.getQueryData(["accounts"])));
@@ -648,7 +376,6 @@ function Layout() {
             <div className="flex items-center justify-between w-full">
               <TopBarLogo />
               <div className="flex items-center gap-2">
-                <NotificationBell notifications={notifications} />
                 <TransactionDialog
                   trigger={
                     <Button 
@@ -701,7 +428,6 @@ function Layout() {
 
           {/* Desktop Right Actions */}
           <div className="hidden md:flex ml-auto items-center gap-3 z-10">
-            <NotificationBell notifications={notifications} />
             <TransactionDialog
               trigger={
                 <Button 

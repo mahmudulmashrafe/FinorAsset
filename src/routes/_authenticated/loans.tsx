@@ -58,9 +58,6 @@ function LoansPage() {
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [deleteLoan, setDeleteLoan] = useState<{ id: string; name: string } | null>(null);
   const [repayLoan, setRepayLoan] = useState<Loan | null>(null);
-  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
-  const [borrowedCollapsed, setBorrowedCollapsed] = useState(true);
-  const [lentCollapsed, setLentCollapsed] = useState(true);
 
   // Form states
   const [personName, setPersonName] = useState("");
@@ -531,38 +528,22 @@ function LoansPage() {
         {/* Part 1: I Take Loan (Borrowed) */}
         <section className="rounded-xl border bg-card p-4 shadow-sm flex flex-col justify-between">
           <div>
-            <div 
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  setBorrowedCollapsed(!borrowedCollapsed);
-                }
-              }}
-              className="flex items-center justify-between border-b pb-3 mb-4 cursor-pointer md:cursor-default select-none"
-            >
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
               <h2 className="font-serif text-lg font-bold flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-destructive" />
                 I Take Loan (Borrowed)
               </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-serif">
-                  {loans.filter(l => l.kind === "borrowed").length} records
-                </span>
-                <span className="md:hidden text-xs text-muted-foreground">
-                  {borrowedCollapsed ? "＋" : "－"}
-                </span>
-              </div>
+              <span className="text-xs text-muted-foreground font-serif">
+                {loans.filter(l => l.kind === "borrowed").length} records
+              </span>
             </div>
 
-            <div className={`space-y-3 max-h-[420px] overflow-y-auto pr-1 thin-scroll ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 thin-scroll">
               {loans.filter(l => l.kind === "borrowed").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
               )}
               {loans.filter(l => l.kind === "borrowed").map((loan) => (
-                <div 
-                  key={loan.id} 
-                  onClick={() => setSelectedLoan(loan)}
-                  className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"}`}
-                >
+                <div key={loan.id} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-serif font-bold text-sm truncate">{loan.person_name}</span>
@@ -586,7 +567,7 @@ function LoansPage() {
 
                   <div className="flex items-center gap-3">
                     <span className="font-serif font-bold text-base num text-destructive">{fmtMoney(loan.amount, currency)}</span>
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1">
                       {loan.status === "active" && (
                         <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -609,38 +590,22 @@ function LoansPage() {
         {/* Part 2: I Give Loan (Lent) */}
         <section className="rounded-xl border bg-card p-4 shadow-sm flex flex-col justify-between">
           <div>
-            <div 
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  setLentCollapsed(!lentCollapsed);
-                }
-              }}
-              className="flex items-center justify-between border-b pb-3 mb-4 cursor-pointer md:cursor-default select-none"
-            >
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
               <h2 className="font-serif text-lg font-bold flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-success" />
                 I Give Loan (Lent)
               </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-serif">
-                  {loans.filter(l => l.kind === "lent").length} records
-                </span>
-                <span className="md:hidden text-xs text-muted-foreground">
-                  {lentCollapsed ? "＋" : "－"}
-                </span>
-              </div>
+              <span className="text-xs text-muted-foreground font-serif">
+                {loans.filter(l => l.kind === "lent").length} records
+              </span>
             </div>
 
-            <div className={`space-y-3 max-h-[420px] overflow-y-auto pr-1 thin-scroll ${lentCollapsed ? "hidden md:block" : "block"}`}>
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 thin-scroll">
               {loans.filter(l => l.kind === "lent").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
               )}
               {loans.filter(l => l.kind === "lent").map((loan) => (
-                <div 
-                  key={loan.id} 
-                  onClick={() => setSelectedLoan(loan)}
-                  className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"}`}
-                >
+                <div key={loan.id} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-serif font-bold text-sm truncate">{loan.person_name}</span>
@@ -664,7 +629,7 @@ function LoansPage() {
 
                   <div className="flex items-center gap-3">
                     <span className="font-serif font-bold text-base num text-success">{fmtMoney(loan.amount, currency)}</span>
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1">
                       {loan.status === "active" && (
                         <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -887,104 +852,6 @@ function LoansPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Selected Loan Details Dialog */}
-      <Dialog open={!!selectedLoan} onOpenChange={(val) => { if (!val) setSelectedLoan(null); }}>
-        <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-2xl flex items-center gap-2">
-              {selectedLoan?.kind === "borrowed" ? (
-                <TrendingDown className="h-5 w-5 text-destructive" />
-              ) : (
-                <TrendingUp className="h-5 w-5 text-success" />
-              )}
-              Loan Details
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-3">
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Person</span>
-              <span className="text-sm font-serif font-black text-foreground">{selectedLoan?.person_name}</span>
-            </div>
-
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Status</span>
-              {selectedLoan?.status === "paid" ? (
-                <span className="inline-flex items-center gap-0.5 rounded px-2 py-1 text-xs bg-success/15 text-success font-semibold">
-                  <CheckCircle2 className="h-3 w-3" /> Paid
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-0.5 rounded px-2 py-1 text-xs bg-destructive/15 text-destructive font-semibold">
-                  <Clock className="h-3 w-3" /> Active
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block">Amount</span>
-                <span className={`font-serif text-lg font-bold num ${selectedLoan?.kind === "borrowed" ? "text-destructive" : "text-success"}`}>
-                  {selectedLoan && fmtMoney(selectedLoan.amount, currency)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block">Date</span>
-                <span className="text-sm font-semibold">
-                  {selectedLoan && new Date(selectedLoan.occurred_on).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block">Due Date</span>
-                <span className="text-sm font-semibold">
-                  {selectedLoan?.due_date ? new Date(selectedLoan.due_date).toLocaleDateString() : "None"}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block">Linked Account</span>
-                <span className="text-sm font-semibold">
-                  {selectedLoan?.account_id ? accMap.get(selectedLoan.account_id)?.name : "None"}
-                </span>
-              </div>
-            </div>
-
-            {selectedLoan?.note && (
-              <div className="border-t pt-3">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block mb-1">Notes</span>
-                <p className="text-xs text-muted-foreground leading-relaxed font-serif italic">
-                  "{selectedLoan.note}"
-                </p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-4 border-t" onClick={(e) => e.stopPropagation()}>
-              {selectedLoan?.status === "active" && (
-                <Button
-                  onClick={() => {
-                    toggleStatus(selectedLoan);
-                    setSelectedLoan(null);
-                  }}
-                  className="gap-1 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Mark Paid
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  handleEdit(selectedLoan);
-                  setSelectedLoan(null);
-                }}
-                className="gap-1.5 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Floatable Add Trigger — portaled to body to escape transform ancestor */}
       {typeof document !== 'undefined' && createPortal(
