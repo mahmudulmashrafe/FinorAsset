@@ -168,10 +168,16 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 ## 19. Removed Automation Page Header Section
 - **Problem**: The project owner requested to completely remove the top header section on the Automation page containing the "Creator" title and the "New Macro" button.
 - **Solution**: Removed the top header layout container entirely from `automation.tsx`, creating an ultra-minimal list view for macro triggers.
+---
 
-
-
-
+## 21. Fixed TypeScript Compiler Reference & Type Warnings
+- **Problem**: The restored codebase contained several TypeScript issues (missing `toast` imports, untyped custom database JSON arrays for splits, and undefined checks for `authUser`) which caused the application to crash or throw errors on load.
+- **Solution**:
+  - Imported `toast` inside `route.tsx`.
+  - Added explicit type casting (`as any[]`) to the subscriptions database `splits` JSON field.
+  - Cast `accounts` parameter inside `AccountSplitsSelectorProps` in `loans.tsx` from `Account` to `any[]` to match database structures.
+  - Safely cast `supabase.rpc` call context to `any` for the custom secure RPC endpoint.
+  - Verified compilation completes successfully and generates clean build outputs.
 
 
 ## Live URL
