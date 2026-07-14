@@ -549,15 +549,15 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className={`space-y-3 max-h-[420px] overflow-y-auto pr-1 thin-scroll ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
+            <div className={`space-y-3 max-h-[420px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
               {loans.filter(l => l.kind === "borrowed").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
               )}
               {loans.filter(l => l.kind === "borrowed").map((loan) => (
-                <div key={loan.id} onClick={() => setSelectedLoan(loan)} className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"}`}>
+                <div key={loan.id} onClick={() => setSelectedLoan(loan)} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"} w-full min-w-0 overflow-hidden`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-serif font-bold text-sm truncate">{loan.person_name}</span>
+                      <span className="font-serif font-bold text-sm truncate max-w-[120px] sm:max-w-none">{loan.person_name}</span>
                       {loan.status === "paid" ? (
                         <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
                           <CheckCircle2 className="h-2.5 w-2.5" /> Paid
@@ -573,21 +573,21 @@ function LoansPage() {
                       {loan.due_date && <span className="text-destructive font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
                       {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
                     </div>
-                    {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif truncate max-w-xs">"{loan.note}"</p>}
+                    {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 border-t pt-2 sm:border-t-0 sm:pt-0">
+                  <div className="flex items-center gap-3">
                     <span className="font-serif font-bold text-base num text-destructive">{fmtMoney(loan.amount, currency)}</span>
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="hidden md:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       {loan.status === "active" && (
-                        <button onClick={() => toggleStatus(loan)} className="h-7 w-7 flex items-center justify-center rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
+                        <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button onClick={() => handleEdit(loan)} className="h-7 w-7 flex items-center justify-center rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Edit">
+                      <button onClick={() => handleEdit(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setDeleteLoan({ id: loan.id, name: loan.person_name })} className="h-7 w-7 flex items-center justify-center rounded bg-muted hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-colors cursor-pointer" title="Delete">
+                      <button onClick={() => setDeleteLoan({ id: loan.id, name: loan.person_name })} className="p-1 rounded bg-muted hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -616,15 +616,15 @@ function LoansPage() {
               </div>
             </div>
 
-            <div className={`space-y-3 max-h-[420px] overflow-y-auto pr-1 thin-scroll ${lentCollapsed ? "hidden md:block" : "block"}`}>
+            <div className={`space-y-3 max-h-[420px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${lentCollapsed ? "hidden md:block" : "block"}`}>
               {loans.filter(l => l.kind === "lent").length === 0 && (
                 <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
               )}
               {loans.filter(l => l.kind === "lent").map((loan) => (
-                <div key={loan.id} onClick={() => setSelectedLoan(loan)} className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"}`}>
+                <div key={loan.id} onClick={() => setSelectedLoan(loan)} className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"} w-full min-w-0 overflow-hidden`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-serif font-bold text-sm truncate">{loan.person_name}</span>
+                      <span className="font-serif font-bold text-sm truncate max-w-[120px] sm:max-w-none">{loan.person_name}</span>
                       {loan.status === "paid" ? (
                         <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
                           <CheckCircle2 className="h-2.5 w-2.5" /> Paid
@@ -640,21 +640,21 @@ function LoansPage() {
                       {loan.due_date && <span className="text-success font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
                       {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
                     </div>
-                    {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif truncate max-w-xs">"{loan.note}"</p>}
+                    {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 border-t pt-2 sm:border-t-0 sm:pt-0">
+                  <div className="flex items-center gap-3">
                     <span className="font-serif font-bold text-base num text-success">{fmtMoney(loan.amount, currency)}</span>
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="hidden md:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       {loan.status === "active" && (
-                        <button onClick={() => toggleStatus(loan)} className="h-7 w-7 flex items-center justify-center rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
+                        <button onClick={() => toggleStatus(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Mark as Paid">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button onClick={() => handleEdit(loan)} className="h-7 w-7 flex items-center justify-center rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Edit">
+                      <button onClick={() => handleEdit(loan)} className="p-1 rounded bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors cursor-pointer" title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setDeleteLoan({ id: loan.id, name: loan.person_name })} className="h-7 w-7 flex items-center justify-center rounded bg-muted hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-colors cursor-pointer" title="Delete">
+                      <button onClick={() => setDeleteLoan({ id: loan.id, name: loan.person_name })} className="p-1 rounded bg-muted hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -958,6 +958,16 @@ function LoansPage() {
                   className="gap-1 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
                 >
                   <Pencil className="h-3.5 w-3.5" /> Edit Details
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setDeleteLoan({ id: selectedLoan.id, name: selectedLoan.person_name });
+                    setSelectedLoan(null);
+                  }}
+                  className="gap-1 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
                 </Button>
               </div>
             </div>
