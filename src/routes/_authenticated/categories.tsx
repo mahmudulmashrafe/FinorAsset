@@ -182,12 +182,12 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg flex flex-col h-[90vh] max-h-[600px] p-0 z-[90]">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle className="font-serif">{isEdit ? "Edit category" : "New category"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
           {/* Name + Kind row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -241,7 +241,7 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving}>
             {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save changes" : "Create")}

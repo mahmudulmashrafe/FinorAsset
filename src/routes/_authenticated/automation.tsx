@@ -847,199 +847,147 @@ function AutomationPage() {
           setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
         }
       }}>
-        <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
-          <DialogHeader>
+        <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[100]">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif text-2xl">
               {editingRule ? "Edit Automation Macro" : "New Automation Macro"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreateRule} className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="macro-name" className="text-xs font-semibold">Macro Name</Label>
-              <Input
-                id="macro-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Daily Coffee, Rent Payment"
-              />
-            </div>
-
-            <div className="border-t pt-3 space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-bold">Transactions ({actions.length})</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addActionForm} className="h-8 rounded-full text-xs font-semibold cursor-pointer">
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Transaction
-                </Button>
+          <form onSubmit={handleCreateRule} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+              <div className="space-y-1.5">
+                <Label htmlFor="macro-name" className="text-xs font-semibold">Macro Name</Label>
+                <Input
+                  id="macro-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Daily Coffee, Rent Payment"
+                />
               </div>
 
-              {actions.map((act, idx) => (
-                <div key={idx} className="p-3 border rounded-xl bg-muted/40 space-y-3 relative">
-                  {actions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeActionForm(idx)}
-                      className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-destructive text-[10px] font-semibold cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  )}
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Transaction #{idx + 1}</span>
+              <div className="border-t pt-3 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-bold">Transactions ({actions.length})</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addActionForm} className="h-8 rounded-full text-xs font-semibold cursor-pointer">
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Transaction
+                  </Button>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold">Type</Label>
-                      <Select value={act.kind} onValueChange={(v: any) => updateActionField(idx, "kind", v)}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-[150]">
-                          <SelectItem value="expense">Expense</SelectItem>
-                          <SelectItem value="income">Income</SelectItem>
-                          <SelectItem value="transfer">Transfer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                {actions.map((act, idx) => (
+                  <div key={idx} className="p-3 border rounded-xl bg-muted/40 space-y-3 relative">
+                    {actions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeActionForm(idx)}
+                        className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-destructive text-[10px] font-semibold cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Transaction #{idx + 1}</span>
 
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold">Amount</Label>
-                      <Input
-                        type="number"
-                        step="any"
-                        className="h-8 text-xs"
-                        value={act.amount || ""}
-                        onChange={(e) => updateActionField(idx, "amount", Number(e.target.value))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-
-                  {act.kind !== "transfer" && (
-                    <div className="flex items-center justify-between border-y py-1.5 my-1 bg-muted/20 px-2 rounded-lg">
-                      <Label className="text-[10px] font-semibold">Split across multiple accounts</Label>
-                      <Switch
-                        checked={!!act.isSplit}
-                        onCheckedChange={(checked) => {
-                          updateActionFields(idx, {
-                            isSplit: checked,
-                            splits: checked ? [{ accountId: act.account_id || accounts[0]?.id || "", amount: Number(act.amount) || 0 }] : []
-                          });
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {act.isSplit && act.kind !== "transfer" ? (
-                    <div className="space-y-2 border-t pt-2 mt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-bold uppercase text-muted-foreground">Account Splits</span>
-                        <button
-                          type="button"
-                          onClick={() => addActionSplit(idx)}
-                          className="text-[10px] text-accent hover:underline cursor-pointer"
-                        >
-                          + Add Account Split
-                        </button>
-                      </div>
-                      <div className="space-y-2">
-                        {(act.splits || []).map((split, sIdx) => {
-                          return (
-                            <div key={sIdx} className="flex gap-2 items-center">
-                              <Select
-                                value={split.accountId || "none"}
-                                onValueChange={(val) => updateActionSplit(idx, sIdx, "accountId", val === "none" ? "" : val)}
-                              >
-                                <SelectTrigger className="flex-1 h-8 text-xs bg-background">
-                                  <SelectValue placeholder="Select account" />
-                                </SelectTrigger>
-                                <SelectContent className="z-[160]">
-                                  {(!split.accountId || split.accountId === "none") && (
-                                    <SelectItem value="none">Select account...</SelectItem>
-                                  )}
-                                  {accounts.map((a) => (
-                                    <SelectItem key={a.id} value={a.id}>
-                                      {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Input
-                                type="number"
-                                step="any"
-                                className="w-24 h-8 text-xs bg-background"
-                                value={split.amount || ""}
-                                onChange={(e) => updateActionSplit(idx, sIdx, "amount", Number(e.target.value) || 0)}
-                                placeholder="0.00"
-                              />
-                              {(act.splits || []).length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeActionSplit(idx, sIdx)}
-                                  className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="text-[9px] text-muted-foreground flex justify-between px-1">
-                        <span>Allocated: {fmtMoney((act.splits || []).reduce((sum, s) => sum + s.amount, 0), currency)} / {fmtMoney(Number(act.amount) || 0, currency)}</span>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <Label className="text-[10px] font-semibold">Category</Label>
-                        <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent className="z-[150]">
-                            {cats.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.icon} {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ) : (
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[10px] font-semibold">
-                          {act.kind === "transfer" ? "Source Account" : "Account"}
-                        </Label>
-                        <Select value={act.account_id} onValueChange={(v) => updateActionField(idx, "account_id", v)}>
+                        <Label className="text-[10px] font-semibold">Type</Label>
+                        <Select value={act.kind} onValueChange={(v: any) => updateActionField(idx, "kind", v)}>
                           <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select account" />
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="z-[150]">
-                            {accounts.map((a) => (
-                              <SelectItem key={a.id} value={a.id}>
-                                {a.name}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="expense">Expense</SelectItem>
+                            <SelectItem value="income">Income</SelectItem>
+                            <SelectItem value="transfer">Transfer</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
-                      {act.kind === "transfer" ? (
-                        <div className="space-y-1">
-                          <Label className="text-[10px] font-semibold">Destination Account</Label>
-                          <Select value={act.to_account_id || ""} onValueChange={(v) => updateActionField(idx, "to_account_id", v)}>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select account" />
-                            </SelectTrigger>
-                            <SelectContent className="z-[150]">
-                              {accounts.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>
-                                  {a.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-semibold">Amount</Label>
+                        <Input
+                          type="number"
+                          step="any"
+                          className="h-8 text-xs"
+                          value={act.amount || ""}
+                          onChange={(e) => updateActionField(idx, "amount", Number(e.target.value))}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    {act.kind !== "transfer" && (
+                      <div className="flex items-center justify-between border-y py-1.5 my-1 bg-muted/20 px-2 rounded-lg">
+                        <Label className="text-[10px] font-semibold">Split across multiple accounts</Label>
+                        <Switch
+                          checked={!!act.isSplit}
+                          onCheckedChange={(checked) => {
+                            updateActionFields(idx, {
+                              isSplit: checked,
+                              splits: checked ? [{ accountId: act.account_id || accounts[0]?.id || "", amount: Number(act.amount) || 0 }] : []
+                            });
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {act.isSplit && act.kind !== "transfer" ? (
+                      <div className="space-y-2 border-t pt-2 mt-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-bold uppercase text-muted-foreground">Account Splits</span>
+                          <button
+                            type="button"
+                            onClick={() => addActionSplit(idx)}
+                            className="text-[10px] text-accent hover:underline cursor-pointer"
+                          >
+                            + Add Account Split
+                          </button>
                         </div>
-                      ) : (
+                        <div className="space-y-2">
+                          {(act.splits || []).map((split, sIdx) => {
+                            return (
+                              <div key={sIdx} className="flex gap-2 items-center">
+                                <Select
+                                  value={split.accountId || "none"}
+                                  onValueChange={(val) => updateActionSplit(idx, sIdx, "accountId", val === "none" ? "" : val)}
+                                >
+                                  <SelectTrigger className="flex-1 h-8 text-xs bg-background">
+                                    <SelectValue placeholder="Select account" />
+                                  </SelectTrigger>
+                                  <SelectContent className="z-[160]">
+                                    {(!split.accountId || split.accountId === "none") && (
+                                      <SelectItem value="none">Select account...</SelectItem>
+                                    )}
+                                    {accounts.map((a) => (
+                                      <SelectItem key={a.id} value={a.id}>
+                                        {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  type="number"
+                                  step="any"
+                                  className="w-24 h-8 text-xs bg-background"
+                                  value={split.amount || ""}
+                                  onChange={(e) => updateActionSplit(idx, sIdx, "amount", Number(e.target.value) || 0)}
+                                  placeholder="0.00"
+                                />
+                                {(act.splits || []).length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeActionSplit(idx, sIdx)}
+                                    className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="text-[9px] text-muted-foreground flex justify-between px-1">
+                          <span>Allocated: {fmtMoney((act.splits || []).reduce((sum, s) => sum + s.amount, 0), currency)} / {fmtMoney(Number(act.amount) || 0, currency)}</span>
+                        </div>
+                        
                         <div className="space-y-1">
                           <Label className="text-[10px] font-semibold">Category</Label>
                           <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
@@ -1055,28 +1003,83 @@ function AutomationPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold">
+                            {act.kind === "transfer" ? "Source Account" : "Account"}
+                          </Label>
+                          <Select value={act.account_id} onValueChange={(v) => updateActionField(idx, "account_id", v)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[150]">
+                              {accounts.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-semibold">Optional Note</Label>
-                    <Input
-                      className="h-8 text-xs"
-                      value={act.note || ""}
-                      onChange={(e) => updateActionField(idx, "note", e.target.value)}
-                      placeholder="e.g. coffee details"
-                    />
+                        {act.kind === "transfer" ? (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-semibold">Destination Account</Label>
+                            <Select value={act.to_account_id || ""} onValueChange={(v) => updateActionField(idx, "to_account_id", v)}>
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select account" />
+                              </SelectTrigger>
+                              <SelectContent className="z-[150]">
+                                {accounts.map((a) => (
+                                  <SelectItem key={a.id} value={a.id}>
+                                    {a.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-semibold">Category</Label>
+                            <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent className="z-[150]">
+                                {cats.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.icon} {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold">Optional Note</Label>
+                      <Input
+                        className="h-8 text-xs"
+                        value={act.note || ""}
+                        onChange={(e) => updateActionField(idx, "note", e.target.value)}
+                        placeholder="e.g. coffee details"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <DialogFooter className="p-4 border-t flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="rounded-full text-xs font-semibold cursor-pointer">Cancel</Button>
               <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
                 {editingRule ? "Update Macro" : "Save Macro"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -1085,205 +1088,148 @@ function AutomationPage() {
         setCreateSubOpen(val);
         if (!val) resetSubForm();
       }}>
-        <DialogContent className="max-w-md z-[100] max-h-[90vh] overflow-y-auto thin-scroll">
-          <DialogHeader>
+        <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[100]">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif text-2xl">
               {editingSub ? "Edit Subscription" : "New Subscription"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreateSub} className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="sub-name" className="text-xs font-semibold">Subscription Name</Label>
-              <Input
-                id="sub-name"
-                value={subName}
-                onChange={(e) => setSubName(e.target.value)}
-                placeholder="e.g. Netflix, Gym, Office Rent"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Type</Label>
-                <Select value={subKind} onValueChange={(v: any) => {
-                  setSubKind(v);
-                  setSubCategoryId("");
-                  setSubToAccountId("");
-                  setSubIsSplit(false);
-                  setSubSplits([]);
-                }}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[150]">
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Amount</Label>
+          <form onSubmit={handleCreateSub} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+              <div className="space-y-1.5">
+                <Label htmlFor="sub-name" className="text-xs font-semibold">Subscription Name</Label>
                 <Input
-                  type="number"
-                  step="any"
-                  className="h-8 text-xs"
-                  value={subAmount || ""}
-                  onChange={(e) => {
-                    const amt = Number(e.target.value);
-                    setSubAmount(amt);
-                    if (subSplits.length <= 1) {
-                      setSubSplits([{ accountId: subAccountId || accounts[0]?.id || "", amount: amt }]);
-                    }
-                  }}
-                  placeholder="0.00"
+                  id="sub-name"
+                  value={subName}
+                  onChange={(e) => setSubName(e.target.value)}
+                  placeholder="e.g. Netflix, Gym, Office Rent"
                 />
               </div>
-            </div>
 
-            {subKind !== "transfer" && (
-              <div className="flex items-center justify-between border-y py-1.5 my-1 bg-muted/20 px-2 rounded-lg">
-                <Label className="text-xs font-semibold">Split across multiple accounts</Label>
-                <Switch
-                  checked={subIsSplit}
-                  onCheckedChange={(checked) => {
-                    setSubIsSplit(checked);
-                    setSubSplits(checked ? [{ accountId: subAccountId || accounts[0]?.id || "", amount: subAmount }] : []);
-                  }}
-                />
-              </div>
-            )}
-
-            {subIsSplit && subKind !== "transfer" ? (
-              <div className="space-y-2 border-t pt-2 mt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Account Splits</span>
-                  <button
-                    type="button"
-                    onClick={() => setSubSplits([...subSplits, { accountId: accounts[0]?.id || "", amount: 0 }])}
-                    className="text-xs text-accent hover:underline cursor-pointer"
-                  >
-                    + Add Account Split
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {subSplits.map((split, sIdx) => {
-                    return (
-                      <div key={sIdx} className="flex gap-2 items-center">
-                        <Select
-                          value={split.accountId || "none"}
-                          onValueChange={(val) => {
-                            const next = [...subSplits];
-                            next[sIdx].accountId = val === "none" ? "" : val;
-                            setSubSplits(next);
-                          }}
-                        >
-                          <SelectTrigger className="flex-1 h-8 text-xs bg-background">
-                            <SelectValue placeholder="Select account" />
-                          </SelectTrigger>
-                          <SelectContent className="z-[160]">
-                            {(!split.accountId || split.accountId === "none") && (
-                              <SelectItem value="none">Select account...</SelectItem>
-                            )}
-                            {accounts.map((a) => (
-                              <SelectItem key={a.id} value={a.id}>
-                                {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          type="number"
-                          step="any"
-                          className="w-24 h-8 text-xs bg-background"
-                          value={split.amount || ""}
-                          onChange={(e) => {
-                            const next = [...subSplits];
-                            next[sIdx].amount = Number(e.target.value) || 0;
-                            setSubSplits(next);
-                          }}
-                          placeholder="0.00"
-                        />
-                        {subSplits.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = [...subSplits];
-                              next.splice(sIdx, 1);
-                              setSubSplits(next);
-                            }}
-                            className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="text-[10px] text-muted-foreground flex justify-between px-1">
-                  <span>Allocated: {fmtMoney(subSplits.reduce((sum, s) => sum + s.amount, 0), currency)} / {fmtMoney(Number(subAmount) || 0, currency)}</span>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Category</Label>
-                  <Select value={subCategoryId || ""} onValueChange={setSubCategoryId}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[150]">
-                      {cats.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.icon} {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ) : (
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">
-                    {subKind === "transfer" ? "Source Account" : "Account"}
-                  </Label>
-                  <Select value={subAccountId} onValueChange={(val) => {
-                    setSubAccountId(val);
-                    if (subSplits.length <= 1) {
-                      setSubSplits([{ accountId: val, amount: subAmount }]);
-                    }
+                  <Label className="text-xs font-semibold">Type</Label>
+                  <Select value={subKind} onValueChange={(v: any) => {
+                    setSubKind(v);
+                    setSubCategoryId("");
+                    setSubToAccountId("");
+                    setSubIsSplit(false);
+                    setSubSplits([]);
                   }}>
                     <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select account" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="z-[150]">
-                      {accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="expense">Expense</SelectItem>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {subKind === "transfer" ? (
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold">Destination Account</Label>
-                    <Select value={subToAccountId || ""} onValueChange={setSubToAccountId}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select account" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[150]">
-                        {accounts.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Amount</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    className="h-8 text-xs"
+                    value={subAmount || ""}
+                    onChange={(e) => {
+                      const amt = Number(e.target.value);
+                      setSubAmount(amt);
+                      if (subSplits.length <= 1) {
+                        setSubSplits([{ accountId: subAccountId || accounts[0]?.id || "", amount: amt }]);
+                      }
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              {subKind !== "transfer" && (
+                <div className="flex items-center justify-between border-y py-1.5 my-1 bg-muted/20 px-2 rounded-lg">
+                  <Label className="text-xs font-semibold">Split across multiple accounts</Label>
+                  <Switch
+                    checked={subIsSplit}
+                    onCheckedChange={(checked) => {
+                      setSubIsSplit(checked);
+                      setSubSplits(checked ? [{ accountId: subAccountId || accounts[0]?.id || "", amount: subAmount }] : []);
+                    }}
+                  />
+                </div>
+              )}
+
+              {subIsSplit && subKind !== "transfer" ? (
+                <div className="space-y-2 border-t pt-2 mt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Account Splits</span>
+                    <button
+                      type="button"
+                      onClick={() => setSubSplits([...subSplits, { accountId: accounts[0]?.id || "", amount: 0 }])}
+                      className="text-xs text-accent hover:underline cursor-pointer"
+                    >
+                      + Add Account Split
+                    </button>
                   </div>
-                ) : (
+                  <div className="space-y-2">
+                    {subSplits.map((split, sIdx) => {
+                      return (
+                        <div key={sIdx} className="flex gap-2 items-center">
+                          <Select
+                            value={split.accountId || "none"}
+                            onValueChange={(val) => {
+                              const next = [...subSplits];
+                              next[sIdx].accountId = val === "none" ? "" : val;
+                              setSubSplits(next);
+                            }}
+                          >
+                            <SelectTrigger className="flex-1 h-8 text-xs bg-background">
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[160]">
+                              {(!split.accountId || split.accountId === "none") && (
+                                <SelectItem value="none">Select account...</SelectItem>
+                              )}
+                              {accounts.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            step="any"
+                            className="w-24 h-8 text-xs bg-background"
+                            value={split.amount || ""}
+                            onChange={(e) => {
+                              const next = [...subSplits];
+                              next[sIdx].amount = Number(e.target.value) || 0;
+                              setSubSplits(next);
+                            }}
+                            placeholder="0.00"
+                          />
+                          {subSplits.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...subSplits];
+                                next.splice(sIdx, 1);
+                                setSubSplits(next);
+                              }}
+                              className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground flex justify-between px-1">
+                    <span>Allocated: {fmtMoney(subSplits.reduce((sum, s) => sum + s.amount, 0), currency)} / {fmtMoney(Number(subAmount) || 0, currency)}</span>
+                  </div>
+
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold">Category</Label>
                     <Select value={subCategoryId || ""} onValueChange={setSubCategoryId}>
@@ -1299,37 +1245,97 @@ function AutomationPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">
+                      {subKind === "transfer" ? "Source Account" : "Account"}
+                    </Label>
+                    <Select value={subAccountId} onValueChange={(val) => {
+                      setSubAccountId(val);
+                      if (subSplits.length <= 1) {
+                        setSubSplits([{ accountId: val, amount: subAmount }]);
+                      }
+                    }}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[150]">
+                        {accounts.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <div className="grid grid-cols-1 gap-2">
+                  {subKind === "transfer" ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Destination Account</Label>
+                      <Select value={subToAccountId || ""} onValueChange={setSubToAccountId}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[150]">
+                          {accounts.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Category</Label>
+                      <Select value={subCategoryId || ""} onValueChange={setSubCategoryId}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[150]">
+                          {cats.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.icon} {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Next Due Date</Label>
+                  <Input
+                    type="date"
+                    className="h-8 text-xs"
+                    value={subNextDueDate}
+                    onChange={(e) => setSubNextDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Next Due Date</Label>
+                <Label className="text-xs font-semibold">Optional Note</Label>
                 <Input
-                  type="date"
                   className="h-8 text-xs"
-                  value={subNextDueDate}
-                  onChange={(e) => setSubNextDueDate(e.target.value)}
+                  value={subNote}
+                  onChange={(e) => setSubNote(e.target.value)}
+                  placeholder="e.g. Netflix Premium Plan"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Optional Note</Label>
-              <Input
-                className="h-8 text-xs"
-                value={subNote}
-                onChange={(e) => setSubNote(e.target.value)}
-                placeholder="e.g. Netflix Premium Plan"
-              />
-            </div>
-
-            <div className="pt-2 flex justify-end">
+            <DialogFooter className="p-4 border-t flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setCreateSubOpen(false)} className="rounded-full text-xs font-semibold cursor-pointer">Cancel</Button>
               <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
                 {editingSub ? "Update Subscription" : "Save Subscription"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

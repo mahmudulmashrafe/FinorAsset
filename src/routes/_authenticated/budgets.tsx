@@ -201,13 +201,13 @@ function BudgetsPage() {
           setAmount("");
         }
       }}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[90]">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif">
               {editingBudget ? "Edit budget" : "New monthly budget"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
             <div>
               <Label>Category</Label>
               {editingBudget ? (
@@ -239,7 +239,7 @@ function BudgetsPage() {
               />
             </div>
           </div>
-          <DialogFooter className="mt-4">
+          <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => { setOpen(false); setEditingBudget(null); }}>
               Cancel
             </Button>

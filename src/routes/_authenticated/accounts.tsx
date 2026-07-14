@@ -181,12 +181,12 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[90]">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle className="font-serif">{isEdit ? "Edit account" : "New account"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
           {/* Name */}
           <div>
             <Label htmlFor="account-name">Name</Label>
@@ -251,7 +251,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving}>
             {saving ? (isEdit ? "Saving…" : "Adding…") : (isEdit ? "Save changes" : "Add account")}

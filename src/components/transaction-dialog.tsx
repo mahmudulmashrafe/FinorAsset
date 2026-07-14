@@ -379,129 +379,131 @@ export function TransactionDialog({
   }
 
   const dialogContent = (
-    <DialogContent className="max-w-md">
-      <DialogHeader>
+    <DialogContent className="max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[99]">
+      <DialogHeader className="p-4 border-b">
         <DialogTitle className="font-serif">{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle>
       </DialogHeader>
 
-      <ToggleGroup type="single" value={kind} onValueChange={(v) => v && setKind(v as TxnKind)} className="justify-start">
-        <ToggleGroupItem value="expense" id="kind-expense">Expense</ToggleGroupItem>
-        <ToggleGroupItem value="income" id="kind-income">Income</ToggleGroupItem>
-        <ToggleGroupItem value="transfer" id="kind-transfer">Transfer</ToggleGroupItem>
-      </ToggleGroup>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+        <ToggleGroup type="single" value={kind} onValueChange={(v) => v && setKind(v as TxnKind)} className="justify-start">
+          <ToggleGroupItem value="expense" id="kind-expense">Expense</ToggleGroupItem>
+          <ToggleGroupItem value="income" id="kind-income">Income</ToggleGroupItem>
+          <ToggleGroupItem value="transfer" id="kind-transfer">Transfer</ToggleGroupItem>
+        </ToggleGroup>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <Label htmlFor="txn-amount">Amount</Label>
-          <Input id="txn-amount" type="number" step="0.01" min="0.01"
-            value={amount} onChange={(e) => {
-              const val = e.target.value;
-              setAmount(val);
-              if (splits.length === 1) {
-                setSplits([{ ...splits[0], amount: Number(val) || 0 }]);
-              }
-            }}
-            placeholder="0.00" aria-invalid={!!errors.amount} autoFocus={isEdit} />
-          {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount}</p>}
-        </div>
-
-        {!isEdit && kind !== "transfer" && (
-          <div className="col-span-2 flex items-center justify-between border-y py-2.5 my-1">
-            <div className="space-y-0.5">
-              <Label className="text-sm font-semibold">Split across multiple accounts</Label>
-              <p className="text-[10px] text-muted-foreground">Allocate this transaction's amount to more than one account</p>
-            </div>
-            <Switch
-              checked={isSplit}
-              onCheckedChange={(checked) => {
-                setIsSplit(checked);
-                if (checked) {
-                  setSplits([{ accountId: accountId || accounts[0]?.id || "", amount: Number(amount) || 0 }]);
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <Label htmlFor="txn-amount">Amount</Label>
+            <Input id="txn-amount" type="number" step="0.01" min="0.01"
+              value={amount} onChange={(e) => {
+                const val = e.target.value;
+                setAmount(val);
+                if (splits.length === 1) {
+                  setSplits([{ ...splits[0], amount: Number(val) || 0 }]);
                 }
               }}
-            />
+              placeholder="0.00" aria-invalid={!!errors.amount} autoFocus={isEdit} />
+            {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount}</p>}
           </div>
-        )}
 
-        {isSplit ? (
+          {!isEdit && kind !== "transfer" && (
+            <div className="col-span-2 flex items-center justify-between border-y py-2.5 my-1">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-semibold">Split across multiple accounts</Label>
+                <p className="text-[10px] text-muted-foreground">Allocate this transaction's amount to more than one account</p>
+              </div>
+              <Switch
+                checked={isSplit}
+                onCheckedChange={(checked) => {
+                  setIsSplit(checked);
+                  if (checked) {
+                    setSplits([{ accountId: accountId || accounts[0]?.id || "", amount: Number(amount) || 0 }]);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {isSplit ? (
+            <div className="col-span-2">
+              <AccountSplitsSelector
+                splits={splits}
+                setSplits={setSplits}
+                totalAmount={Number(amount) || 0}
+                accounts={accounts}
+                balances={balances}
+                currency={currency}
+                showBalanceCheck={kind === "expense"}
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger id="txn-account" aria-invalid={!!errors.accountId}><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent className="z-[150]">{accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
+            </div>
+          )}
+
+          {kind === "transfer" ? (
+            <div>
+              <Label htmlFor="txn-to-account">To account</Label>
+              <Select value={toAccountId} onValueChange={setToAccountId}>
+                <SelectTrigger id="txn-to-account" aria-invalid={!!errors.toAccountId}><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent className="z-[150]">{accounts.filter((a) => a.id !== accountId).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {errors.toAccountId && <p className="mt-1 text-xs text-destructive">{errors.toAccountId}</p>}
+            </div>
+          ) : (
+            <div className={isSplit ? "col-span-2" : ""}>
+              <Label htmlFor="txn-category">Category</Label>
+              <Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setShowNewCat(false); }}>
+                <SelectTrigger id="txn-category"><SelectValue placeholder="Select or create" /></SelectTrigger>
+                <SelectContent className="z-[150]">
+                  {filteredCats.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">No categories yet</div>}
+                  {filteredCats.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{c.icon}</span>
+                        <span className="h-2 w-2 rounded-full inline-block flex-shrink-0" style={{ background: c.color }} />
+                        {c.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button type="button" onClick={() => setShowNewCat(true)}
+                className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                <PlusCircle className="h-3.5 w-3.5" /> Create new category
+              </button>
+              <CategoryCreatorDialog
+                open={showNewCat}
+                onOpenChange={setShowNewCat}
+                kind={kind as "income" | "expense"}
+                onCreated={(id) => { setCategoryId(id); setShowNewCat(false); }}
+              />
+            </div>
+          )}
+
           <div className="col-span-2">
-            <AccountSplitsSelector
-              splits={splits}
-              setSplits={setSplits}
-              totalAmount={Number(amount) || 0}
-              accounts={accounts}
-              balances={balances}
-              currency={currency}
-              showBalanceCheck={kind === "expense"}
-            />
+            <Label htmlFor="txn-date">Date</Label>
+            <Input id="txn-date" type="date" value={date}
+              onChange={(e) => setDate(e.target.value)} aria-invalid={!!errors.date} />
+            {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
           </div>
-        ) : (
-          <div>
-            <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger id="txn-account" aria-invalid={!!errors.accountId}><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent className="z-[150]">{accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-            </Select>
-            {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
-          </div>
-        )}
 
-        {kind === "transfer" ? (
-          <div>
-            <Label htmlFor="txn-to-account">To account</Label>
-            <Select value={toAccountId} onValueChange={setToAccountId}>
-              <SelectTrigger id="txn-to-account" aria-invalid={!!errors.toAccountId}><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent className="z-[150]">{accounts.filter((a) => a.id !== accountId).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-            </Select>
-            {errors.toAccountId && <p className="mt-1 text-xs text-destructive">{errors.toAccountId}</p>}
+          <div className="col-span-2">
+            <Label htmlFor="txn-note">Note</Label>
+            <Textarea id="txn-note" value={note} onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional" rows={2} aria-invalid={!!errors.note} />
+            {errors.note && <p className="mt-1 text-xs text-destructive">{errors.note}</p>}
           </div>
-        ) : (
-          <div className={isSplit ? "col-span-2" : ""}>
-            <Label htmlFor="txn-category">Category</Label>
-            <Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setShowNewCat(false); }}>
-              <SelectTrigger id="txn-category"><SelectValue placeholder="Select or create" /></SelectTrigger>
-              <SelectContent className="z-[150]">
-                {filteredCats.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">No categories yet</div>}
-                {filteredCats.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{c.icon}</span>
-                      <span className="h-2 w-2 rounded-full inline-block flex-shrink-0" style={{ background: c.color }} />
-                      {c.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <button type="button" onClick={() => setShowNewCat(true)}
-              className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-              <PlusCircle className="h-3.5 w-3.5" /> Create new category
-            </button>
-            <CategoryCreatorDialog
-              open={showNewCat}
-              onOpenChange={setShowNewCat}
-              kind={kind as "income" | "expense"}
-              onCreated={(id) => { setCategoryId(id); setShowNewCat(false); }}
-            />
-          </div>
-        )}
-
-        <div className="col-span-2">
-          <Label htmlFor="txn-date">Date</Label>
-          <Input id="txn-date" type="date" value={date}
-            onChange={(e) => setDate(e.target.value)} aria-invalid={!!errors.date} />
-          {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
-        </div>
-
-        <div className="col-span-2">
-          <Label htmlFor="txn-note">Note</Label>
-          <Textarea id="txn-note" value={note} onChange={(e) => setNote(e.target.value)}
-            placeholder="Optional" rows={2} aria-invalid={!!errors.note} />
-          {errors.note && <p className="mt-1 text-xs text-destructive">{errors.note}</p>}
         </div>
       </div>
 
-      <DialogFooter>
+      <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
         <Button onClick={submit} disabled={saving} id="txn-save-btn">
           {saving ? "Saving…" : isEdit ? "Save changes" : "Save"}

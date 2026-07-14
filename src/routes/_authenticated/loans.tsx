@@ -696,81 +696,99 @@ function LoansPage() {
 
       {/* Adding/Editing Dialog */}
       <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) resetForm(); }}>
-        <DialogContent className="max-w-[90vw] sm:max-w-md rounded-xl z-[99] max-h-[90vh] overflow-y-auto thin-scroll">
-          <DialogHeader>
+        <DialogContent className="max-w-[90vw] sm:max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[99]">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif">{editingLoan ? "Edit Loan" : "New Loan"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4 py-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="person-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Person Name</Label>
-              <Input id="person-name" value={personName} onChange={(e) => setPersonName(e.target.value)} placeholder="e.g. John Doe" className="rounded-xl h-11" required />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
               <div className="space-y-1.5">
-                <Label htmlFor="loan-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</Label>
-                <Input 
-                  id="loan-amount" 
-                  type="number" 
-                  step="any" 
-                  value={amount} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setAmount(val);
-                    if (accountSplits.length === 1) {
-                      setAccountSplits([{ ...accountSplits[0], amount: Number(val) || 0 }]);
-                    }
-                  }} 
-                  placeholder="0.00" 
-                  className="rounded-xl h-11" 
-                  required 
-                />
+                <Label htmlFor="person-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Person Name</Label>
+                <Input id="person-name" value={personName} onChange={(e) => setPersonName(e.target.value)} placeholder="e.g. John Doe" className="rounded-xl h-11" required />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="loan-kind" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</Label>
-                <Select value={kind} onValueChange={(val: any) => setKind(val)}>
-                  <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="borrowed">I Take Loan (Borrowed)</SelectItem>
-                    <SelectItem value="lent">I Give Loan (Lent)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {!editingLoan && (
-              <div className="flex items-center justify-between border-y py-2.5 my-1">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-semibold">Split across multiple accounts</Label>
-                  <p className="text-[10px] text-muted-foreground">Allocate this loan's amount to more than one account</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="loan-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</Label>
+                  <Input 
+                    id="loan-amount" 
+                    type="number" 
+                    step="any" 
+                    value={amount} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAmount(val);
+                      if (accountSplits.length === 1) {
+                        setAccountSplits([{ ...accountSplits[0], amount: Number(val) || 0 }]);
+                      }
+                    }} 
+                    placeholder="0.00" 
+                    className="rounded-xl h-11" 
+                    required 
+                  />
                 </div>
-                <Switch
-                  checked={isSplit}
-                  onCheckedChange={(checked) => {
-                    setIsSplit(checked);
-                    if (checked) {
-                      setAccountSplits([{ accountId: accountId !== "none" ? accountId : (accounts[0]?.id || "none"), amount: Number(amount) || 0 }]);
-                    }
-                  }}
-                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="loan-kind" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</Label>
+                  <Select value={kind} onValueChange={(val: any) => setKind(val)}>
+                    <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="borrowed">I Take Loan (Borrowed)</SelectItem>
+                      <SelectItem value="lent">I Give Loan (Lent)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
 
-            {!editingLoan ? (
-              isSplit ? (
-                <AccountSplitsSelector
-                  splits={accountSplits}
-                  setSplits={setAccountSplits}
-                  totalAmount={Number(amount) || 0}
-                  accounts={accounts}
-                  balances={balances}
-                  currency={currency}
-                  showBalanceCheck={kind === "lent"}
-                />
+              {!editingLoan && (
+                <div className="flex items-center justify-between border-y py-2.5 my-1">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-semibold">Split across multiple accounts</Label>
+                    <p className="text-[10px] text-muted-foreground">Allocate this loan's amount to more than one account</p>
+                  </div>
+                  <Switch
+                    checked={isSplit}
+                    onCheckedChange={(checked) => {
+                      setIsSplit(checked);
+                      if (checked) {
+                        setAccountSplits([{ accountId: accountId !== "none" ? accountId : (accounts[0]?.id || "none"), amount: Number(amount) || 0 }]);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              {!editingLoan ? (
+                isSplit ? (
+                  <AccountSplitsSelector
+                    splits={accountSplits}
+                    setSplits={setAccountSplits}
+                    totalAmount={Number(amount) || 0}
+                    accounts={accounts}
+                    balances={balances}
+                    currency={currency}
+                    showBalanceCheck={kind === "lent"}
+                  />
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link Account (Optional)</Label>
+                    <Select value={accountId} onValueChange={(val) => setAccountId(val)}>
+                      <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent className="z-[100]">
+                        <SelectItem value="none">Do not link account</SelectItem>
+                        {accounts.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground leading-normal mt-1">
+                      Linking an account automatically records the financial inflow/outflow as a transaction in that account.
+                    </p>
+                  </div>
+                )
               ) : (
                 <div className="space-y-1.5">
-                  <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link Account (Optional)</Label>
-                  <Select value={accountId} onValueChange={(val) => setAccountId(val)}>
+                  <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Linked Account</Label>
+                  <Select value={accountId} onValueChange={(val) => setAccountId(val)} disabled>
                     <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent className="z-[100]">
                       <SelectItem value="none">Do not link account</SelectItem>
@@ -779,56 +797,40 @@ function LoansPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-[10px] text-muted-foreground leading-normal mt-1">
-                    Linking an account automatically records the financial inflow/outflow as a transaction in that account.
-                  </p>
                 </div>
-              )
-            ) : (
-              <div className="space-y-1.5">
-                <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Linked Account</Label>
-                <Select value={accountId} onValueChange={(val) => setAccountId(val)} disabled>
-                  <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="none">Do not link account</SelectItem>
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="occurred-on" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</Label>
-                <Input id="occurred-on" type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} className="rounded-xl h-11" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="occurred-on" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</Label>
+                  <Input id="occurred-on" type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} className="rounded-xl h-11" required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="due-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due Date (Optional)</Label>
+                  <Input id="due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="rounded-xl h-11" />
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <Label htmlFor="loan-status" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
+                  <Select value={status} onValueChange={(val: any) => setStatus(val)}>
+                    <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="active">Active (Owed)</SelectItem>
+                      <SelectItem value="paid">Paid (Cleared)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label htmlFor="due-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due Date (Optional)</Label>
-                <Input id="due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="rounded-xl h-11" />
+                <Label htmlFor="loan-note" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes (Optional)</Label>
+                <Input id="loan-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. For college fee" className="rounded-xl h-11" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5 col-span-2">
-                <Label htmlFor="loan-status" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
-                <Select value={status} onValueChange={(val: any) => setStatus(val)}>
-                  <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="active">Active (Owed)</SelectItem>
-                    <SelectItem value="paid">Paid (Cleared)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="loan-note" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes (Optional)</Label>
-              <Input id="loan-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. For college fee" className="rounded-xl h-11" />
-            </div>
-
-            <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="rounded-xl h-11 cursor-pointer">Cancel</Button>
               <Button type="submit" className="rounded-xl h-11 font-bold cursor-pointer" disabled={loading}>
                 {loading ? "Saving..." : "Save Record"}
@@ -840,28 +842,30 @@ function LoansPage() {
 
       {/* Repay Loan Dialog */}
       <Dialog open={!!repayLoan} onOpenChange={(val) => { if (!val) setRepayLoan(null); }}>
-        <DialogContent className="max-w-[90vw] sm:max-w-md rounded-xl z-[99] max-h-[90vh] overflow-y-auto thin-scroll">
-          <DialogHeader>
+        <DialogContent className="max-w-[90vw] sm:max-w-md flex flex-col h-[90vh] max-h-[600px] p-0 z-[99]">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle className="font-serif">Repay Loan: {repayLoan?.person_name}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleRepaySubmit} className="space-y-4 py-3">
-            <p className="text-xs text-muted-foreground leading-normal">
-              Specify the account(s) and amounts to record the repayment of <strong>{repayLoan ? fmtMoney(repayLoan.amount, currency) : ""}</strong>.
-            </p>
+          <form onSubmit={handleRepaySubmit} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+              <p className="text-xs text-muted-foreground leading-normal">
+                Specify the account(s) and amounts to record the repayment of <strong>{repayLoan ? fmtMoney(repayLoan.amount, currency) : ""}</strong>.
+              </p>
 
-            {repayLoan && (
-              <AccountSplitsSelector
-                splits={repaySplits}
-                setSplits={setRepaySplits}
-                totalAmount={repayLoan.amount}
-                accounts={accounts}
-                balances={balances}
-                currency={currency}
-                showBalanceCheck={repayLoan.kind === "borrowed"}
-              />
-            )}
+              {repayLoan && (
+                <AccountSplitsSelector
+                  splits={repaySplits}
+                  setSplits={setRepaySplits}
+                  totalAmount={repayLoan.amount}
+                  accounts={accounts}
+                  balances={balances}
+                  currency={currency}
+                  showBalanceCheck={repayLoan.kind === "borrowed"}
+                />
+              )}
+            </div>
 
-            <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={() => setRepayLoan(null)} className="rounded-xl h-11 cursor-pointer">Cancel</Button>
               <Button type="submit" className="rounded-xl h-11 font-bold cursor-pointer" disabled={loading}>
                 {loading ? "Recording..." : "Confirm Repayment"}
