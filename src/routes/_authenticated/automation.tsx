@@ -537,42 +537,38 @@ function AutomationPage() {
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
       
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Automation</p>
-          <h1 className="mt-1 font-serif text-4xl">Creator</h1>
+      {/* Tabs Selector + Actions */}
+      <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+        <div className="flex gap-6">
+          <button
+            onClick={() => setActiveTab("macros")}
+            className={`text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer pb-0.5 ${
+              activeTab === "macros" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Macros
+          </button>
+          <button
+            onClick={() => setActiveTab("subscriptions")}
+            className={`text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer pb-0.5 ${
+              activeTab === "subscriptions" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Subscriptions
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center">
           {activeTab === "macros" ? (
-            <Button onClick={() => setCreateOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm">
-              <Plus className="h-4 w-4 mr-1" /> New Macro
+            <Button onClick={() => setCreateOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 px-3.5">
+              <Plus className="h-3.5 w-3.5 mr-1" /> New Macro
             </Button>
           ) : (
-            <Button onClick={() => setCreateSubOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm">
-              <Plus className="h-4 w-4 mr-1" /> New Subscription
+            <Button onClick={() => setCreateSubOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm h-8 px-3.5">
+              <Plus className="h-3.5 w-3.5 mr-1" /> New Subscription
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Tabs Selector */}
-      <div className="flex border-b border-border/40 gap-6">
-        <button
-          onClick={() => setActiveTab("macros")}
-          className={`pb-2.5 text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer ${
-            activeTab === "macros" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Macros
-        </button>
-        <button
-          onClick={() => setActiveTab("subscriptions")}
-          className={`pb-2.5 text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer ${
-            activeTab === "subscriptions" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Subscriptions
-        </button>
       </div>
 
       {activeTab === "macros" ? (
