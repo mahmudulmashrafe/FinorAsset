@@ -213,6 +213,9 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 - **Loans Summary Stack & Click-to-View Popups (Mobile)**: Configured the loan summary statistics grid to stack as 1 column (3 rows) on mobile screens, ordering them: Net Position (1st), Borrowed (2nd), and Lent (3rd). Configured the Borrowed and Lent summary cards to act as click triggers in mobile view (showing a clean visual "Click to view" indicator); clicking them launches a full scrollable dialog list of the respective loan cards, hiding static inline lists on mobile viewports. Capped the inner list containers of these popups at `max-h-[360px]` to display exactly **5 records** before scrollbars activate.
 - **Loans List Scroll Limit (4 Items)**: Capped the max-height of the active borrowed and lent list containers at `max-h-[290px]` globally. This enforces a limit of exactly 4 visible cards on both mobile viewports and desktop web view before vertical scrollbars initiate.
 - **Automation Dynamic Bottom-Right FAB**: Removed the tab-level add buttons entirely. Programmed the existing bottom-right Floating Action Button (FAB) to check the active tab dynamically: clicking it launches **Add New Macro** if viewing the *Macros* tab, or **Add New Subscription** (resetting form fields) if viewing the *Subscriptions* tab.
+- **Static Headers and Footers with Scrollable Forms (All Forms)**: Refactored all input dialogs/forms across the app (New/Edit Transaction, Account Creator, Macro Creator, Subscription Creator, Loan Creator, Repay Loan, and Budget Dialogs) to use a fixed flex column grid design (`h-[90vh] max-h-[600px] flex flex-col p-0`). Enforces the headers (Titles & Cross close button) and footers (Cancel & Save action buttons) to remain completely locked (static) in view, wrapping only the form fields block in a scrollable (`overflow-y-auto`) container.
+
+
 
 ## Live URL
 
