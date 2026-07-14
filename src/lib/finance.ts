@@ -5,6 +5,8 @@ export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 export type Budget = Database["public"]["Tables"]["budgets"]["Row"];
+export type Loan = Database["public"]["Tables"]["loans"]["Row"];
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 export type TxnKind = "income" | "expense" | "transfer";
 
 export function fmtMoney(n: number, currency = "USD") {
@@ -44,6 +46,16 @@ export const api = {
     const { data, error } = await supabase.from("budgets").select("*").eq("period_month", period);
     if (error) throw error;
     return data as Budget[];
+  },
+  async listLoans() {
+    const { data, error } = await supabase.from("loans").select("*").order("created_at");
+    if (error) throw error;
+    return data as Loan[];
+  },
+  async listSubscriptions() {
+    const { data, error } = await supabase.from("subscriptions").select("*").order("created_at");
+    if (error) throw error;
+    return data as Subscription[];
   },
 };
 
