@@ -147,6 +147,13 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - **Auto-Deductions**: Removed the background auto-deduction effects that automatically generated billing entries for overdue subscriptions.
   - **Automation Creator Tabs**: Replaced the multi-tab layout (Macros vs. Subscriptions) on the **Automation Creator** page with a pure macros listing, and deleted all subscription form variables, dialog states, and mutation logic.
 
+---
+
+## 19. Removed Automation Page Header Section
+- **Problem**: The project owner requested to completely remove the top header section on the Automation page containing the "Creator" title and the "New Macro" button.
+- **Solution**: Removed the top header layout container entirely from `automation.tsx`, creating an ultra-minimal list view for macro triggers.
+
+
 
 
 
