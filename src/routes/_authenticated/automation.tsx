@@ -128,26 +128,30 @@ function AutomationPage() {
     setActions(next);
   }
 
-  function updateActionField(index: number, field: string, value: any) {
+  function updateActionFields(index: number, changes: Partial<Omit<AutomationAction, "id">>) {
     const next = [...actions];
-    next[index] = { ...next[index], [field]: value };
+    next[index] = { ...next[index], ...changes };
     
     // Auto-initialize or sync single split if it's the only one
-    if (field === "amount") {
+    if ("amount" in changes) {
       const splitsList = next[index].splits || [];
       if (splitsList.length <= 1) {
-        next[index].splits = [{ accountId: next[index].account_id || accounts[0]?.id || "", amount: Number(value) || 0 }];
+        next[index].splits = [{ accountId: next[index].account_id || accounts[0]?.id || "", amount: Number(changes.amount) || 0 }];
       }
     }
     
     // Reset dependency fields if kind transitions
-    if (field === "kind") {
+    if ("kind" in changes && changes.kind) {
       next[index].category_id = "";
       next[index].to_account_id = "";
       next[index].isSplit = false;
       next[index].splits = [];
     }
     setActions(next);
+  }
+
+  function updateActionField(index: number, field: string, value: any) {
+    updateActionFields(index, { [field]: value });
   }
 
   function updateActionSplit(actionIndex: number, splitIndex: number, field: "accountId" | "amount", value: any) {
@@ -681,10 +685,10 @@ function AutomationPage() {
                       <Switch
                         checked={!!act.isSplit}
                         onCheckedChange={(checked) => {
-                          updateActionField(idx, "isSplit", checked);
-                          if (checked) {
-                            updateActionField(idx, "splits", [{ accountId: act.account_id || accounts[0]?.id || "", amount: Number(act.amount) || 0 }]);
-                          }
+                          updateActionFields(idx, {
+                            isSplit: checked,
+                            splits: checked ? [{ accountId: act.account_id || accounts[0]?.id || "", amount: Number(act.amount) || 0 }] : []
+                          });
                         }}
                       />
                     </div>
