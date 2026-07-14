@@ -89,14 +89,14 @@ function Dashboard() {
         <StatCard label="Net Worth" value={fmtMoney(net, currency)} icon={Wallet} accent />
         <StatCard label="Income this month" value={fmtMoney(income, currency)} icon={TrendingUp} positive />
         <StatCard label="Expenses this month" value={fmtMoney(expense, currency)} icon={TrendingDown} negative />
-        <div className="rounded-xl border bg-card py-2.5 px-3.5">
+        <div className="rounded-xl border bg-card py-2 sm:py-2.5 px-2.5 sm:px-3.5">
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Savings Rate</p>
-            <Zap className="h-4 w-4 text-muted-foreground" />
+            <p className="text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted-foreground truncate">Savings Rate</p>
+            <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0 ml-1" />
           </div>
-          <p className="mt-1 font-serif text-2xl num">{savingsRate}%</p>
+          <p className="mt-0.5 sm:mt-1 font-serif text-base sm:text-2xl num">{savingsRate}%</p>
           <Progress value={savingsRate} className="mt-1.5 h-1.5" />
-          <p className="mt-0.5 text-xs text-muted-foreground">of income saved</p>
+          <p className="mt-0.5 text-[9px] sm:text-xs text-muted-foreground">of income saved</p>
         </div>
       </div>
 
@@ -274,12 +274,12 @@ function StatCard({ label, value, icon: Icon, accent, positive, negative }: {
 }) {
   const color = positive ? "text-[color:var(--success)]" : negative ? "text-[color:var(--destructive)]" : "";
   return (
-    <div className="rounded-xl border bg-card py-2.5 px-3.5">
+    <div className="rounded-xl border bg-card py-2 sm:py-2.5 px-2.5 sm:px-3.5 min-w-0">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <p className="text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted-foreground truncate">{label}</p>
+        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0 ml-1" />
       </div>
-      <p className={`mt-1 font-serif text-2xl num ${color}`}>{value}</p>
+      <p className={`mt-0.5 sm:mt-1 font-serif text-base sm:text-2xl num truncate ${color}`}>{value}</p>
     </div>
   );
 }
