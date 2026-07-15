@@ -336,7 +336,7 @@ function Layout() {
     enabled: !!authUser,
   });
 
-  const { data: dbNotifications = [] } = useQuery({
+  const { data: dbNotifications = [], refetch: refetchNotifications } = useQuery({
     queryKey: ["notifications", authUser?.id],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)("notifications")
@@ -476,7 +476,8 @@ function Layout() {
 
       const diffTime = due.getTime() - today.getTime();
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      const identifier = `loan-${loan.id}-${loan.due_date}`;
+      const todayStr = today.toISOString().split("T")[0];
+      const identifier = `loan-${loan.id}-${loan.due_date}-${todayStr}`;
 
       if (diffDays >= 0 && diffDays <= 3) {
         newAlerts.push({
@@ -492,7 +493,7 @@ function Layout() {
           title: "Loan Overdue",
           message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
           type: "critical",
-          identifier: `loan-overdue-${loan.id}-${loan.due_date}`,
+          identifier: `loan-overdue-${loan.id}-${loan.due_date}-${todayStr}`,
         });
       }
     }
@@ -716,6 +717,7 @@ function Layout() {
                   notifications={last5Notifications} 
                   unreadCount={unreadCount} 
                   onMarkAllRead={markAllNotificationsRead} 
+                  onBellClick={() => refetchNotifications()}
                 />
                 <TransactionDialog
                   trigger={
@@ -773,6 +775,7 @@ function Layout() {
               notifications={last5Notifications} 
               unreadCount={unreadCount} 
               onMarkAllRead={markAllNotificationsRead} 
+              onBellClick={() => refetchNotifications()}
             />
             <TransactionDialog
               trigger={

@@ -21,13 +21,15 @@ export function NotificationBell({
   notifications,
   unreadCount,
   onMarkAllRead,
+  onBellClick,
 }: {
   notifications: NotificationItem[];
   unreadCount: number;
   onMarkAllRead: () => void;
+  onBellClick?: () => void;
 }) {
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => { if (open && onBellClick) onBellClick(); }}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative cursor-pointer rounded-full h-9 w-9 bg-card/60 border hover:bg-accent/10 transition-colors">
           <Bell className="h-4.5 w-4.5" />
