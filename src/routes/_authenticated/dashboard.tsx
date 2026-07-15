@@ -82,7 +82,7 @@ function Dashboard() {
   const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
-    <div className="space-y-2.5 md:space-y-0 md:gap-2.5 w-full md:h-[calc(100vh-8rem)] flex flex-col md:overflow-hidden">
+    <div className="space-y-2.5 md:space-y-0 md:gap-2.5 w-full md:h-[calc(100vh-12rem)] flex flex-col md:overflow-hidden">
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 flex-shrink-0">
@@ -151,7 +151,7 @@ function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <ul className="space-y-1 text-xs overflow-y-auto thin-scroll flex-1 md:min-h-0">
+              <ul className="space-y-1 text-xs overflow-y-auto flex-1 thin-scroll">
                 {topCats.map(({ cat, amt }, i) => (
                   <li key={cat!.id} className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 min-w-0">
