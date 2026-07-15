@@ -377,10 +377,15 @@ function Layout() {
 
     const newAlerts: any[] = [];
 
+    // Helper to parse YYYY-MM-DD strictly in local timezone
+    function parseLocalDate(dateStr: string) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day, 0, 0, 0, 0);
+    }
+
     // 1. Subscriptions Notifications Check
     for (const sub of subscriptions) {
-      const nextDue = new Date(sub.next_due_date);
-      nextDue.setHours(0, 0, 0, 0);
+      const nextDue = parseLocalDate(sub.next_due_date);
 
       let hasEnough = true;
       let accountNames = "";
@@ -411,7 +416,7 @@ function Layout() {
       }
 
       const diffTime = nextDue.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       const todayStr = today.toISOString().split("T")[0];
 
       if (diffDays >= 0 && diffDays <= 3) {
@@ -467,11 +472,10 @@ function Layout() {
     for (const loan of loans) {
       if (loan.status !== "active" || !loan.due_date) continue;
 
-      const due = new Date(loan.due_date);
-      due.setHours(0, 0, 0, 0);
+      const due = parseLocalDate(loan.due_date);
 
       const diffTime = due.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       const identifier = `loan-${loan.id}-${loan.due_date}`;
 
       if (diffDays >= 0 && diffDays <= 3) {
