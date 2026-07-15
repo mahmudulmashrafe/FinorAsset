@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, SlidersHorizontal, Plus } from "lucide-react";
+import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,9 @@ function TxnsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBatchDelete, setShowBatchDelete] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
+  const [showBatchDateChange, setShowBatchDateChange] = useState(false);
+  const [batchNewDate, setBatchNewDate] = useState("");
+  const [batchDateLoading, setBatchDateLoading] = useState(false);
 
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
@@ -124,6 +127,35 @@ function TxnsPage() {
     } finally {
       setBatchLoading(false);
       setShowBatchDelete(false);
+    }
+  }
+
+  async function confirmBatchDateChange() {
+    if (!batchNewDate) return toast.error("Please select a date");
+    setBatchDateLoading(true);
+    try {
+      const { error } = await supabase
+        .from("transactions")
+        .update({ occurred_on: batchNewDate, updated_at: new Date().toISOString() })
+        .in("id", selectedIds);
+      
+      if (error) throw error;
+
+      // Also check if any of these transactions are linked to loans, and sync them!
+      const selectedTxns = txns.filter(t => selectedIds.includes(t.id));
+      for (const t of selectedTxns) {
+        await syncTransactionToLoan("update", { ...t, occurred_on: batchNewDate });
+      }
+
+      toast.success(`Successfully updated the date for ${selectedIds.length} transactions`);
+      setSelectedIds([]);
+      refresh();
+      qc.invalidateQueries({ queryKey: ["loans"] });
+    } catch (err: any) {
+      toast.error(`Update failed: ${err.message}`);
+    } finally {
+      setBatchDateLoading(false);
+      setShowBatchDateChange(false);
     }
   }
 
@@ -503,6 +535,18 @@ function TxnsPage() {
             Clear
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setBatchNewDate(new Date().toISOString().split("T")[0]);
+              setShowBatchDateChange(true);
+            }}
+            className="h-7 px-3 text-xs font-bold rounded-full cursor-pointer flex items-center gap-1.5 bg-background border hover:bg-muted text-foreground"
+          >
+            <Calendar className="h-3.5 w-3.5 text-accent" />
+            <span>Change Date</span>
+          </Button>
+          <Button
             variant="destructive"
             size="sm"
             onClick={() => setShowBatchDelete(true)}
@@ -535,6 +579,45 @@ function TxnsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch Date Change Dialog */}
+      <Dialog open={showBatchDateChange} onOpenChange={setShowBatchDateChange}>
+        <DialogContent className="max-w-sm rounded-2xl p-6 z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg font-bold">Change Date</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-xs text-muted-foreground">
+              Select a new date for the {selectedIds.length} selected transactions.
+            </p>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">New Date</label>
+              <Input
+                type="date"
+                value={batchNewDate}
+                onChange={(e) => setBatchNewDate(e.target.value)}
+                className="w-full bg-background"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowBatchDateChange(false)}
+              className="rounded-full h-10 px-4 text-xs font-bold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmBatchDateChange}
+              disabled={batchDateLoading || !batchNewDate}
+              className="rounded-full h-10 px-5 text-xs font-bold bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer"
+            >
+              {batchDateLoading ? "Saving..." : "Change Date"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

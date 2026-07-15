@@ -502,7 +502,12 @@ function Layout() {
 
     async function insertAlerts() {
       try {
-        const { error } = await (supabase.from as any)("notifications").insert(newAlerts);
+        const existingIdentifiers = new Set(dbNotifications.map(n => n.identifier));
+        const alertsToInsert = newAlerts.filter(alert => !existingIdentifiers.has(alert.identifier));
+
+        if (alertsToInsert.length === 0) return;
+
+        const { error } = await (supabase.from as any)("notifications").insert(alertsToInsert);
         if (error && error.code !== "23505" && error.code !== "42P01") {
           console.error("Failed to insert notifications:", error);
         } else {
@@ -514,7 +519,164 @@ function Layout() {
     }
 
     insertAlerts();
-  }, [subscriptions, loans, accounts, txns, authUser, profile?.currency, qc]);
+  }, [subscriptions, loans, accounts, txns, dbNotifications, authUser, profile?.currency, qc]);
+
+  // Comprehensive click-to-sync notifications handler (updates and loads on bell click without page refresh)
+  async function syncNotifications() {
+    if (!authUser) return;
+    try {
+      // 1. Refetch all source queries in parallel to get latest database records
+      const [freshSubs, freshLoans, freshAccounts, freshTxns] = await Promise.all([
+        api.listSubscriptions(),
+        api.listLoans(),
+        api.listAccounts(),
+        api.listTransactions(1000),
+      ]);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const latestBalances = computeAccountBalances(freshAccounts, freshTxns);
+      const currency = profile?.currency || "USD";
+      const newAlerts: any[] = [];
+
+      // Helper to parse YYYY-MM-DD strictly in local timezone
+      function parseLocalDate(dateStr: string) {
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return new Date(year, month - 1, day, 0, 0, 0, 0);
+      }
+
+      // Subscriptions
+      for (const sub of freshSubs) {
+        const nextDue = parseLocalDate(sub.next_due_date);
+        let hasEnough = true;
+        let accountNames = "";
+        let shortAmount = 0;
+
+        if (sub.is_split && sub.kind !== "transfer") {
+          const splitsList = (Array.isArray(sub.splits) ? sub.splits : []) as any[];
+          const names: string[] = [];
+          for (const split of splitsList) {
+            const balance = latestBalances.get(split?.accountId) ?? 0;
+            const req = Number(split?.amount);
+            const acc = freshAccounts.find(a => a.id === split?.accountId);
+            names.push(`${acc?.name || "Account"} (${fmtMoney(balance, currency)})`);
+            if (balance < req) {
+              hasEnough = false;
+              shortAmount += (req - balance);
+            }
+          }
+          accountNames = names.join(", ");
+        } else {
+          const balance = sub.account_id ? (latestBalances.get(sub.account_id) ?? 0) : 0;
+          const acc = freshAccounts.find(a => a.id === sub.account_id);
+          accountNames = acc ? `${acc.name} (${fmtMoney(balance, currency)})` : "No account selected";
+          if (balance < Number(sub.amount)) {
+            hasEnough = false;
+            shortAmount = Number(sub.amount) - balance;
+          }
+        }
+
+        const diffTime = nextDue.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const todayStr = today.toISOString().split("T")[0];
+
+        if (diffDays >= 0 && diffDays <= 3) {
+          const identifier = `sub-upcoming-${sub.id}-${sub.next_due_date}-${todayStr}`;
+          if (hasEnough) {
+            newAlerts.push({
+              user_id: authUser.id,
+              title: `Upcoming Subscription: ${sub.name}`,
+              message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Funds are available in ${accountNames} for auto-deduction.`,
+              type: "info",
+              identifier,
+            });
+          } else {
+            newAlerts.push({
+              user_id: authUser.id,
+              title: `Upcoming Subscription Alert: ${sub.name}`,
+              message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}). Please refill.`,
+              type: "warning",
+              identifier,
+            });
+          }
+        } else if (diffDays < 0 && !hasEnough) {
+          let missedCount = 0;
+          let checkDate = new Date(nextDue);
+          while (checkDate < today) {
+            missedCount++;
+            checkDate.setMonth(checkDate.getMonth() + 1);
+          }
+          const identifier = `sub-overdue-${sub.id}-${sub.next_due_date}-${todayStr}`;
+          if (missedCount > 1) {
+            newAlerts.push({
+              user_id: authUser.id,
+              title: `Subscription Overdue: ${sub.name}`,
+              message: `"${sub.name}" is overdue by ${missedCount} months! Insufficient funds in ${accountNames}. Total outstanding for auto-deduction: ${fmtMoney(Number(sub.amount) * missedCount, currency)}.`,
+              type: "critical",
+              identifier,
+            });
+          } else {
+            newAlerts.push({
+              user_id: authUser.id,
+              title: `Subscription Overdue: ${sub.name}`,
+              message: `"${sub.name}" is overdue! Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}).`,
+              type: "critical",
+              identifier,
+            });
+          }
+        }
+      }
+
+      // Loans
+      for (const loan of freshLoans) {
+        if (loan.status !== "active" || !loan.due_date) continue;
+        const due = parseLocalDate(loan.due_date);
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const todayStr = today.toISOString().split("T")[0];
+        const identifier = `loan-${loan.id}-${loan.due_date}-${todayStr}`;
+
+        if (diffDays >= 0 && diffDays <= 3) {
+          newAlerts.push({
+            user_id: authUser.id,
+            title: "Loan Due Soon",
+            message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
+            type: "warning",
+            identifier,
+          });
+        } else if (diffDays < 0) {
+          newAlerts.push({
+            user_id: authUser.id,
+            title: "Loan Overdue",
+            message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
+            type: "critical",
+            identifier: `loan-overdue-${loan.id}-${loan.due_date}-${todayStr}`,
+          });
+        }
+      }
+
+      // 2. Load what is currently in the DB notifications table
+      const { data: dbNotifs = [] } = await (supabase.from as any)("notifications").select("identifier");
+      const existingIdentifiers = new Set((dbNotifs || []).map((n: any) => n.identifier));
+
+      const alertsToInsert = newAlerts.filter(alert => !existingIdentifiers.has(alert.identifier));
+
+      if (alertsToInsert.length > 0) {
+        await (supabase.from as any)("notifications").insert(alertsToInsert);
+      }
+
+      // 3. Force invalidate and refetch the notifications query so the UI updates in real-time
+      await qc.refetchQueries({ queryKey: ["notifications"] });
+      // Also update local cache for other collections
+      qc.setQueryData(["subscriptions"], freshSubs);
+      qc.setQueryData(["loans"], freshLoans);
+      qc.setQueryData(["accounts"], freshAccounts);
+      qc.setQueryData(["transactions"], freshTxns);
+
+    } catch (err) {
+      console.error("Failed to sync notifications", err);
+    }
+  }
 
   // Auto-deduction loop
   const [runningDeduction, setRunningDeduction] = useState(false);
@@ -717,7 +879,7 @@ function Layout() {
                   notifications={last5Notifications} 
                   unreadCount={unreadCount} 
                   onMarkAllRead={markAllNotificationsRead} 
-                  onBellClick={() => refetchNotifications()}
+                  onBellClick={() => syncNotifications()}
                 />
                 <TransactionDialog
                   trigger={
@@ -775,7 +937,7 @@ function Layout() {
               notifications={last5Notifications} 
               unreadCount={unreadCount} 
               onMarkAllRead={markAllNotificationsRead} 
-              onBellClick={() => refetchNotifications()}
+              onBellClick={() => syncNotifications()}
             />
             <TransactionDialog
               trigger={
