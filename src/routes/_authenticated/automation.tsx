@@ -592,9 +592,29 @@ function AutomationPage() {
                         {rule.actions.length} action{rule.actions.length > 1 ? "s" : ""}
                       </Badge>
                     </div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
-                      Template shortcuts
-                    </p>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1 truncate pr-2" title={(() => {
+                      const catNames = rule.actions
+                        .map(act => {
+                          if (act.kind === "transfer") return "🔄 Transfer";
+                          const cat = cats.find(c => c.id === act.category_id);
+                          return cat ? `${cat.icon} ${cat.name}` : "";
+                        })
+                        .filter(Boolean);
+                      const uniqueCats = Array.from(new Set(catNames));
+                      return uniqueCats.length > 0 ? uniqueCats.join(", ") : "Uncategorized";
+                    })()}>
+                      {(() => {
+                        const catNames = rule.actions
+                          .map(act => {
+                            if (act.kind === "transfer") return "🔄 Transfer";
+                            const cat = cats.find(c => c.id === act.category_id);
+                            return cat ? `${cat.icon} ${cat.name}` : "";
+                          })
+                          .filter(Boolean);
+                        const uniqueCats = Array.from(new Set(catNames));
+                        return uniqueCats.length > 0 ? uniqueCats.join(", ") : "Uncategorized";
+                      })()}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between mt-auto pt-2 border-t" onClick={(e) => e.stopPropagation()}>
