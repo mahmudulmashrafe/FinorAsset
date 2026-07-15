@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -301,6 +301,7 @@ function Layout() {
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const processingSubIds = useRef<Set<string>>(new Set());
 
   // Load queries inside Layout for notification computations
   const { data: accounts = [] } = useQuery({
@@ -517,7 +518,7 @@ function Layout() {
     if (!authUser || subscriptions.length === 0 || runningDeduction || accounts.length === 0) return;
 
     const todayStr = new Date().toISOString().split("T")[0];
-    const dueSubs = subscriptions.filter(s => s.next_due_date <= todayStr);
+    const dueSubs = subscriptions.filter(s => s.next_due_date <= todayStr && !processingSubIds.current.has(s.id));
 
     if (dueSubs.length === 0) return;
 
@@ -527,6 +528,9 @@ function Layout() {
       const updatedTxns = [...txns];
 
       for (const sub of dueSubs) {
+        // Double check lock to avoid concurrent race conditions
+        if (processingSubIds.current.has(sub.id)) continue;
+        
         const balances = computeAccountBalances(updatedAccounts, updatedTxns);
         let hasEnough = true;
 
@@ -551,6 +555,9 @@ function Layout() {
         }
 
         if (hasEnough && authUser) {
+          // Lock the subscription immediately
+          processingSubIds.current.add(sub.id);
+          
           try {
             const inserts: any[] = [];
             const timestamp = new Date().toISOString();
@@ -584,8 +591,16 @@ function Layout() {
             const { error: txnErr } = await supabase.from("transactions").insert(inserts);
             if (txnErr) throw txnErr;
 
-            const nextDueDate = new Date(sub.next_due_date);
-            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+            // Calculate next future due date (advances straight to the next billing date in the future)
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+
+            let nextDueDate = new Date(sub.next_due_date);
+            nextDueDate.setHours(0, 0, 0, 0);
+
+            while (nextDueDate <= todayDate) {
+              nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+            }
             const nextDueDateStr = nextDueDate.toISOString().split("T")[0];
 
             const { error: subErr } = await supabase
@@ -605,6 +620,8 @@ function Layout() {
             qc.invalidateQueries({ queryKey: ["subscriptions"] });
           } catch (err: any) {
             console.error("Auto-deduction failed", err);
+            // Unlock on failure so it can retry
+            processingSubIds.current.delete(sub.id);
           }
         }
       }
