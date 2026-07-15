@@ -612,7 +612,7 @@ function AutomationPage() {
                           })
                           .filter(Boolean);
                         const uniqueCats = Array.from(new Set(catNames));
-                        return uniqueCats.length > 0 ? uniqueCats.join(", ") : "Uncategorized";
+                        return uniqueCats.length > 0 ? uniqueCats[0] : "Uncategorized";
                       })()}
                     </div>
                   </div>
