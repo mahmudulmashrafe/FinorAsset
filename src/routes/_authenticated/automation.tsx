@@ -14,6 +14,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/automation")({
   component: AutomationPage,
@@ -104,6 +114,8 @@ function AutomationPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
   const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
+  const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
+  const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
 
   // Tabs selection
   const [activeTab, setActiveTab] = useState<"macros" | "subscriptions">("macros");
@@ -233,7 +245,6 @@ function AutomationPage() {
   }
 
   async function handleDeleteSub(id: string) {
-    if (!confirm("Are you sure you want to delete this subscription?")) return;
     const { error } = await supabase.from("subscriptions").delete().eq("id", id);
     if (error) {
       toast.error(error.message);
@@ -633,7 +644,7 @@ function AutomationPage() {
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteRule(rule.id)}
+                        onClick={() => setDeleteRuleId(rule.id)}
                         className="h-8 w-8 flex items-center justify-center rounded-full bg-destructive/10 text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
                         title="Delete Macro"
                       >
@@ -710,7 +721,7 @@ function AutomationPage() {
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteSub(sub.id)}
+                        onClick={() => setDeleteSubId(sub.id)}
                         className="h-8 w-8 flex items-center justify-center rounded-full bg-destructive/10 text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
                         title="Delete Subscription"
                       >
@@ -1360,6 +1371,58 @@ function AutomationPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Subscription Deletion Confirmation AlertDialog */}
+      <AlertDialog open={!!deleteSubId} onOpenChange={(open) => !open && setDeleteSubId(null)}>
+        <AlertDialogContent className="z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete Subscription?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this subscription? This action will permanently remove it from your records and stop future auto-deductions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteSubId) {
+                  handleDeleteSub(deleteSubId);
+                  setDeleteSubId(null);
+                }
+              }} 
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Macro Deletion Confirmation AlertDialog */}
+      <AlertDialog open={!!deleteRuleId} onOpenChange={(open) => !open && setDeleteRuleId(null)}>
+        <AlertDialogContent className="z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete Macro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this macro automation? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteRuleId) {
+                  handleDeleteRule(deleteRuleId);
+                  setDeleteRuleId(null);
+                }
+              }} 
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
