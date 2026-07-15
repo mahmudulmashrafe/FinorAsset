@@ -116,6 +116,7 @@ function AutomationPage() {
   const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
   const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
+  const [selectedSub, setSelectedSub] = useState<any | null>(null);
 
   // Tabs selection
   const [activeTab, setActiveTab] = useState<"macros" | "subscriptions">("macros");
@@ -688,7 +689,8 @@ function AutomationPage() {
               return (
                 <div
                   key={sub.id}
-                  className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden h-[155px]"
+                  onClick={() => setSelectedSub(sub)}
+                  className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden h-[155px] cursor-pointer"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
@@ -712,7 +714,7 @@ function AutomationPage() {
                       </span>
                     </span>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => setEditingSub(sub)}
                         className="h-8 w-8 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground hover:bg-accent/15 transition-colors cursor-pointer"
@@ -1424,6 +1426,146 @@ function AutomationPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Subscription Details Dialog */}
+      <Dialog open={!!selectedSub} onOpenChange={(val) => { if (!val) setSelectedSub(null); }}>
+        <DialogContent className="max-w-md z-[100] max-h-[90vh] sm:max-h-[600px] flex flex-col p-0 overflow-hidden">
+          {/* Static Header */}
+          <DialogHeader className="p-6 pb-3 border-b">
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle className="font-serif text-2xl flex items-center gap-2 text-foreground truncate">
+                <Sparkles className="h-5.5 w-5.5 text-accent shrink-0" /> <span className="truncate">{selectedSub?.name}</span>
+              </DialogTitle>
+              {selectedSub && (
+                <Badge variant="outline" className={`capitalize text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-semibold ${new Date(selectedSub.next_due_date) < new Date() ? "bg-destructive/15 text-destructive border-destructive/20 animate-pulse" : "bg-success/15 text-success border-success/20"}`}>
+                  {new Date(selectedSub.next_due_date) < new Date() ? "Overdue" : "Active"}
+                </Badge>
+              )}
+            </div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mt-1.5">
+              Subscription Settings
+            </div>
+          </DialogHeader>
+
+          {/* Scrollable Middle Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 thin-scroll">
+            <div className="text-xs space-y-3 bg-muted/40 p-4 rounded-2xl border border-border/60">
+              <div className="flex items-center justify-between gap-1 border-b pb-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Payment Amount</span>
+                <span className="font-serif num font-black text-base text-foreground">
+                  {selectedSub && fmtMoney(Number(selectedSub.amount), currency)}
+                </span>
+              </div>
+
+              <div className="text-xs text-muted-foreground space-y-2 mt-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-foreground/80 w-28 shrink-0">Account:</span>
+                  <span className="truncate flex items-center gap-1.5">
+                    {selectedSub?.is_split ? (
+                      <span className="italic text-muted-foreground">Multiple Accounts (Split)</span>
+                    ) : (
+                      <>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: accountMap.get(selectedSub?.account_id)?.color || "#888" }} />
+                        {accountMap.get(selectedSub?.account_id)?.name || "No Account Selected"}
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                {selectedSub?.to_account_id && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground/80 w-28 shrink-0">Destination:</span>
+                    <span className="truncate flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ background: accountMap.get(selectedSub.to_account_id)?.color || "#888" }} />
+                      {accountMap.get(selectedSub.to_account_id)?.name || "Deleted Account"}
+                    </span>
+                  </div>
+                )}
+
+                {!selectedSub?.is_split && selectedSub?.category_id && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground/80 w-28 shrink-0">Category:</span>
+                    <span className="truncate">
+                      {catMap.get(selectedSub.category_id)?.icon} {catMap.get(selectedSub.category_id)?.name || "Deleted Category"}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-foreground/80 w-28 shrink-0">Next Payment Due:</span>
+                  <span className="font-medium text-foreground">
+                    {selectedSub && new Date(selectedSub.next_due_date).toLocaleDateString()}
+                  </span>
+                </div>
+
+                {selectedSub?.last_payment_date && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground/80 w-28 shrink-0">Last Payment Date:</span>
+                    <span className="font-medium text-foreground">
+                      {new Date(selectedSub.last_payment_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+
+                {selectedSub?.note && (
+                  <div className="text-[10px] italic text-muted-foreground border-t pt-2 mt-2">
+                    "{selectedSub.note}"
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* If Split, show splits details */}
+            {selectedSub?.is_split && (
+              <div className="space-y-2">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Account Splits</span>
+                <div className="space-y-2">
+                  {((Array.isArray(selectedSub.splits) ? selectedSub.splits : []) as any[]).map((split, idx) => {
+                    const acc = accountMap.get(split?.accountId);
+                    return (
+                      <div key={idx} className="flex items-center justify-between text-xs p-2.5 bg-background border rounded-lg">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: acc?.color || "#888" }} />
+                          {acc?.name || "Deleted Account"}
+                        </span>
+                        <span className="font-semibold num font-serif">{fmtMoney(Number(split?.amount), currency)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Static Footer */}
+          <DialogFooter className="p-6 pt-3 border-t flex flex-row items-center justify-end gap-2 bg-card mt-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (selectedSub) {
+                  setEditingSub(selectedSub);
+                  setSelectedSub(null);
+                }
+              }}
+              className="gap-1.5 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedSub) {
+                  setDeleteSubId(selectedSub.id);
+                  setSelectedSub(null);
+                }
+              }}
+              className="gap-1.5 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
