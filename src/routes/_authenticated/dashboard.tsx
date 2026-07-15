@@ -82,10 +82,10 @@ function Dashboard() {
   const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2.5 md:space-y-0 md:gap-2.5 w-full md:h-[calc(100vh-8rem)] flex flex-col md:overflow-hidden">
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 flex-shrink-0">
         <StatCard label="Net Worth" value={fmtMoney(net, currency)} icon={Wallet} accent />
         <StatCard label="Income this month" value={fmtMoney(income, currency)} icon={TrendingUp} positive />
         <StatCard label="Expenses this month" value={fmtMoney(expense, currency)} icon={TrendingDown} negative />
@@ -101,16 +101,16 @@ function Dashboard() {
       </div>
 
       {/* ── Chart + Top Spending ── */}
-      <div className="grid gap-2.5 lg:grid-cols-3">
+      <div className="grid gap-2.5 lg:grid-cols-3 md:flex-1 md:min-h-0">
         {/* Cashflow chart */}
-        <section className="rounded-xl border bg-card p-3.5 lg:col-span-2">
-          <div className="flex items-center justify-between">
+        <section className="rounded-xl border bg-card p-3.5 lg:col-span-2 flex flex-col md:h-full md:min-h-0">
+          <div className="flex items-center justify-between flex-shrink-0">
             <div>
               <h2 className="font-serif text-base font-bold">Last 30 days</h2>
               <p className="text-[10px] text-muted-foreground">Daily net cashflow</p>
             </div>
           </div>
-          <div className="h-28 md:h-40 mt-1.5">
+          <div className="h-28 md:h-full mt-1.5 flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={series}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -124,17 +124,19 @@ function Dashboard() {
         </section>
 
         {/* Top spending categories */}
-        <section className="rounded-xl border bg-card p-3.5">
-          <h2 className="font-serif text-base font-bold">Top Spending</h2>
-          <p className="text-[10px] text-muted-foreground mb-1.5">This month by category</p>
+        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+          <div className="flex-shrink-0">
+            <h2 className="font-serif text-base font-bold">Top Spending</h2>
+            <p className="text-[10px] text-muted-foreground mb-1.5">This month by category</p>
+          </div>
           {topCats.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground text-xs text-center gap-1.5">
+            <div className="flex flex-col items-center justify-center h-28 md:h-full text-muted-foreground text-xs text-center gap-1.5 flex-1">
               <Target className="h-7 w-7 opacity-40" />
               <p>No expense transactions yet</p>
             </div>
           ) : (
-            <>
-              <div className="h-20 md:h-28 mb-1.5">
+            <div className="flex-1 flex flex-col min-h-0 md:justify-around justify-start">
+              <div className="h-20 md:h-24 flex-shrink-0 mb-1.5">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={topCats} dataKey="amt" nameKey="cat.name" cx="50%" cy="50%" outerRadius={36} innerRadius={18}>
@@ -149,7 +151,7 @@ function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <ul className="space-y-1 text-xs">
+              <ul className="space-y-1 text-xs overflow-y-auto thin-scroll flex-1 md:min-h-0">
                 {topCats.map(({ cat, amt }, i) => (
                   <li key={cat!.id} className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 min-w-0">
@@ -160,29 +162,29 @@ function Dashboard() {
                   </li>
                 ))}
               </ul>
-            </>
+            </div>
           )}
         </section>
       </div>
 
       {/* ── Budget Health + Accounts + Recent ── */}
-      <div className="grid gap-2.5 lg:grid-cols-3">
+      <div className="grid gap-2.5 lg:grid-cols-3 md:flex-1 md:min-h-0">
         {/* Budget health */}
-        <section className="rounded-xl border bg-card p-3.5">
-          <div className="flex items-center justify-between mb-1.5">
+        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <h2 className="font-serif text-base font-bold">Budget Health</h2>
             <Link to="/budgets" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
           {budgetItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground text-xs text-center gap-1.5">
+            <div className="flex flex-col items-center justify-center h-28 md:h-full text-muted-foreground text-xs text-center gap-1.5 flex-1">
               <PiggyBank className="h-7 w-7 opacity-40" />
               <p>No budgets set</p>
               <Link to="/budgets" className="text-xs text-accent hover:underline">Set a budget →</Link>
             </div>
           ) : (
-            <ul className="space-y-2 overflow-y-auto max-h-[125px] md:max-h-[220px] pr-1.5 pb-1 thin-scroll text-xs">
+            <ul className="space-y-2 overflow-y-auto flex-1 pb-1 thin-scroll text-xs">
               {budgetItems.map(({ b, spent, pct, over, cat }) => (
                 <li key={b.id}>
                   <div className="flex items-center justify-between mb-0.5">
@@ -202,14 +204,14 @@ function Dashboard() {
         </section>
 
         {/* Accounts */}
-        <section className="rounded-xl border bg-card p-3.5">
-          <div className="flex items-center justify-between mb-1.5">
+        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <h2 className="font-serif text-base font-bold">Accounts</h2>
             <Link to="/accounts" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[125px] md:max-h-[220px] pr-2 pb-1 thin-scroll text-xs">
+          <ul className="divide-y overflow-y-auto flex-1 pb-1 thin-scroll text-xs">
             {accounts.length === 0 && (
               <li className="py-4 text-xs text-muted-foreground text-center">
                 No accounts yet.{" "}
@@ -232,14 +234,14 @@ function Dashboard() {
         </section>
 
         {/* Recent activity */}
-        <section className="rounded-xl border bg-card p-3.5">
-          <div className="flex items-center justify-between mb-1.5">
+        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <h2 className="font-serif text-base font-bold">Recent</h2>
             <Link to="/transactions" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
               All <ArrowRight className="h-2.5 w-2.5" />
             </Link>
           </div>
-          <ul className="divide-y overflow-y-auto max-h-[125px] md:max-h-[220px] pr-2 pb-1 thin-scroll text-xs">
+          <ul className="divide-y overflow-y-auto flex-1 pb-1 thin-scroll text-xs">
             {recent.length === 0 && (
               <li className="py-4 text-xs text-muted-foreground text-center">No transactions yet.</li>
             )}
