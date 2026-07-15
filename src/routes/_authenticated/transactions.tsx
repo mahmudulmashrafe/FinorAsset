@@ -144,7 +144,7 @@ function TxnsPage() {
   };
 
   return (
-    <div className="space-y-6 w-full h-[calc(100svh-14rem)] md:h-[calc(100vh-12rem)] flex flex-col overflow-hidden">
+    <div className="space-y-6 w-full h-[calc(100svh-15rem)] md:h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
 
 
       {/* Edit dialog (controlled, no trigger) */}
