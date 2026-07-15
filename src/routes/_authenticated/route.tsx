@@ -382,42 +382,83 @@ function Layout() {
       nextDue.setHours(0, 0, 0, 0);
 
       let hasEnough = true;
+      let accountNames = "";
+      let shortAmount = 0;
+
       if (sub.is_split && sub.kind !== "transfer") {
         const splitsList = (Array.isArray(sub.splits) ? sub.splits : []) as any[];
+        const names: string[] = [];
         for (const split of splitsList) {
           const balance = latestBalances.get(split?.accountId) ?? 0;
-          if (balance < Number(split?.amount)) {
+          const req = Number(split?.amount);
+          const acc = accounts.find(a => a.id === split?.accountId);
+          names.push(`${acc?.name || "Account"} (${fmtMoney(balance, currency)})`);
+          if (balance < req) {
             hasEnough = false;
-            break;
+            shortAmount += (req - balance);
           }
         }
+        accountNames = names.join(", ");
       } else {
         const balance = sub.account_id ? (latestBalances.get(sub.account_id) ?? 0) : 0;
+        const acc = accounts.find(a => a.id === sub.account_id);
+        accountNames = acc ? `${acc.name} (${fmtMoney(balance, currency)})` : "No account selected";
         if (balance < Number(sub.amount)) {
           hasEnough = false;
+          shortAmount = Number(sub.amount) - balance;
         }
       }
 
       const diffTime = nextDue.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const identifier = `sub-${sub.id}-${sub.next_due_date}`;
+      const todayStr = today.toISOString().split("T")[0];
 
       if (diffDays >= 0 && diffDays <= 3) {
-        newAlerts.push({
-          user_id: authUser.id,
-          title: "Upcoming Subscription",
-          message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
-          type: "warning",
-          identifier,
-        });
+        const identifier = `sub-upcoming-${sub.id}-${sub.next_due_date}-${todayStr}`;
+        if (hasEnough) {
+          newAlerts.push({
+            user_id: authUser.id,
+            title: `Upcoming Subscription: ${sub.name}`,
+            message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Funds are available in ${accountNames} for auto-deduction.`,
+            type: "info",
+            identifier,
+          });
+        } else {
+          newAlerts.push({
+            user_id: authUser.id,
+            title: `Upcoming Subscription Alert: ${sub.name}`,
+            message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}). Please refill.`,
+            type: "warning",
+            identifier,
+          });
+        }
       } else if (diffDays < 0 && !hasEnough) {
-        newAlerts.push({
-          user_id: authUser.id,
-          title: "Subscription Overdue",
-          message: `"${sub.name}" is overdue! Insufficient funds to auto-deduct.`,
-          type: "critical",
-          identifier: `sub-overdue-${sub.id}-${sub.next_due_date}`,
-        });
+        // Calculate how many months (payments) are overdue
+        let missedCount = 0;
+        let checkDate = new Date(nextDue);
+        while (checkDate < today) {
+          missedCount++;
+          checkDate.setMonth(checkDate.getMonth() + 1);
+        }
+
+        const identifier = `sub-overdue-${sub.id}-${sub.next_due_date}-${todayStr}`;
+        if (missedCount > 1) {
+          newAlerts.push({
+            user_id: authUser.id,
+            title: `Subscription Overdue: ${sub.name}`,
+            message: `"${sub.name}" is overdue by ${missedCount} months! Insufficient funds in ${accountNames}. Total outstanding for auto-deduction: ${fmtMoney(Number(sub.amount) * missedCount, currency)}.`,
+            type: "critical",
+            identifier,
+          });
+        } else {
+          newAlerts.push({
+            user_id: authUser.id,
+            title: `Subscription Overdue: ${sub.name}`,
+            message: `"${sub.name}" is overdue! Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}).`,
+            type: "critical",
+            identifier,
+          });
+        }
       }
     }
 
