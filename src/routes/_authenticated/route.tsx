@@ -954,11 +954,11 @@ function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col pb-20 md:pb-6">
-          <div key={path} className="page-transition relative">
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-32 md:pb-6">
+          <div key={path} className="flex-1 page-transition relative">
             <Outlet />
           </div>
-          <footer className={`mt-6 pt-3 border-t text-center text-xs text-muted-foreground font-serif tracking-wider${path === "/transactions" ? " hidden" : path !== "/" ? " hidden md:block" : ""}`}>
+          <footer className={`mt-12 pt-6 border-t text-center text-xs text-muted-foreground font-serif tracking-wider${path === "/transactions" ? " hidden" : path !== "/" ? " hidden md:block" : ""}`}>
             © {new Date().getFullYear()} FINORASSET &middot; Personal Finance Compass &middot; Designed by Mahmudul Mashrafe
           </footer>
         </main>
