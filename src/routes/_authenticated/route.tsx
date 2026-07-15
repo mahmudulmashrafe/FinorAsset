@@ -954,7 +954,7 @@ function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-20 md:pb-6">
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col pb-20 md:pb-6">
           <div key={path} className="flex-1 page-transition relative">
             <Outlet />
           </div>
