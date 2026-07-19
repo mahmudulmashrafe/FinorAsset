@@ -240,6 +240,7 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
     - **Multi-Record Event Form**: Event mode lets users enter an Event Title (e.g. *"Cox's Bazar Trip"*, *"Weekly Grocery"*) and Date, then dynamically add or remove sub-record line items (configuring Kind, Category, Account, Amount, and Note for each item). Displays a live Aggregate Total.
     - **Grouped Transaction View (`transactions.tsx`)**: Sub-transactions under an event are grouped into a single **Event Row** in both Desktop table and Mobile list view (showing `🎉 Event: Title`, total aggregate amount, and record count badge).
     - **Full Record Breakdown Modal**: Clicking any Event row opens a detailed popup showing the complete list of sub-transactions (categories, accounts, amounts, notes), with buttons to delete the event and all its records.
+    - **Automated Macro Event Logging (`automation.tsx`)**: Triggering any Macro automation (e.g., *"Versity Pocket Money"*) automatically tags all generated shortcut transactions as a single grouped Event. In the Transactions history, the macro execution displays as a unified Event item (`🎉 Event: Versity Pocket Money`) with full record inspection.
 ## Live URL
 
 Your website is live at:
