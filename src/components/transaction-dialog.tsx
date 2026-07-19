@@ -200,6 +200,19 @@ export function TransactionDialog({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [showNewCat, setShowNewCat] = useState(false);
 
+  // Event Mode states
+  const [txnMode, setTxnMode] = useState<"single" | "event">("single");
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
+  const [eventItems, setEventItems] = useState<{
+    id: string;
+    kind: TxnKind;
+    categoryId: string;
+    accountId: string;
+    amount: string;
+    note: string;
+  }[]>([]);
+
   // Splits states
   const [isSplit, setIsSplit] = useState(false);
   const [splits, setSplits] = useState<{ accountId: string; amount: number }[]>([]);
@@ -214,6 +227,7 @@ export function TransactionDialog({
   useEffect(() => {
     if (!open) return;
     if (editingTransaction) {
+      setTxnMode("single");
       setKind(editingTransaction.kind as TxnKind);
       setAmount(String(editingTransaction.amount));
       setAccountId(editingTransaction.account_id);
@@ -223,6 +237,7 @@ export function TransactionDialog({
       setDate(editingTransaction.occurred_on);
       setIsSplit(false);
     } else {
+      setTxnMode("single");
       setKind("expense");
       setAmount("");
       setToAccountId("");
@@ -230,8 +245,15 @@ export function TransactionDialog({
       setNote("");
       setDate(new Date().toISOString().slice(0, 10));
       setIsSplit(false);
+      setEventTitle("");
+      setEventDate(new Date().toISOString().slice(0, 10));
       if (accounts.length) {
-        setSplits([{ accountId: accounts[0].id, amount: 0 }]);
+        const defAcc = accounts[0].id;
+        setSplits([{ accountId: defAcc, amount: 0 }]);
+        setEventItems([
+          { id: "1", kind: "expense", categoryId: "", accountId: defAcc, amount: "", note: "" },
+          { id: "2", kind: "expense", categoryId: "", accountId: defAcc, amount: "", note: "" },
+        ]);
       }
     }
     setErrors({});
@@ -244,8 +266,14 @@ export function TransactionDialog({
       const defaultId = accounts[0].id;
       setAccountId(defaultId);
       setSplits([{ accountId: defaultId, amount: Number(amount) || 0 }]);
+      if (eventItems.length === 0) {
+        setEventItems([
+          { id: "1", kind: "expense", categoryId: "", accountId: defaultId, amount: "", note: "" },
+          { id: "2", kind: "expense", categoryId: "", accountId: defaultId, amount: "", note: "" },
+        ]);
+      }
     }
-  }, [open, accounts, accountId, isEdit, amount]);
+  }, [open, accounts, accountId, isEdit, amount, eventItems.length]);
 
   // Reset category + new-cat form when switching kind
   useEffect(() => {
@@ -254,9 +282,70 @@ export function TransactionDialog({
 
   const filteredCats = categories.filter((c) => c.kind === kind);
 
+  function addEventItem() {
+    const defaultAcc = accountId || accounts[0]?.id || "";
+    setEventItems(prev => [
+      ...prev,
+      { id: String(Date.now() + Math.random()), kind: "expense", categoryId: "", accountId: defaultAcc, amount: "", note: "" }
+    ]);
+  }
+
+  function removeEventItem(id: string) {
+    if (eventItems.length <= 1) return toast.error("An event must have at least 1 record");
+    setEventItems(prev => prev.filter(item => item.id !== id));
+  }
+
+  function updateEventItem(id: string, field: string, val: string) {
+    setEventItems(prev => prev.map(item => item.id === id ? { ...item, [field]: val } : item));
+  }
+
+  const eventTotal = eventItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+  async function submitEvent() {
+    if (!eventTitle.trim()) return toast.error("Enter an event title (e.g., Cox's Bazar Trip)");
+    
+    for (let i = 0; i < eventItems.length; i++) {
+      const item = eventItems[i];
+      const numAmt = Number(item.amount);
+      if (!numAmt || numAmt <= 0) return toast.error(`Item #${i + 1} has an invalid amount`);
+      if (!item.accountId) return toast.error(`Select an account for Item #${i + 1}`);
+    }
+
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { setSaving(false); return; }
+
+    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const insertPayloads = eventItems.map(item => {
+      const cleanNote = item.note.trim();
+      const formattedNote = `[Event: ${eventTitle.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`;
+      return {
+        user_id: u.user.id,
+        account_id: item.accountId,
+        to_account_id: null,
+        category_id: item.categoryId || null,
+        kind: item.kind,
+        amount: Number(item.amount),
+        note: formattedNote,
+        occurred_on: eventDate,
+      };
+    });
+
+    const { error } = await supabase.from("transactions").insert(insertPayloads);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+
+    toast.success(`🎉 Event "${eventTitle.trim()}" created with ${eventItems.length} records!`);
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["accounts"] });
+    setOpen(false);
+    reset();
+  }
+
   function reset() {
     setAmount(""); setNote(""); setCategoryId(""); setToAccountId("");
     setErrors({}); setShowNewCat(false); setAccountId("");
+    setEventTitle(""); setEventDate(new Date().toISOString().slice(0, 10));
   }
   async function submit() {
     setErrors({});
@@ -381,18 +470,184 @@ export function TransactionDialog({
   const dialogContent = (
     <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
       <DialogHeader className="p-4 border-b">
-        <DialogTitle className="font-serif">{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle>
+        <DialogTitle className="font-serif">
+          {isEdit ? "Edit transaction" : txnMode === "event" ? "New Event (Grouped Records)" : "New transaction"}
+        </DialogTitle>
       </DialogHeader>
 
-      <div className="px-4 py-3 border-b bg-muted/5 shrink-0">
-        <ToggleGroup type="single" value={kind} onValueChange={(v) => v && setKind(v as TxnKind)} className="justify-start">
-          <ToggleGroupItem value="expense" id="kind-expense">Expense</ToggleGroupItem>
-          <ToggleGroupItem value="income" id="kind-income">Income</ToggleGroupItem>
-          <ToggleGroupItem value="transfer" id="kind-transfer">Transfer</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+      {!isEdit && (
+        <div className="px-4 py-2 border-b bg-muted/10 flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            variant={txnMode === "single" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTxnMode("single")}
+            className="flex-1 text-xs font-bold cursor-pointer h-8"
+          >
+            Single Record
+          </Button>
+          <Button
+            type="button"
+            variant={txnMode === "event" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTxnMode("event")}
+            className="flex-1 text-xs font-bold cursor-pointer h-8"
+          >
+            🎉 Event (Multi-Record)
+          </Button>
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+      {txnMode === "event" && !isEdit ? (
+        <>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="event-title">Event Title</Label>
+                <Input
+                  id="event-title"
+                  placeholder="e.g., Cox's Bazar Trip, Weekly Grocery, Birthday"
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                  className="bg-background font-medium"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="event-date">Date</Label>
+                <Input
+                  id="event-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-serif font-bold uppercase tracking-wider text-muted-foreground">
+                  Event Records ({eventItems.length})
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addEventItem}
+                  className="h-7 text-xs font-bold gap-1 cursor-pointer"
+                >
+                  <Plus className="h-3 w-3" /> Add Item
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {eventItems.map((item, idx) => (
+                  <div key={item.id} className="p-3 rounded-xl border bg-card/60 space-y-2.5 relative">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-serif font-bold text-muted-foreground">Item #{idx + 1}</span>
+                      {eventItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEventItem(item.id)}
+                          className="text-muted-foreground hover:text-destructive p-1 rounded cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px]">Type</Label>
+                        <Select value={item.kind} onValueChange={(v) => updateEventItem(item.id, "kind", v)}>
+                          <SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
+                          <SelectContent className="z-[150]">
+                            <SelectItem value="expense">Expense</SelectItem>
+                            <SelectItem value="income">Income</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-[10px]">Amount</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={item.amount}
+                          onChange={(e) => updateEventItem(item.id, "amount", e.target.value)}
+                          className="h-8 text-xs bg-background"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-[10px]">Category</Label>
+                        <Select value={item.categoryId} onValueChange={(v) => updateEventItem(item.id, "categoryId", v)}>
+                          <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Category" /></SelectTrigger>
+                          <SelectContent className="z-[150]">
+                            {categories.filter(c => c.kind === item.kind).map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                <span className="flex items-center gap-1.5">
+                                  <span>{c.icon}</span> {c.name}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-[10px]">Account</Label>
+                        <Select value={item.accountId} onValueChange={(v) => updateEventItem(item.id, "accountId", v)}>
+                          <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Account" /></SelectTrigger>
+                          <SelectContent className="z-[150]">
+                            {accounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="col-span-2">
+                        <Label className="text-[10px]">Item Note</Label>
+                        <Input
+                          placeholder="e.g., Bus Ticket, Hotel Room, Dinner"
+                          value={item.note}
+                          onChange={(e) => updateEventItem(item.id, "note", e.target.value)}
+                          className="h-8 text-xs bg-background"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 border-t flex-row items-center justify-between gap-2 shrink-0">
+            <div className="text-left">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-serif">Aggregate Total</div>
+              <div className="font-serif num font-bold text-sm text-foreground">{fmtMoney(eventTotal, currency)}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={submitEvent} disabled={saving} className="font-bold">
+                {saving ? "Saving Event…" : "Save Event"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </>
+      ) : (
+        <>
+          <div className="px-4 py-3 border-b bg-muted/5 shrink-0">
+            <ToggleGroup type="single" value={kind} onValueChange={(v) => v && setKind(v as TxnKind)} className="justify-start">
+              <ToggleGroupItem value="expense" id="kind-expense">Expense</ToggleGroupItem>
+              <ToggleGroupItem value="income" id="kind-income">Income</ToggleGroupItem>
+              <ToggleGroupItem value="transfer" id="kind-transfer">Transfer</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <Label htmlFor="txn-amount">Amount</Label>
@@ -511,6 +766,8 @@ export function TransactionDialog({
           {saving ? "Saving…" : isEdit ? "Save changes" : "Save"}
         </Button>
       </DialogFooter>
+        </>
+      )}
     </DialogContent>
   );
 

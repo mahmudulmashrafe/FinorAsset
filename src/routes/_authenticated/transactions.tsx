@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar } from "lucide-react";
+import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+export interface EventGroup {
+  eventId: string;
+  eventTitle: string;
+  date: string;
+  items: Transaction[];
+  totalAmount: number;
+}
+
+export type DisplayRowItem =
+  | { type: "single"; txn: Transaction }
+  | { type: "event"; group: EventGroup };
+
+export function parseEventNote(note: string | null) {
+  if (!note || !note.startsWith("[Event: ")) return null;
+  const match = note.match(/^\[Event:\s*(.*?)\|id:(.*?)\]\s*(.*)$/);
+  if (!match) return null;
+  return {
+    eventTitle: match[1],
+    eventId: match[2],
+    itemNote: match[3],
+  };
+}
 
 export const Route = createFileRoute("/_authenticated/transactions")({
   component: TxnsPage,
@@ -49,6 +72,9 @@ function TxnsPage() {
   const [showBatchDateChange, setShowBatchDateChange] = useState(false);
   const [batchNewDate, setBatchNewDate] = useState("");
   const [batchDateLoading, setBatchDateLoading] = useState(false);
+
+  const [selectedEventGroup, setSelectedEventGroup] = useState<EventGroup | null>(null);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
 
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
@@ -88,6 +114,44 @@ function TxnsPage() {
     // Tertiary: stable tiebreaker by id
     return b.id.localeCompare(a.id);
   }), [txns, kind, account, monthFilter, q, catMap, accMap]);
+
+  const displayRows = useMemo<DisplayRowItem[]>(() => {
+    const result: DisplayRowItem[] = [];
+    const eventMap = new Map<string, EventGroup>();
+    const processedEventIds = new Set<string>();
+
+    for (const t of filtered) {
+      const parsed = parseEventNote(t.note);
+      if (parsed) {
+        if (!eventMap.has(parsed.eventId)) {
+          eventMap.set(parsed.eventId, {
+            eventId: parsed.eventId,
+            eventTitle: parsed.eventTitle,
+            date: t.occurred_on,
+            items: [],
+            totalAmount: 0,
+          });
+        }
+        const grp = eventMap.get(parsed.eventId)!;
+        grp.items.push(t);
+        grp.totalAmount += Number(t.amount);
+      }
+    }
+
+    for (const t of filtered) {
+      const parsed = parseEventNote(t.note);
+      if (parsed) {
+        if (!processedEventIds.has(parsed.eventId)) {
+          processedEventIds.add(parsed.eventId);
+          result.push({ type: "event", group: eventMap.get(parsed.eventId)! });
+        }
+      } else {
+        result.push({ type: "single", txn: t });
+      }
+    }
+
+    return result;
+  }, [filtered]);
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -159,6 +223,25 @@ function TxnsPage() {
     }
   }
 
+  async function confirmDeleteEvent(eventId: string) {
+    const eventItemsToDelete = txns.filter(t => t.note && t.note.includes(`|id:${eventId}]`));
+    const ids = eventItemsToDelete.map(t => t.id);
+    if (ids.length === 0) return;
+
+    const { error } = await supabase.from("transactions").delete().in("id", ids);
+    if (error) return toast.error(error.message);
+
+    for (const t of eventItemsToDelete) {
+      await syncTransactionToLoan("delete", t);
+    }
+
+    setSelectedIds(prev => prev.filter(x => !ids.includes(x)));
+    setSelectedEventGroup(null);
+    setDeleteEventId(null);
+    refresh();
+    toast.success("Event and all its records deleted");
+  }
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -166,8 +249,8 @@ function TxnsPage() {
   };
 
   const toggleAllVisible = () => {
-    const visibleIds = filtered.map(t => t.id);
-    const allSelected = visibleIds.every(id => selectedIds.includes(id));
+    const visibleIds = displayRows.flatMap(row => row.type === "event" ? row.group.items.map(i => i.id) : [row.txn.id]);
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
     if (allSelected) {
       setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
     } else {
@@ -356,14 +439,84 @@ function TxnsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 && (
+              {displayRows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                     No transactions match.
                   </TableCell>
                 </TableRow>
               )}
-              {filtered.map((t) => {
+              {displayRows.map((row) => {
+                if (row.type === "event") {
+                  const grp = row.group;
+                  const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
+                  return (
+                    <TableRow key={grp.eventId} className={`group bg-amber-500/5 hover:bg-amber-500/10 transition-colors ${isAllSel ? 'bg-accent/10' : ''}`}>
+                      <TableCell className="w-12 py-3 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                          checked={isAllSel}
+                          onChange={() => {
+                            const itemIds = grp.items.map(i => i.id);
+                            if (isAllSel) setSelectedIds(prev => prev.filter(id => !itemIds.includes(id)));
+                            else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
+                        {new Date(grp.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="py-3 px-4">
+                        <Badge variant="secondary" className="gap-1 font-semibold text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                          <Layers className="h-3 w-3" /> Event
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-sm md:text-base font-bold">
+                        <button
+                          onClick={() => setSelectedEventGroup(grp)}
+                          className="flex items-center gap-2 hover:underline text-left cursor-pointer"
+                        >
+                          <span>🎉 {grp.eventTitle}</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {grp.items.length} records
+                          </Badge>
+                        </button>
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
+                        Multiple accounts
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base italic">
+                        Click to view full record
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right num font-serif font-bold text-sm md:text-base text-foreground">
+                        {fmtMoney(grp.totalAmount, currency)}
+                      </TableCell>
+                      <TableCell className="py-3 px-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedEventGroup(grp)}
+                            className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </Button>
+                          <button
+                            onClick={() => setDeleteEventId(grp.eventId)}
+                            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            title="Delete Event"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
+                const t = row.txn;
+                const parsed = parseEventNote(t.note);
                 const acc = accMap.get(t.account_id);
                 const cat = t.category_id ? catMap.get(t.category_id) : null;
                 const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
@@ -403,7 +556,7 @@ function TxnsPage() {
                       {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
                     </TableCell>
                     <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base">
-                      {t.note ?? "—"}
+                      {parsed?.itemNote ?? t.note ?? "—"}
                     </TableCell>
                     <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-sm md:text-base ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
@@ -436,13 +589,65 @@ function TxnsPage() {
 
       {/* List (Mobile Layout) */}
       <div className="md:hidden rounded-xl border bg-card p-3 overflow-y-auto overflow-x-hidden flex-1 min-h-0 thin-scroll">
-        {filtered.length === 0 && (
+        {displayRows.length === 0 && (
           <div className="text-center text-muted-foreground py-12 text-sm">
             No transactions match.
           </div>
         )}
         <div className="divide-y divide-border/50">
-          {filtered.map((t) => {
+          {displayRows.map((row) => {
+            if (row.type === "event") {
+              const grp = row.group;
+              const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
+              return (
+                <div key={grp.eventId} className="py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer flex-shrink-0"
+                      checked={isAllSel}
+                      onChange={() => {
+                        const itemIds = grp.items.map(i => i.id);
+                        if (isAllSel) setSelectedIds(prev => prev.filter(id => !itemIds.includes(id)));
+                        else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
+                      }}
+                    />
+                    <button
+                      onClick={() => setSelectedEventGroup(grp)}
+                      className="flex items-center gap-2.5 text-left min-w-0 flex-1 cursor-pointer"
+                    >
+                      <span className="text-lg h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                        🎉
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-sm font-serif font-black truncate">{grp.eventTitle}</span>
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                            {grp.items.length} records
+                          </Badge>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          Event · {new Date(grp.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="num font-serif text-xs font-bold">{fmtMoney(grp.totalAmount, currency)}</span>
+                    <button
+                      onClick={() => setSelectedEventGroup(grp)}
+                      className="h-6 px-2 text-[10px] font-bold rounded bg-accent/10 text-foreground flex items-center gap-1 cursor-pointer"
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            const t = row.txn;
+            const parsed = parseEventNote(t.note);
             const acc = accMap.get(t.account_id);
             const cat = t.category_id ? catMap.get(t.category_id) : null;
             const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
@@ -474,9 +679,9 @@ function TxnsPage() {
                       <span className="mx-1">·</span>
                       {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </div>
-                    {t.note && (
+                    {(parsed?.itemNote || t.note) && (
                       <div className="text-[10px] text-muted-foreground italic truncate max-w-[160px] mt-0.5">
-                        {t.note}
+                        {parsed?.itemNote ?? t.note}
                       </div>
                     )}
                   </div>
@@ -632,6 +837,104 @@ function TxnsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Event Details View Dialog */}
+      <Dialog open={!!selectedEventGroup} onOpenChange={(open) => !open && setSelectedEventGroup(null)}>
+        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
+          <DialogHeader className="p-4 border-b">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                🎉
+              </span>
+              <div>
+                <DialogTitle className="font-serif text-lg font-bold">{selectedEventGroup?.eventTitle}</DialogTitle>
+                <p className="text-xs text-muted-foreground font-serif">
+                  Event Date: {selectedEventGroup && new Date(selectedEventGroup.date).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 thin-scroll">
+            <div className="flex items-center justify-between text-xs font-serif font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b">
+              <span>Event Records ({selectedEventGroup?.items.length})</span>
+              <span>Amount</span>
+            </div>
+
+            <div className="divide-y divide-border/50">
+              {selectedEventGroup?.items.map((t) => {
+                const parsed = parseEventNote(t.note);
+                const acc = accMap.get(t.account_id);
+                const cat = t.category_id ? catMap.get(t.category_id) : null;
+                const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "";
+                return (
+                  <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">{cat?.icon ?? "💵"}</span>
+                        <span className="font-bold font-serif">{cat?.name ?? "Uncategorized"}</span>
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 capitalize">{t.kind}</Badge>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {acc?.name}{parsed?.itemNote ? ` · ${parsed.itemNote}` : ""}
+                      </div>
+                    </div>
+                    <span className={`num font-serif font-bold shrink-0 text-sm ${color}`}>
+                      {sign}{fmtMoney(Number(t.amount), currency)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 border-t flex-row items-center justify-between gap-2 shrink-0">
+            <div className="text-left">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-serif">Aggregate Total</div>
+              <div className="font-serif num font-bold text-sm text-foreground">
+                {selectedEventGroup && fmtMoney(selectedEventGroup.totalAmount, currency)}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteEventId(selectedEventGroup?.eventId ?? null)}
+                className="text-xs font-bold gap-1 cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete Event
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedEventGroup(null)}>
+                Close
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Event Confirmation Alert */}
+      <AlertDialog open={!!deleteEventId} onOpenChange={(open) => !open && setDeleteEventId(null)}>
+        <AlertDialogContent className="z-[100]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete Event & Records?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this event and all of its associated records? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteEventId) confirmDeleteEvent(deleteEventId);
+              }}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            >
+              Delete Event
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
