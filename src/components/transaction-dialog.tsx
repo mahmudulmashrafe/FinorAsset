@@ -506,7 +506,7 @@ export function TransactionDialog({
   }
 
   const dialogContent = (
-    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
+    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden" onCloseAutoFocus={(e) => e.preventDefault()}>
       <DialogHeader className="p-4 border-b">
         <DialogTitle className="font-serif">
           {isEditEvent ? "Edit Event" : isEditSingle ? "Edit transaction" : txnMode === "event" ? "New Event (Grouped Records)" : "New transaction"}

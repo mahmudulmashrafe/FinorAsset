@@ -869,7 +869,7 @@ function TxnsPage() {
 
       {/* Event Details View Dialog */}
       <Dialog open={!!selectedEventGroup} onOpenChange={(open) => !open && setSelectedEventGroup(null)}>
-        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
+        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden" onCloseAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader className="p-4 border-b">
             <div className="flex items-center gap-3">
               <span className="text-2xl h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
