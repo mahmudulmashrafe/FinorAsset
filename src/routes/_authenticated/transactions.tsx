@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye, ChevronDown, ChevronRight } from "lucide-react";
+import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -208,6 +208,7 @@ function TxnsPage() {
       const createdA = a.type === "event" ? (a.group.items[0]?.created_at || a.group.date) : a.txn.created_at;
       const createdB = b.type === "event" ? (b.group.items[0]?.created_at || b.group.date) : b.txn.created_at;
       const cTimeA = new Date(createdA || 0).getTime() || 0;
+      const cTimeB = new Date(createdB || 0).getTime() || 0;
       return cTimeB - cTimeA;
     });
   }, [filtered, sameDateRanks]);
@@ -543,6 +544,8 @@ function TxnsPage() {
                 const nextRow = rowIdx < displayRows.length - 1 ? displayRows[rowIdx + 1] : null;
 
                 const rStr = safeDateStr(rowDate);
+                const prevDate = prevRow ? (prevRow.type === "event" ? prevRow.group.date : prevRow.txn.occurred_on) : null;
+                const nextDate = nextRow ? (nextRow.type === "event" ? nextRow.group.date : nextRow.txn.occurred_on) : null;
                 const pStr = safeDateStr(prevDate);
                 const nStr = safeDateStr(nextDate);
 
