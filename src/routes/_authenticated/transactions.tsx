@@ -547,47 +547,76 @@ function TxnsPage() {
                         </TableCell>
                       </TableRow>
 
-                      {/* Expanded Inline Breakdown Row */}
-                      {isExpanded && (
-                        <TableRow key={`${grp.eventId}_expanded`} className="bg-amber-500/[0.03] dark:bg-amber-500/10 border-b">
-                          <TableCell colSpan={8} className="p-0">
-                            <div className="py-3 px-6 space-y-2 border-l-4 border-amber-500/40 my-2 ml-6 mr-6 bg-card/80 rounded-r-xl shadow-sm">
-                              <div className="flex items-center justify-between text-xs font-serif font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b">
-                                <span>Event Records ({grp.items.length})</span>
-                                <span>Amount</span>
+                      {/* Expanded Inline Event Rows (Standard TableRow per item with left border) */}
+                      {isExpanded && grp.items.map((t) => {
+                        const parsed = parseEventNote(t.note);
+                        const acc = accMap.get(t.account_id);
+                        const cat = t.category_id ? catMap.get(t.category_id) : null;
+                        const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                        const amtColor = t.kind === "income"
+                          ? "text-[color:var(--success)]"
+                          : t.kind === "expense"
+                          ? "text-[color:var(--destructive)]"
+                          : "";
+                        const isSelected = selectedIds.includes(t.id);
+                        return (
+                          <TableRow
+                            key={t.id}
+                            className={`group bg-amber-500/[0.03] dark:bg-amber-500/[0.08] hover:bg-amber-500/10 transition-colors border-l-4 border-amber-500/60 ${isSelected ? 'bg-accent/15' : ''}`}
+                          >
+                            <TableCell className="w-12 py-3 px-4 text-center pl-6">
+                              <input
+                                type="checkbox"
+                                className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(t.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base text-muted-foreground">
+                              {new Date(t.occurred_on).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="py-3 px-4">
+                              <Badge variant="outline" className="capitalize text-sm px-2.5 py-0.5">{t.kind}</Badge>
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-sm md:text-base font-medium">
+                              {cat ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span>{cat.icon}</span>
+                                  <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                                  {cat.name}
+                                </span>
+                              ) : "—"}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
+                              {acc?.name ?? "—"}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base">
+                              {parsed?.itemNote ?? t.note ?? "—"}
+                            </TableCell>
+                            <TableCell className={`py-3 px-4 text-right num font-serif font-bold text-sm md:text-base ${amtColor}`}>
+                              {sign}{fmtMoney(Number(t.amount), currency)}
+                            </TableCell>
+                            <TableCell className="py-3 px-4">
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => setEditingTxn(t)}
+                                  className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                                  title="Edit item"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteId(t.id)}
+                                  className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                  title="Delete item"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
-                              <div className="divide-y divide-border/40">
-                                {grp.items.map((t) => {
-                                  const parsed = parseEventNote(t.note);
-                                  const acc = accMap.get(t.account_id);
-                                  const cat = t.category_id ? catMap.get(t.category_id) : null;
-                                  const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
-                                  const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "";
-                                  return (
-                                    <div key={t.id} className="py-2 flex items-center justify-between text-xs gap-3">
-                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                        <span className="text-base shrink-0">{cat?.icon ?? "💵"}</span>
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="font-bold font-serif">{cat?.name ?? "Uncategorized"}</span>
-                                            <Badge variant="outline" className="text-[9px] px-1 py-0 capitalize">{t.kind}</Badge>
-                                          </div>
-                                          <span className="text-[11px] text-muted-foreground block truncate mt-0.5">
-                                            {acc?.name}{parsed?.itemNote ? ` · ${parsed.itemNote}` : ""}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <span className={`num font-serif font-bold shrink-0 text-xs ${color}`}>
-                                        {sign}{fmtMoney(Number(t.amount), currency)}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </Fragment>
                   );
                 }
@@ -743,39 +772,71 @@ function TxnsPage() {
 
                   {/* Expanded Sub-Records Mobile List */}
                   {isExpanded && (
-                    <div className="pt-2 border-t border-border/40 space-y-2 pl-2">
-                      <div className="flex items-center justify-between text-[10px] font-serif font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-border/30">
-                        <span>Event Records ({grp.items.length})</span>
-                        <span>Amount</span>
-                      </div>
-                      <div className="divide-y divide-border/30 space-y-1">
-                        {grp.items.map((t) => {
-                          const parsed = parseEventNote(t.note);
-                          const acc = accMap.get(t.account_id);
-                          const cat = t.category_id ? catMap.get(t.category_id) : null;
-                          const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
-                          const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "";
-                          return (
-                            <div key={t.id} className="pt-1.5 flex items-center justify-between text-xs gap-2">
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="text-base shrink-0">{cat?.icon ?? "💵"}</span>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1 flex-wrap">
-                                    <span className="font-bold font-serif text-xs">{cat?.name ?? "Uncategorized"}</span>
-                                    <Badge variant="outline" className="text-[8px] px-1 py-0 capitalize leading-none">{t.kind}</Badge>
-                                  </div>
-                                  <div className="text-[10px] text-muted-foreground truncate">
-                                    {acc?.name}{parsed?.itemNote ? ` · ${parsed.itemNote}` : ""}
-                                  </div>
-                                </div>
-                              </div>
-                              <span className={`num font-serif font-bold shrink-0 text-xs ${color}`}>
-                                {sign}{fmtMoney(Number(t.amount), currency)}
+                    <div className="pt-2 border-t border-border/40 space-y-1.5">
+                      {grp.items.map((t) => {
+                        const parsed = parseEventNote(t.note);
+                        const acc = accMap.get(t.account_id);
+                        const cat = t.category_id ? catMap.get(t.category_id) : null;
+                        const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                        const amtColor = t.kind === "income"
+                          ? "text-[color:var(--success)]"
+                          : t.kind === "expense"
+                          ? "text-[color:var(--destructive)]"
+                          : "";
+                        const isSelected = selectedIds.includes(t.id);
+                        return (
+                          <div
+                            key={t.id}
+                            className={`py-2 px-2.5 rounded-lg border-l-4 border-amber-500/60 bg-amber-500/[0.04] flex items-center justify-between gap-3 ${isSelected ? 'bg-accent/15' : ''}`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <input
+                                type="checkbox"
+                                className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer flex-shrink-0"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(t.id)}
+                              />
+                              <span className="text-base h-8 w-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                                {cat?.icon ?? "💵"}
                               </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-serif font-bold truncate">{cat?.name ?? "Uncategorized"}</span>
+                                  <Badge variant="outline" className="capitalize text-[8px] px-1 py-0 leading-none">{t.kind}</Badge>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground truncate">
+                                  {acc?.name} · {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                </div>
+                                {(parsed?.itemNote || t.note) && (
+                                  <div className="text-[9px] text-muted-foreground italic truncate max-w-[140px]">
+                                    {parsed?.itemNote ?? t.note}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <span className={`num font-serif text-xs font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
+                              <div className="flex items-center gap-0.5">
+                                <button
+                                  onClick={() => setEditingTxn(t)}
+                                  className="h-5 w-5 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                                  title="Edit item"
+                                >
+                                  <Pencil className="h-2.5 w-2.5" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteId(t.id)}
+                                  className="h-5 w-5 flex items-center justify-center rounded bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                                  title="Delete item"
+                                >
+                                  <Trash2 className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
