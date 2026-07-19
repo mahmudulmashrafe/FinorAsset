@@ -508,9 +508,9 @@ function TxnsPage() {
       </div>
 
       {/* Table (Desktop Layout) */}
-      <div className="hidden md:flex rounded-xl border bg-card overflow-hidden flex-1 flex flex-col min-h-0">
-        <div className="overflow-y-auto flex-1 thin-scroll">
-          <Table className="w-full">
+      <div className="hidden md:flex rounded-xl border bg-card flex-1 flex-col min-h-0">
+        <div className="overflow-auto flex-1 thin-scroll">
+          <Table className="w-full min-w-[800px]">
             <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow>
                 <TableHead className="w-12 py-3 px-4 text-center">
@@ -527,7 +527,7 @@ function TxnsPage() {
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Account</TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Note</TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold text-right">Amount</TableHead>
-                <TableHead className="py-3 px-4 w-20"></TableHead>
+                <TableHead className="py-3 px-4 w-36 text-sm md:text-base font-bold text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
