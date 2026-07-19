@@ -189,7 +189,7 @@ function TxnsPage() {
       )}
 
       {/* Desktop Filters (inline) */}
-      <div className="hidden md:flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
+      <div className="hidden md:flex flex-shrink-0 flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
         <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
           <Input
             placeholder="Search notes, category, account…"
@@ -231,7 +231,7 @@ function TxnsPage() {
       </div>
 
       {/* Mobile Filters Trigger */}
-      <div className="md:hidden flex items-center justify-between gap-2 flex-wrap">
+      <div className="md:hidden flex flex-shrink-0 items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DialogTrigger asChild>
