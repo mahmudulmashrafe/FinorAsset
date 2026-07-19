@@ -75,6 +75,7 @@ function TxnsPage() {
 
   const [selectedEventGroup, setSelectedEventGroup] = useState<EventGroup | null>(null);
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+  const [editingEventGroup, setEditingEventGroup] = useState<EventGroup | null>(null);
 
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
@@ -475,21 +476,18 @@ function TxnsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-3 px-4 text-sm md:text-base font-bold">
-                        <button
-                          onClick={() => setSelectedEventGroup(grp)}
-                          className="flex items-center gap-2 hover:underline text-left cursor-pointer"
-                        >
-                          <span>🎉 {grp.eventTitle}</span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        <div className="flex items-center gap-2">
+                          <span>🗓️ {grp.eventTitle}</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
                             {grp.items.length} records
                           </Badge>
-                        </button>
+                        </div>
                       </TableCell>
                       <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
                         Multiple accounts
                       </TableCell>
                       <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base italic">
-                        Click to view full record
+                        Click View to inspect
                       </TableCell>
                       <TableCell className="py-3 px-4 text-right">
                         {(() => {
@@ -512,6 +510,13 @@ function TxnsPage() {
                           >
                             <Eye className="h-3.5 w-3.5" /> View
                           </Button>
+                          <button
+                            onClick={() => setEditingEventGroup(grp)}
+                            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                            title="Edit Event"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => setDeleteEventId(grp.eventId)}
                             className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
@@ -622,12 +627,9 @@ function TxnsPage() {
                         else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
                       }}
                     />
-                    <button
-                      onClick={() => setSelectedEventGroup(grp)}
-                      className="flex items-center gap-2.5 text-left min-w-0 flex-1 cursor-pointer"
-                    >
+                    <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
                       <span className="text-lg h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
-                        🎉
+                        🗓️
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1 flex-wrap">
@@ -640,7 +642,7 @@ function TxnsPage() {
                           Event · {new Date(grp.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                         </div>
                       </div>
-                    </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -653,12 +655,21 @@ function TxnsPage() {
                         </span>
                       );
                     })()}
-                    <button
-                      onClick={() => setSelectedEventGroup(grp)}
-                      className="h-6 px-2 text-[10px] font-bold rounded bg-accent/10 text-foreground flex items-center gap-1 cursor-pointer"
-                    >
-                      View
-                    </button>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={() => setEditingEventGroup(grp)}
+                        className="h-6 w-6 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                        title="Edit Event"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedEventGroup(grp)}
+                        className="h-6 px-2 text-[10px] font-bold rounded bg-accent/10 text-foreground flex items-center gap-1 cursor-pointer"
+                      >
+                        View
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -862,7 +873,7 @@ function TxnsPage() {
           <DialogHeader className="p-4 border-b">
             <div className="flex items-center gap-3">
               <span className="text-2xl h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
-                🎉
+                🗓️
               </span>
               <div>
                 <DialogTitle className="font-serif text-lg font-bold">{selectedEventGroup?.eventTitle}</DialogTitle>
@@ -923,6 +934,18 @@ function TxnsPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const grp = selectedEventGroup;
+                  setSelectedEventGroup(null);
+                  setEditingEventGroup(grp);
+                }}
+                className="text-xs font-bold gap-1 cursor-pointer"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit Event
+              </Button>
+              <Button
                 variant="destructive"
                 size="sm"
                 onClick={() => setDeleteEventId(selectedEventGroup?.eventId ?? null)}
@@ -937,6 +960,13 @@ function TxnsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Event Dialog */}
+      <TransactionDialog
+        editingEvent={editingEventGroup}
+        open={!!editingEventGroup}
+        onOpenChange={(open) => !open && setEditingEventGroup(null)}
+      />
 
       {/* Delete Event Confirmation Alert */}
       <AlertDialog open={!!deleteEventId} onOpenChange={(open) => !open && setDeleteEventId(null)}>

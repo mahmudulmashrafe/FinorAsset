@@ -164,9 +164,13 @@ function CategoryCreatorDialog({
 }
 
 // ─── Transaction Form Dialog (create + edit) ──────────────────────────────────
+import { EventGroup } from "@/routes/_authenticated/transactions";
+
+// ─── Transaction Form Dialog (create + edit) ──────────────────────────────────
 interface TransactionDialogProps {
   trigger?: React.ReactNode;
   editingTransaction?: Transaction | null;
+  editingEvent?: EventGroup | null;
   open?: boolean;
   onOpenChange?: (v: boolean) => void;
 }
@@ -174,12 +178,15 @@ interface TransactionDialogProps {
 export function TransactionDialog({
   trigger,
   editingTransaction,
+  editingEvent,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: TransactionDialogProps) {
   const qc = useQueryClient();
   const { currency } = useUserProfile();
-  const isEdit = !!editingTransaction;
+  const isEditEvent = !!editingEvent;
+  const isEditSingle = !!editingTransaction;
+  const isEdit = isEditSingle || isEditEvent;
 
   // Support both controlled (edit mode) and uncontrolled (trigger button) open state
   const [internalOpen, setInternalOpen] = useState(false);
@@ -226,7 +233,27 @@ export function TransactionDialog({
   // Pre-fill form when editing or set defaults for new
   useEffect(() => {
     if (!open) return;
-    if (editingTransaction) {
+    if (editingEvent) {
+      setTxnMode("event");
+      setEventTitle(editingEvent.eventTitle);
+      setEventDate(editingEvent.date);
+      const mapped = editingEvent.items.map(t => {
+        let itemNoteStr = t.note ?? "";
+        if (itemNoteStr.startsWith("[Event: ")) {
+          const match = itemNoteStr.match(/^\[Event:\s*(.*?)\|id:(.*?)\]\s*(.*)$/);
+          if (match) itemNoteStr = match[3];
+        }
+        return {
+          id: t.id,
+          kind: t.kind as TxnKind,
+          categoryId: t.category_id ?? "",
+          accountId: t.account_id,
+          amount: String(t.amount),
+          note: itemNoteStr,
+        };
+      });
+      setEventItems(mapped);
+    } else if (editingTransaction) {
       setTxnMode("single");
       setKind(editingTransaction.kind as TxnKind);
       setAmount(String(editingTransaction.amount));
@@ -258,7 +285,7 @@ export function TransactionDialog({
     }
     setErrors({});
     setShowNewCat(false);
-  }, [open, editingTransaction, accounts]);
+  }, [open, editingTransaction, editingEvent, accounts]);
 
   // Auto-select first account for new transactions
   useEffect(() => {
@@ -320,7 +347,13 @@ export function TransactionDialog({
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { setSaving(false); return; }
 
-    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const eventId = isEditEvent ? editingEvent!.eventId : `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    if (isEditEvent) {
+      const oldIds = editingEvent!.items.map(t => t.id);
+      await supabase.from("transactions").delete().in("id", oldIds);
+    }
+
     const insertPayloads = eventItems.map(item => {
       const cleanNote = item.note.trim();
       const formattedNote = `[Event: ${eventTitle.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`;
@@ -340,7 +373,7 @@ export function TransactionDialog({
     setSaving(false);
     if (error) return toast.error(error.message);
 
-    toast.success(`🎉 Event "${eventTitle.trim()}" created with ${eventItems.length} records!`);
+    toast.success(isEditEvent ? `Event "${eventTitle.trim()}" updated!` : `🎉 Event "${eventTitle.trim()}" created with ${eventItems.length} records!`);
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["accounts"] });
     setOpen(false);
