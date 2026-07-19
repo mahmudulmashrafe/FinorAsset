@@ -639,14 +639,14 @@ function TxnsPage() {
                             </Button>
                             <button
                               onClick={() => setEditingEventGroup(grp)}
-                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                              className="h-7 w-7 flex items-center justify-center rounded-md bg-accent/15 text-foreground hover:bg-accent/30 transition-colors cursor-pointer"
                               title="Edit Event"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => setDeleteEventId(grp.eventId)}
-                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              className="h-7 w-7 flex items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
                               title="Delete Event"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -708,14 +708,14 @@ function TxnsPage() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => setEditingTxn(t)}
-                                  className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                                  className="h-7 w-7 flex items-center justify-center rounded-md bg-accent/15 text-foreground hover:bg-accent/30 transition-colors cursor-pointer"
                                   title="Edit item"
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                   onClick={() => setDeleteId(t.id)}
-                                  className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                  className="h-7 w-7 flex items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
                                   title="Delete item"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -795,14 +795,14 @@ function TxnsPage() {
                         </button>
                         <button
                           onClick={() => setEditingTxn(t)}
-                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                          className="h-7 w-7 flex items-center justify-center rounded-md bg-accent/15 text-foreground hover:bg-accent/30 transition-colors cursor-pointer"
                           title="Edit transaction"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteId(t.id)}
-                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          className="h-7 w-7 flex items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
                           title="Delete transaction"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
