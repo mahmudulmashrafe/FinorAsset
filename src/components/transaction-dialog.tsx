@@ -509,7 +509,7 @@ export function TransactionDialog({
     <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden">
       <DialogHeader className="p-4 border-b">
         <DialogTitle className="font-serif">
-          {isEdit ? "Edit transaction" : txnMode === "event" ? "New Event (Grouped Records)" : "New transaction"}
+          {isEditEvent ? "Edit Event" : isEditSingle ? "Edit transaction" : txnMode === "event" ? "New Event (Grouped Records)" : "New transaction"}
         </DialogTitle>
       </DialogHeader>
 
@@ -531,12 +531,12 @@ export function TransactionDialog({
             onClick={() => setTxnMode("event")}
             className="flex-1 text-xs font-bold cursor-pointer h-8"
           >
-            🎉 Event (Multi-Record)
+            🗓️ Event (Multi-Record)
           </Button>
         </div>
       )}
 
-      {txnMode === "event" && !isEdit ? (
+      {txnMode === "event" ? (
         <>
           <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
             <div className="space-y-3">
@@ -678,7 +678,7 @@ export function TransactionDialog({
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
               <Button size="sm" onClick={submitEvent} disabled={saving} className="font-bold">
-                {saving ? "Saving Event…" : "Save Event"}
+                {saving ? (isEditEvent ? "Updating Event…" : "Saving Event…") : (isEditEvent ? "Update Event" : "Save Event")}
               </Button>
             </div>
           </DialogFooter>
