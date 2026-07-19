@@ -235,7 +235,11 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
   - **Solved Double Payment / Multiple Deduction Bugs**:
     1. **Concurrency Lock (`processingSubIds` set)**: Prevented concurrent race condition triggers (such as React Strict Mode double-calling effects or rapid query refetch updates) by introducing an in-memory execution lock tracker. Once a subscription starts deduction, it is ignored by other concurrent effects.
     2. **Future Billing Date Math**: If a subscription was overdue by multiple months, instead of processing consecutive catch-up loops (deducting multiple times in a row), it now records exactly **one transaction** (to reactivate the subscription) and advances the next due date forward to the **next billing date in the future** matching the subscription's billing day.
-  - Programmed overdue warnings to calculate the exact number of months missed (overdue periods) for several months of missing balances. Displays the exact missed count and total outstanding amount (e.g. *Netflix is overdue by 3 months! Total outstanding for auto-deduction: $30.00*) in the notification.
+  - **Event Transactions (Multi-Record Grouped Records)**:
+    - **Mode Switcher in Transaction Creator (`transaction-dialog.tsx`)**: Users can toggle between **Single Record** and **🎉 Event (Multi-Record)** modes.
+    - **Multi-Record Event Form**: Event mode lets users enter an Event Title (e.g. *"Cox's Bazar Trip"*, *"Weekly Grocery"*) and Date, then dynamically add or remove sub-record line items (configuring Kind, Category, Account, Amount, and Note for each item). Displays a live Aggregate Total.
+    - **Grouped Transaction View (`transactions.tsx`)**: Sub-transactions under an event are grouped into a single **Event Row** in both Desktop table and Mobile list view (showing `🎉 Event: Title`, total aggregate amount, and record count badge).
+    - **Full Record Breakdown Modal**: Clicking any Event row opens a detailed popup showing the complete list of sub-transactions (categories, accounts, amounts, notes), with buttons to delete the event and all its records.
 ## Live URL
 
 Your website is live at:
