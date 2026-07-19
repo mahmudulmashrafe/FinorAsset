@@ -4,9 +4,9 @@ import { api, fmtMoney, type Transaction, syncTransactionToLoan } from "@/lib/fi
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye } from "lucide-react";
+import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +76,16 @@ function TxnsPage() {
   const [selectedEventGroup, setSelectedEventGroup] = useState<EventGroup | null>(null);
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [editingEventGroup, setEditingEventGroup] = useState<EventGroup | null>(null);
+  const [expandedEventIds, setExpandedEventIds] = useState<Set<string>>(new Set());
+
+  function toggleExpandEvent(eventId: string) {
+    setExpandedEventIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) next.delete(eventId);
+      else next.add(eventId);
+      return next;
+    });
+  }
 
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
@@ -262,7 +272,7 @@ function TxnsPage() {
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4 w-full flex-1 min-h-0 md:h-[calc(100vh-12rem)] flex flex-col md:overflow-hidden">
+    <div className="space-y-3 sm:space-y-4 w-full flex-1 min-h-0 md:h-[calc(100vh-8.5rem)] md:max-h-[calc(100vh-8.5rem)] flex flex-col md:overflow-hidden">
 
 
       {/* Edit dialog (controlled, no trigger) */}
@@ -453,80 +463,132 @@ function TxnsPage() {
                 if (row.type === "event") {
                   const grp = row.group;
                   const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
+                  const isExpanded = expandedEventIds.has(grp.eventId);
                   return (
-                    <TableRow key={grp.eventId} className={`group bg-amber-500/5 hover:bg-amber-500/10 transition-colors ${isAllSel ? 'bg-accent/10' : ''}`}>
-                      <TableCell className="w-12 py-3 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                          checked={isAllSel}
-                          onChange={() => {
-                            const itemIds = grp.items.map(i => i.id);
-                            if (isAllSel) setSelectedIds(prev => prev.filter(id => !itemIds.includes(id)));
-                            else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
-                        {new Date(grp.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="py-3 px-4">
-                        <Badge variant="secondary" className="gap-1 font-semibold text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                          <Layers className="h-3 w-3" /> Event
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm md:text-base font-bold">
-                        <div className="flex items-center gap-2">
-                          <span>🗓️ {grp.eventTitle}</span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
-                            {grp.items.length} records
+                    <Fragment key={grp.eventId}>
+                      <TableRow
+                        onClick={() => toggleExpandEvent(grp.eventId)}
+                        className={`group bg-amber-500/5 hover:bg-amber-500/10 transition-colors cursor-pointer ${isAllSel ? 'bg-accent/10' : ''}`}
+                      >
+                        <TableCell className="w-12 py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                            checked={isAllSel}
+                            onChange={() => {
+                              const itemIds = grp.items.map(i => i.id);
+                              if (isAllSel) setSelectedIds(prev => prev.filter(id => !itemIds.includes(id)));
+                              else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
+                          {new Date(grp.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="py-3 px-4">
+                          <Badge variant="secondary" className="gap-1 font-semibold text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                            <Layers className="h-3 w-3" /> Event
                           </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
-                        Multiple accounts
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base italic">
-                        Click View to inspect
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-right">
-                        {(() => {
-                          const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
-                          const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
-                          return (
-                            <span className={`num font-serif font-bold text-sm md:text-base ${color}`}>
-                              {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-sm md:text-base font-bold">
+                          <div className="flex items-center gap-2">
+                            <span className="p-0.5 rounded text-amber-600 dark:text-amber-400 shrink-0">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             </span>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell className="py-3 px-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedEventGroup(grp)}
-                            className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
-                          >
-                            <Eye className="h-3.5 w-3.5" /> View
-                          </Button>
-                          <button
-                            onClick={() => setEditingEventGroup(grp)}
-                            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
-                            title="Edit Event"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteEventId(grp.eventId)}
-                            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                            title="Delete Event"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <span>🗓️ {grp.eventTitle}</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+                              {grp.items.length} records
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
+                          Multiple accounts
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base italic">
+                          {isExpanded ? "Expanded inline" : "Click row to expand"}
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right">
+                          {(() => {
+                            const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
+                            const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                            return (
+                              <span className={`num font-serif font-bold text-sm md:text-base ${color}`}>
+                                {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleExpandEvent(grp.eventId)}
+                              className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
+                            >
+                              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              {isExpanded ? "Hide" : "Expand"}
+                            </Button>
+                            <button
+                              onClick={() => setEditingEventGroup(grp)}
+                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
+                              title="Edit Event"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteEventId(grp.eventId)}
+                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              title="Delete Event"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Expanded Inline Breakdown Row */}
+                      {isExpanded && (
+                        <TableRow key={`${grp.eventId}_expanded`} className="bg-amber-500/[0.03] dark:bg-amber-500/10 border-b">
+                          <TableCell colSpan={8} className="p-0">
+                            <div className="py-3 px-6 space-y-2 border-l-4 border-amber-500/40 my-2 ml-6 mr-6 bg-card/80 rounded-r-xl shadow-sm">
+                              <div className="flex items-center justify-between text-xs font-serif font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b">
+                                <span>Event Records ({grp.items.length})</span>
+                                <span>Amount</span>
+                              </div>
+                              <div className="divide-y divide-border/40">
+                                {grp.items.map((t) => {
+                                  const parsed = parseEventNote(t.note);
+                                  const acc = accMap.get(t.account_id);
+                                  const cat = t.category_id ? catMap.get(t.category_id) : null;
+                                  const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                                  const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "";
+                                  return (
+                                    <div key={t.id} className="py-2 flex items-center justify-between text-xs gap-3">
+                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <span className="text-base shrink-0">{cat?.icon ?? "💵"}</span>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-bold font-serif">{cat?.name ?? "Uncategorized"}</span>
+                                            <Badge variant="outline" className="text-[9px] px-1 py-0 capitalize">{t.kind}</Badge>
+                                          </div>
+                                          <span className="text-[11px] text-muted-foreground block truncate mt-0.5">
+                                            {acc?.name}{parsed?.itemNote ? ` · ${parsed.itemNote}` : ""}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className={`num font-serif font-bold shrink-0 text-xs ${color}`}>
+                                        {sign}{fmtMoney(Number(t.amount), currency)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
                   );
                 }
 
@@ -614,63 +676,108 @@ function TxnsPage() {
             if (row.type === "event") {
               const grp = row.group;
               const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
+              const isExpanded = expandedEventIds.has(grp.eventId);
               return (
-                <div key={grp.eventId} className="py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer flex-shrink-0"
-                      checked={isAllSel}
-                      onChange={() => {
-                        const itemIds = grp.items.map(i => i.id);
-                        if (isAllSel) setSelectedIds(prev => prev.filter(id => !itemIds.includes(id)));
-                        else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
-                      }}
-                    />
-                    <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
-                      <span className="text-lg h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
-                        🗓️
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <span className="text-sm font-serif font-black truncate">{grp.eventTitle}</span>
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                            {grp.items.length} records
-                          </Badge>
+                <div key={grp.eventId} className="py-2.5 px-2 rounded-xl border bg-card/80 my-1 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer flex-shrink-0"
+                        checked={isAllSel}
+                        onChange={() => {
+                          const itemIds = grp.items.map(i => i.id);
+                          if (isAllSel) setSelectedIds(prev => prev.filter(id => !itemIds.includes(id)));
+                          else setSelectedIds(prev => Array.from(new Set([...prev, ...itemIds])));
+                        }}
+                      />
+                      <div
+                        onClick={() => toggleExpandEvent(grp.eventId)}
+                        className="flex items-center gap-2.5 text-left min-w-0 flex-1 cursor-pointer"
+                      >
+                        <span className="text-lg h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                          🗓️
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="text-sm font-serif font-black truncate">{grp.eventTitle}</span>
+                            <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                              {grp.items.length} records
+                            </Badge>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            Event · {new Date(grp.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          Event · {new Date(grp.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {(() => {
+                        const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
+                        const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                        return (
+                          <span className={`num font-serif text-xs font-bold ${color}`}>
+                            {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
+                          </span>
+                        );
+                      })()}
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => setEditingEventGroup(grp)}
+                          className="h-6 w-6 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                          title="Edit Event"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => toggleExpandEvent(grp.eventId)}
+                          className="h-6 px-2 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 flex items-center gap-1 cursor-pointer"
+                        >
+                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          {isExpanded ? "Hide" : "Expand"}
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {(() => {
-                      const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
-                      const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
-                      return (
-                        <span className={`num font-serif text-xs font-bold ${color}`}>
-                          {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
-                        </span>
-                      );
-                    })()}
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={() => setEditingEventGroup(grp)}
-                        className="h-6 w-6 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
-                        title="Edit Event"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => setSelectedEventGroup(grp)}
-                        className="h-6 px-2 text-[10px] font-bold rounded bg-accent/10 text-foreground flex items-center gap-1 cursor-pointer"
-                      >
-                        View
-                      </button>
+                  {/* Expanded Sub-Records Mobile List */}
+                  {isExpanded && (
+                    <div className="pt-2 border-t border-border/40 space-y-2 pl-2">
+                      <div className="flex items-center justify-between text-[10px] font-serif font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-border/30">
+                        <span>Event Records ({grp.items.length})</span>
+                        <span>Amount</span>
+                      </div>
+                      <div className="divide-y divide-border/30 space-y-1">
+                        {grp.items.map((t) => {
+                          const parsed = parseEventNote(t.note);
+                          const acc = accMap.get(t.account_id);
+                          const cat = t.category_id ? catMap.get(t.category_id) : null;
+                          const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                          const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "";
+                          return (
+                            <div key={t.id} className="pt-1.5 flex items-center justify-between text-xs gap-2">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className="text-base shrink-0">{cat?.icon ?? "💵"}</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="font-bold font-serif text-xs">{cat?.name ?? "Uncategorized"}</span>
+                                    <Badge variant="outline" className="text-[8px] px-1 py-0 capitalize leading-none">{t.kind}</Badge>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {acc?.name}{parsed?.itemNote ? ` · ${parsed.itemNote}` : ""}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className={`num font-serif font-bold shrink-0 text-xs ${color}`}>
+                                {sign}{fmtMoney(Number(t.amount), currency)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             }
@@ -867,99 +974,7 @@ function TxnsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Event Details View Dialog */}
-      <Dialog open={!!selectedEventGroup} onOpenChange={(open) => !open && setSelectedEventGroup(null)}>
-        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden" onCloseAutoFocus={(e) => e.preventDefault()}>
-          <DialogHeader className="p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
-                🗓️
-              </span>
-              <div>
-                <DialogTitle className="font-serif text-lg font-bold">{selectedEventGroup?.eventTitle}</DialogTitle>
-                <p className="text-xs text-muted-foreground font-serif">
-                  Event Date: {selectedEventGroup && new Date(selectedEventGroup.date).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 thin-scroll">
-            <div className="flex items-center justify-between text-xs font-serif font-bold uppercase tracking-wider text-muted-foreground pb-2 border-b">
-              <span>Event Records ({selectedEventGroup?.items.length})</span>
-              <span>Amount</span>
-            </div>
-
-            <div className="divide-y divide-border/50">
-              {selectedEventGroup?.items.map((t) => {
-                const parsed = parseEventNote(t.note);
-                const acc = accMap.get(t.account_id);
-                const cat = t.category_id ? catMap.get(t.category_id) : null;
-                const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
-                const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "";
-                return (
-                  <div key={t.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-base">{cat?.icon ?? "💵"}</span>
-                        <span className="font-bold font-serif">{cat?.name ?? "Uncategorized"}</span>
-                        <Badge variant="outline" className="text-[9px] px-1 py-0 capitalize">{t.kind}</Badge>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {acc?.name}{parsed?.itemNote ? ` · ${parsed.itemNote}` : ""}
-                      </div>
-                    </div>
-                    <span className={`num font-serif font-bold shrink-0 text-sm ${color}`}>
-                      {sign}{fmtMoney(Number(t.amount), currency)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <DialogFooter className="p-4 border-t flex-row items-center justify-between gap-2 shrink-0">
-            <div className="text-left">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-serif">Aggregate Total</div>
-              {(() => {
-                const tot = selectedEventGroup?.totalAmount ?? 0;
-                const sign = tot > 0 ? "+" : tot < 0 ? "−" : "";
-                const color = tot > 0 ? "text-[color:var(--success)]" : tot < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
-                return (
-                  <div className={`font-serif num font-bold text-sm ${color}`}>
-                    {sign}{fmtMoney(Math.abs(tot), currency)}
-                  </div>
-                );
-              })()}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const grp = selectedEventGroup;
-                  setSelectedEventGroup(null);
-                  setEditingEventGroup(grp);
-                }}
-                className="text-xs font-bold gap-1 cursor-pointer"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit Event
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDeleteEventId(selectedEventGroup?.eventId ?? null)}
-                className="text-xs font-bold gap-1 cursor-pointer"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete Event
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setSelectedEventGroup(null)}>
-                Close
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Edit Event Dialog */}
       <TransactionDialog
