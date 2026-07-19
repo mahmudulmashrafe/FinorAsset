@@ -826,11 +826,19 @@ export function TransactionDialog({
     );
   }
 
+  if (!trigger) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+        {dialogContent}
+      </Dialog>
+    );
+  }
+
   // Create mode: trigger button opens dialog
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        {trigger ?? <Button id="new-transaction-btn"><Plus className="h-4 w-4 mr-1" /> New transaction</Button>}
+        {trigger}
       </DialogTrigger>
       {dialogContent}
     </Dialog>
