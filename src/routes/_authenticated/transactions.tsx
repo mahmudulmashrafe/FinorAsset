@@ -231,87 +231,101 @@ function TxnsPage() {
       </div>
 
       {/* Mobile Filters Trigger */}
-      <div className="md:hidden flex items-center justify-between gap-3">
-        <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer bg-card border">
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>Filters</span>
-              {(kind !== "all" || account !== "all" || monthFilter !== "all" || q) && (
-                <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-              )}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90vw] rounded-xl z-[99]">
-            <DialogHeader>
-              <DialogTitle className="font-serif">Filter Transactions</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Search</label>
-                <Input
-                  placeholder="Search notes, category, account…"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  className="w-full bg-background"
-                />
-              </div>
-              
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Type</label>
-                <Select value={kind} onValueChange={setKind}>
-                  <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="all">All types</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
-                <Select value={account} onValueChange={setAccount}>
-                  <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="all">All accounts</SelectItem>
-                    {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
-                <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="all">All months</SelectItem>
-                    {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setQ("");
-                  setKind("all");
-                  setAccount("all");
-                  setMonthFilter("all");
-                  setFiltersOpen(false);
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                Clear all
+      <div className="md:hidden flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer bg-card border">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Filters</span>
+                {(kind !== "all" || account !== "all" || monthFilter !== "all" || q) && (
+                  <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+                )}
               </Button>
-              <Button onClick={() => setFiltersOpen(false)} className="text-xs font-bold cursor-pointer">
-                Apply Filters
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-[90vw] rounded-xl z-[99]">
+              <DialogHeader>
+                <DialogTitle className="font-serif">Filter Transactions</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Search</label>
+                  <Input
+                    placeholder="Search notes, category, account…"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    className="w-full bg-background"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Type</label>
+                  <Select value={kind} onValueChange={setKind}>
+                    <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="all">All types</SelectItem>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="expense">Expense</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
+                  <Select value={account} onValueChange={setAccount}>
+                    <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="all">All accounts</SelectItem>
+                      {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
+                  <Select value={monthFilter} onValueChange={setMonthFilter}>
+                    <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="all">All months</SelectItem>
+                      {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setQ("");
+                    setKind("all");
+                    setAccount("all");
+                    setMonthFilter("all");
+                    setFiltersOpen(false);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Clear all
+                </Button>
+                <Button onClick={() => setFiltersOpen(false)} className="text-xs font-bold cursor-pointer">
+                  Apply Filters
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {filtered.length > 0 && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer bg-card border rounded-lg px-2.5 py-1.5 select-none">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                checked={filtered.length > 0 && filtered.every(t => selectedIds.includes(t.id))}
+                onChange={toggleAllVisible}
+              />
+              <span className="text-[11px] font-medium">Select all</span>
+            </label>
+          )}
+        </div>
 
         <span className="text-xs text-muted-foreground font-serif">
           {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
@@ -421,7 +435,7 @@ function TxnsPage() {
       </div>
 
       {/* List (Mobile Layout) */}
-      <div className="md:hidden rounded-xl border bg-card p-3 overflow-y-auto overflow-x-hidden flex-1 thin-scroll">
+      <div className="md:hidden rounded-xl border bg-card p-3 overflow-y-auto overflow-x-hidden flex-1 min-h-0 thin-scroll">
         {filtered.length === 0 && (
           <div className="text-center text-muted-foreground py-12 text-sm">
             No transactions match.
@@ -521,7 +535,7 @@ function TxnsPage() {
 
       {/* Floating Batch Actions Bar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[40] flex items-center gap-3 px-4 py-2.5 rounded-full border bg-background/95 backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[40] flex items-center gap-3 px-4 py-2.5 rounded-full border bg-background/95 backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-5 duration-300 max-w-[95vw] overflow-x-auto">
           <span className="text-xs font-serif font-black text-foreground">
             {selectedIds.length} selected
           </span>
