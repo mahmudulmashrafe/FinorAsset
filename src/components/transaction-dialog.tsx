@@ -299,7 +299,12 @@ export function TransactionDialog({
     setEventItems(prev => prev.map(item => item.id === id ? { ...item, [field]: val } : item));
   }
 
-  const eventTotal = eventItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const eventTotal = eventItems.reduce((sum, item) => {
+    const amt = Number(item.amount) || 0;
+    if (item.kind === "income") return sum + amt;
+    if (item.kind === "expense") return sum - amt;
+    return sum;
+  }, 0);
 
   async function submitEvent() {
     if (!eventTitle.trim()) return toast.error("Enter an event title (e.g., Cox's Bazar Trip)");
@@ -627,7 +632,15 @@ export function TransactionDialog({
           <DialogFooter className="p-4 border-t flex-row items-center justify-between gap-2 shrink-0">
             <div className="text-left">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-serif">Aggregate Total</div>
-              <div className="font-serif num font-bold text-sm text-foreground">{fmtMoney(eventTotal, currency)}</div>
+              {(() => {
+                const sign = eventTotal > 0 ? "+" : eventTotal < 0 ? "−" : "";
+                const color = eventTotal > 0 ? "text-[color:var(--success)]" : eventTotal < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                return (
+                  <div className={`font-serif num font-bold text-sm ${color}`}>
+                    {sign}{fmtMoney(Math.abs(eventTotal), currency)}
+                  </div>
+                );
+              })()}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>

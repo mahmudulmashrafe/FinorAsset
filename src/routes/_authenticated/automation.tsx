@@ -635,11 +635,18 @@ function AutomationPage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-auto pt-2 border-t" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-xs text-muted-foreground">
-                      Total: <span className="font-serif num font-bold text-foreground text-sm block">
-                        {fmtMoney(rule.actions.reduce((sum, act) => sum + (act.kind === "expense" ? act.amount : act.kind === "income" ? act.amount : 0), 0), currency)}
-                      </span>
-                    </span>
+                    {(() => {
+                      const macroTotal = rule.actions.reduce((sum, act) => sum + (act.kind === "income" ? Number(act.amount) : act.kind === "expense" ? -Number(act.amount) : 0), 0);
+                      const macroSign = macroTotal > 0 ? "+" : macroTotal < 0 ? "−" : "";
+                      const macroColor = macroTotal > 0 ? "text-[color:var(--success)]" : macroTotal < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                      return (
+                        <span className="text-xs text-muted-foreground">
+                          Total: <span className={`font-serif num font-bold text-sm block ${macroColor}`}>
+                            {macroSign}{fmtMoney(Math.abs(macroTotal), currency)}
+                          </span>
+                        </span>
+                      );
+                    })()}
 
                     <div className="flex items-center gap-1">
                       <button
@@ -820,9 +827,16 @@ function AutomationPage() {
           <DialogFooter className="p-6 pt-3 border-t flex flex-row items-center justify-between gap-2 bg-card mt-0">
             <div className="text-left">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block">Aggregate Total</span>
-              <span className="font-serif num font-black text-lg text-foreground">
-                {selectedRule && fmtMoney(selectedRule.actions.reduce((sum, act) => sum + (act.kind === "expense" ? act.amount : act.kind === "income" ? act.amount : 0), 0), currency)}
-              </span>
+              {(() => {
+                const selTotal = selectedRule ? selectedRule.actions.reduce((sum, act) => sum + (act.kind === "income" ? Number(act.amount) : act.kind === "expense" ? -Number(act.amount) : 0), 0) : 0;
+                const selSign = selTotal > 0 ? "+" : selTotal < 0 ? "−" : "";
+                const selColor = selTotal > 0 ? "text-[color:var(--success)]" : selTotal < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                return (
+                  <span className={`font-serif num font-black text-lg ${selColor}`}>
+                    {selSign}{fmtMoney(Math.abs(selTotal), currency)}
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="flex items-center gap-2">

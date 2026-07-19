@@ -134,7 +134,9 @@ function TxnsPage() {
         }
         const grp = eventMap.get(parsed.eventId)!;
         grp.items.push(t);
-        grp.totalAmount += Number(t.amount);
+        const amt = Number(t.amount);
+        if (t.kind === "income") grp.totalAmount += amt;
+        else if (t.kind === "expense") grp.totalAmount -= amt;
       }
     }
 
@@ -489,8 +491,16 @@ function TxnsPage() {
                       <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base italic">
                         Click to view full record
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-right num font-serif font-bold text-sm md:text-base text-foreground">
-                        {fmtMoney(grp.totalAmount, currency)}
+                      <TableCell className="py-3 px-4 text-right">
+                        {(() => {
+                          const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
+                          const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                          return (
+                            <span className={`num font-serif font-bold text-sm md:text-base ${color}`}>
+                              {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
+                            </span>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="py-3 px-4">
                         <div className="flex items-center justify-end gap-1">
@@ -634,7 +644,15 @@ function TxnsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="num font-serif text-xs font-bold">{fmtMoney(grp.totalAmount, currency)}</span>
+                    {(() => {
+                      const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
+                      const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                      return (
+                        <span className={`num font-serif text-xs font-bold ${color}`}>
+                          {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
+                        </span>
+                      );
+                    })()}
                     <button
                       onClick={() => setSelectedEventGroup(grp)}
                       className="h-6 px-2 text-[10px] font-bold rounded bg-accent/10 text-foreground flex items-center gap-1 cursor-pointer"
@@ -892,9 +910,16 @@ function TxnsPage() {
           <DialogFooter className="p-4 border-t flex-row items-center justify-between gap-2 shrink-0">
             <div className="text-left">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-serif">Aggregate Total</div>
-              <div className="font-serif num font-bold text-sm text-foreground">
-                {selectedEventGroup && fmtMoney(selectedEventGroup.totalAmount, currency)}
-              </div>
+              {(() => {
+                const tot = selectedEventGroup?.totalAmount ?? 0;
+                const sign = tot > 0 ? "+" : tot < 0 ? "−" : "";
+                const color = tot > 0 ? "text-[color:var(--success)]" : tot < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                return (
+                  <div className={`font-serif num font-bold text-sm ${color}`}>
+                    {sign}{fmtMoney(Math.abs(tot), currency)}
+                  </div>
+                );
+              })()}
             </div>
             <div className="flex items-center gap-2">
               <Button
