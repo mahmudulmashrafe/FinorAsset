@@ -47,6 +47,18 @@ export function parseEventNote(note: string | null) {
   };
 }
 
+function safeDateStr(d: any): string {
+  if (!d) return "";
+  const s = String(d);
+  if (s.length >= 10 && s.includes("-")) return s.slice(0, 10);
+  try {
+    const dt = new Date(d);
+    return isNaN(dt.getTime()) ? "" : dt.toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
 export const Route = createFileRoute("/_authenticated/transactions")({
   component: TxnsPage,
   head: () => ({ meta: [{ title: "Transactions — FinorAsset" }] }),
@@ -102,8 +114,8 @@ function TxnsPage() {
     });
   }
 
-  const catMap = new Map(cats.map(c => [c.id, c]));
-  const accMap = new Map(accounts.map(a => [a.id, a]));
+  const catMap = useMemo(() => new Map(cats.map(c => [c.id, c])), [cats]);
+  const accMap = useMemo(() => new Map(accounts.map(a => [a.id, a])), [accounts]);
 
   const monthOptions = useMemo(() => {
     const list = [];
@@ -182,7 +194,9 @@ function TxnsPage() {
     return result.sort((a, b) => {
       const dateA = a.type === "event" ? a.group.date : a.txn.occurred_on;
       const dateB = b.type === "event" ? b.group.date : b.txn.occurred_on;
-      const dateDiff = new Date(dateB).getTime() - new Date(dateA).getTime();
+      const timeA = new Date(dateA || 0).getTime() || 0;
+      const timeB = new Date(dateB || 0).getTime() || 0;
+      const dateDiff = timeB - timeA;
       if (dateDiff !== 0) return dateDiff;
 
       const idA = a.type === "event" ? a.group.eventId : a.txn.id;
@@ -191,23 +205,12 @@ function TxnsPage() {
       const rankB = sameDateRanks[idB] ?? 0;
       if (rankA !== rankB) return rankB - rankA;
 
-      const createdA = a.type === "event" ? a.group.items[0]?.created_at : a.txn.created_at;
-      const createdB = b.type === "event" ? b.group.items[0]?.created_at : b.txn.created_at;
-      return new Date(createdB || 0).getTime() - new Date(createdA || 0).getTime();
+      const createdA = a.type === "event" ? (a.group.items[0]?.created_at || a.group.date) : a.txn.created_at;
+      const createdB = b.type === "event" ? (b.group.items[0]?.created_at || b.group.date) : b.txn.created_at;
+      const cTimeA = new Date(createdA || 0).getTime() || 0;
+      return cTimeB - cTimeA;
     });
   }, [filtered, sameDateRanks]);
-
-function safeDateStr(d: any): string {
-  if (!d) return "";
-  const s = String(d);
-  if (s.length >= 10 && s.includes("-")) return s.slice(0, 10);
-  try {
-    const dt = new Date(d);
-    return isNaN(dt.getTime()) ? "" : dt.toISOString().slice(0, 10);
-  } catch {
-    return "";
-  }
-}
 
   function moveSameDateRow(index: number, direction: "up" | "down") {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
