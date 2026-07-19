@@ -639,9 +639,14 @@ export function TransactionDialog({
                         <Select value={item.accountId} onValueChange={(v) => updateEventItem(item.id, "accountId", v)}>
                           <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Account" /></SelectTrigger>
                           <SelectContent className="z-[150]">
-                            {accounts.map((a) => (
-                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                            ))}
+                            {accounts.map((a) => {
+                               const bal = balances.get(a.id) ?? 0;
+                               return (
+                                 <SelectItem key={a.id} value={a.id}>
+                                   {a.name} ({fmtMoney(bal, currency)})
+                                 </SelectItem>
+                               );
+                             })}
                           </SelectContent>
                         </Select>
                       </div>
@@ -744,7 +749,16 @@ export function TransactionDialog({
               <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
               <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger id="txn-account" aria-invalid={!!errors.accountId}><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent className="z-[150]">{accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+                <SelectContent className="z-[150]">
+                  {accounts.map((a) => {
+                    const bal = balances.get(a.id) ?? 0;
+                    return (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({fmtMoney(bal, currency)})
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
               {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
             </div>
@@ -755,7 +769,16 @@ export function TransactionDialog({
               <Label htmlFor="txn-to-account">To account</Label>
               <Select value={toAccountId} onValueChange={setToAccountId}>
                 <SelectTrigger id="txn-to-account" aria-invalid={!!errors.toAccountId}><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent className="z-[150]">{accounts.filter((a) => a.id !== accountId).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+                <SelectContent className="z-[150]">
+                  {accounts.filter((a) => a.id !== accountId).map((a) => {
+                    const bal = balances.get(a.id) ?? 0;
+                    return (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({fmtMoney(bal, currency)})
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
               {errors.toAccountId && <p className="mt-1 text-xs text-destructive">{errors.toAccountId}</p>}
             </div>

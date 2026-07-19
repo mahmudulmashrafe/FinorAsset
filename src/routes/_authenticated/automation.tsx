@@ -1071,7 +1071,7 @@ function AutomationPage() {
                             <SelectContent className="z-[150]">
                               {accounts.map((a) => (
                                 <SelectItem key={a.id} value={a.id}>
-                                  {a.name}
+                                  {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1088,7 +1088,7 @@ function AutomationPage() {
                               <SelectContent className="z-[150]">
                                 {accounts.map((a) => (
                                   <SelectItem key={a.id} value={a.id}>
-                                    {a.name}
+                                    {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1318,7 +1318,7 @@ function AutomationPage() {
                       <SelectContent className="z-[150]">
                         {accounts.map((a) => (
                           <SelectItem key={a.id} value={a.id}>
-                            {a.name}
+                            {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1335,7 +1335,7 @@ function AutomationPage() {
                         <SelectContent className="z-[150]">
                           {accounts.map((a) => (
                             <SelectItem key={a.id} value={a.id}>
-                              {a.name}
+                              {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
                             </SelectItem>
                           ))}
                         </SelectContent>

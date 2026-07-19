@@ -776,7 +776,7 @@ function LoansPage() {
                       <SelectContent className="z-[100]">
                         <SelectItem value="none">Do not link account</SelectItem>
                         {accounts.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                          <SelectItem key={a.id} value={a.id}>{a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -793,7 +793,7 @@ function LoansPage() {
                     <SelectContent className="z-[100]">
                       <SelectItem value="none">Do not link account</SelectItem>
                       {accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                        <SelectItem key={a.id} value={a.id}>{a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
