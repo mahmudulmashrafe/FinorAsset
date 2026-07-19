@@ -197,6 +197,18 @@ function TxnsPage() {
     });
   }, [filtered, sameDateRanks]);
 
+function safeDateStr(d: any): string {
+  if (!d) return "";
+  const s = String(d);
+  if (s.length >= 10 && s.includes("-")) return s.slice(0, 10);
+  try {
+    const dt = new Date(d);
+    return isNaN(dt.getTime()) ? "" : dt.toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
   function moveSameDateRow(index: number, direction: "up" | "down") {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= displayRows.length) return;
@@ -207,10 +219,10 @@ function TxnsPage() {
     const currentDate = current.type === "event" ? current.group.date : current.txn.occurred_on;
     const targetDate = target.type === "event" ? target.group.date : target.txn.occurred_on;
 
-    const cDateStr = new Date(currentDate).toISOString().split("T")[0];
-    const tDateStr = new Date(targetDate).toISOString().split("T")[0];
+    const cDateStr = safeDateStr(currentDate);
+    const tDateStr = safeDateStr(targetDate);
 
-    if (cDateStr !== tDateStr) {
+    if (!cDateStr || !tDateStr || cDateStr !== tDateStr) {
       toast.info("Reordering is allowed only between transactions on the same date");
       return;
     }
@@ -527,11 +539,12 @@ function TxnsPage() {
                 const prevRow = rowIdx > 0 ? displayRows[rowIdx - 1] : null;
                 const nextRow = rowIdx < displayRows.length - 1 ? displayRows[rowIdx + 1] : null;
 
-                const prevDate = prevRow ? (prevRow.type === "event" ? prevRow.group.date : prevRow.txn.occurred_on) : null;
-                const nextDate = nextRow ? (nextRow.type === "event" ? nextRow.group.date : nextRow.txn.occurred_on) : null;
+                const rStr = safeDateStr(rowDate);
+                const pStr = safeDateStr(prevDate);
+                const nStr = safeDateStr(nextDate);
 
-                const isSameDateUp = prevDate ? new Date(rowDate).toISOString().split("T")[0] === new Date(prevDate).toISOString().split("T")[0] : false;
-                const isSameDateDown = nextDate ? new Date(rowDate).toISOString().split("T")[0] === new Date(nextDate).toISOString().split("T")[0] : false;
+                const isSameDateUp = !!rStr && !!pStr && rStr === pStr;
+                const isSameDateDown = !!rStr && !!nStr && rStr === nStr;
 
                 if (row.type === "event") {
                   const grp = row.group;
