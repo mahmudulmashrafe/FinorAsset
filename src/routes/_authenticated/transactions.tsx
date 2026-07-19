@@ -262,7 +262,7 @@ function TxnsPage() {
   };
 
   return (
-    <div className="space-y-3 sm:space-y-6 w-full flex-1 min-h-0 md:h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
+    <div className="space-y-3 sm:space-y-4 w-full flex-1 min-h-0 md:h-[calc(100vh-12rem)] flex flex-col md:overflow-hidden">
 
 
       {/* Edit dialog (controlled, no trigger) */}
