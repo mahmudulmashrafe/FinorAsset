@@ -881,20 +881,18 @@ function Layout() {
                   onMarkAllRead={markAllNotificationsRead} 
                   onBellClick={() => syncNotifications()}
                 />
-                {!isTxnsPage && (
-                  <TransactionDialog
-                    trigger={
-                      <Button 
-                        size="default" 
-                        className="group relative gap-1.5 font-bold rounded-full h-9 px-3.5 bg-primary hover:bg-[#2c2826] text-primary-foreground text-xs transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-sm border border-primary/10 cursor-pointer"
-                        id="header-new-txn-btn"
-                      >
-                        <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90 text-accent" />
-                        <span className="tracking-tight">Add</span>
-                      </Button>
-                    }
-                  />
-                )}
+                <TransactionDialog
+                  trigger={
+                    <Button 
+                      size="default" 
+                      className="group relative gap-1.5 font-bold rounded-full h-9 px-3.5 bg-primary hover:bg-[#2c2826] text-primary-foreground text-xs transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-sm border border-primary/10 cursor-pointer"
+                      id="header-new-txn-btn"
+                    >
+                      <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90 text-accent" />
+                      <span className="tracking-tight">Add</span>
+                    </Button>
+                  }
+                />
                 <HeaderProfileMenu
                   onSignOut={signOut}
                   onOpenCategories={() => setCategoriesOpen(true)}
@@ -941,20 +939,18 @@ function Layout() {
               onMarkAllRead={markAllNotificationsRead} 
               onBellClick={() => syncNotifications()}
             />
-            {!isTxnsPage && (
-              <TransactionDialog
-                trigger={
-                  <Button 
-                    size="default" 
-                    className="group relative gap-2.5 font-bold rounded-full h-12 px-6 bg-primary hover:bg-[#2c2826] text-primary-foreground text-sm sm:text-base transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-md hover:shadow-[0_4px_20px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
-                    id="header-new-txn-btn"
-                  >
-                    <Plus className="h-5 w-5 transition-transform duration-300 group-hover:rotate-90 text-accent" />
-                    <span className="tracking-tight">Add Transaction</span>
-                  </Button>
-                }
-              />
-            )}
+            <TransactionDialog
+              trigger={
+                <Button 
+                  size="default" 
+                  className="group relative gap-2.5 font-bold rounded-full h-12 px-6 bg-primary hover:bg-[#2c2826] text-primary-foreground text-sm sm:text-base transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-md hover:shadow-[0_4px_20px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
+                  id="header-new-txn-btn"
+                >
+                  <Plus className="h-5 w-5 transition-transform duration-300 group-hover:rotate-90 text-accent" />
+                  <span className="tracking-tight">Add Transaction</span>
+                </Button>
+              }
+            />
           </div>
         </header>
 
