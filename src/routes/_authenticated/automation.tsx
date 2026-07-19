@@ -498,11 +498,14 @@ function AutomationPage() {
     setExecutingId(rule.id);
 
     try {
+      const eventId = `evt_macro_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const inserts: any[] = [];
       for (const act of rule.actions) {
         if (act.isSplit) {
           const splits = act.splits || [];
           for (const split of splits) {
+            const cleanNote = act.note ? act.note.trim() : "";
+            const formattedNote = `[Event: ${rule.name.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`;
             inserts.push({
               user_id: authUser.id,
               kind: act.kind,
@@ -510,11 +513,13 @@ function AutomationPage() {
               account_id: split.accountId,
               to_account_id: null,
               amount: Number(split.amount),
-              note: act.note || `Automation shortcut: ${rule.name}`,
+              note: formattedNote,
               occurred_on: new Date().toISOString().split("T")[0],
             });
           }
         } else {
+          const cleanNote = act.note ? act.note.trim() : "";
+          const formattedNote = `[Event: ${rule.name.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`;
           inserts.push({
             user_id: authUser.id,
             kind: act.kind,
@@ -522,7 +527,7 @@ function AutomationPage() {
             account_id: act.account_id,
             to_account_id: act.kind === "transfer" ? act.to_account_id || null : null,
             amount: Number(act.amount),
-            note: act.note || `Automation shortcut: ${rule.name}`,
+            note: formattedNote,
             occurred_on: new Date().toISOString().split("T")[0],
           });
         }
@@ -533,7 +538,7 @@ function AutomationPage() {
       if (error) {
         toast.error(`Execution failed: ${error.message}`);
       } else {
-        toast.success(`Executed "${rule.name}"! Logged ${inserts.length} transactions successfully.`);
+        toast.success(`🎉 Executed macro "${rule.name}" as an Event with ${inserts.length} records!`);
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
       }
