@@ -705,7 +705,7 @@ function TxnsPage() {
                               {sign}{fmtMoney(Number(t.amount), currency)}
                             </TableCell>
                             <TableCell className="py-3 px-4">
-                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => setEditingTxn(t)}
                                   className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
@@ -776,7 +776,7 @@ function TxnsPage() {
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
                     <TableCell className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => moveSameDateRow(rowIdx, "up")}
                           disabled={!isSameDateUp}
