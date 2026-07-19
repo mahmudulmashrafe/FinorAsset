@@ -77,6 +77,21 @@ function TxnsPage() {
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [editingEventGroup, setEditingEventGroup] = useState<EventGroup | null>(null);
   const [expandedEventIds, setExpandedEventIds] = useState<Set<string>>(new Set());
+  const [sameDateRanks, setSameDateRanks] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined" || typeof localStorage === "undefined") return {};
+    try {
+      return JSON.parse(localStorage.getItem("finorasset_same_date_ranks") || "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  function saveSameDateRanks(newRanks: Record<string, number>) {
+    setSameDateRanks(newRanks);
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      localStorage.setItem("finorasset_same_date_ranks", JSON.stringify(newRanks));
+    }
+  }
 
   function toggleExpandEvent(eventId: string) {
     setExpandedEventIds((prev) => {
@@ -163,8 +178,56 @@ function TxnsPage() {
       }
     }
 
-    return result;
-  }, [filtered]);
+    // Sort rows by Date (newest first). For items on the SAME DATE, use sameDateRanks!
+    return result.sort((a, b) => {
+      const dateA = a.type === "event" ? a.group.date : a.txn.occurred_on;
+      const dateB = b.type === "event" ? b.group.date : b.txn.occurred_on;
+      const dateDiff = new Date(dateB).getTime() - new Date(dateA).getTime();
+      if (dateDiff !== 0) return dateDiff;
+
+      const idA = a.type === "event" ? a.group.eventId : a.txn.id;
+      const idB = b.type === "event" ? b.group.eventId : b.txn.id;
+      const rankA = sameDateRanks[idA] ?? 0;
+      const rankB = sameDateRanks[idB] ?? 0;
+      if (rankA !== rankB) return rankB - rankA;
+
+      const createdA = a.type === "event" ? a.group.items[0]?.created_at : a.txn.created_at;
+      const createdB = b.type === "event" ? b.group.items[0]?.created_at : b.txn.created_at;
+      return new Date(createdB || 0).getTime() - new Date(createdA || 0).getTime();
+    });
+  }, [filtered, sameDateRanks]);
+
+  function moveSameDateRow(index: number, direction: "up" | "down") {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= displayRows.length) return;
+
+    const current = displayRows[index];
+    const target = displayRows[targetIndex];
+
+    const currentDate = current.type === "event" ? current.group.date : current.txn.occurred_on;
+    const targetDate = target.type === "event" ? target.group.date : target.txn.occurred_on;
+
+    const cDateStr = new Date(currentDate).toISOString().split("T")[0];
+    const tDateStr = new Date(targetDate).toISOString().split("T")[0];
+
+    if (cDateStr !== tDateStr) {
+      toast.info("Reordering is allowed only between transactions on the same date");
+      return;
+    }
+
+    const currentId = current.type === "event" ? current.group.eventId : current.txn.id;
+    const targetId = target.type === "event" ? target.group.eventId : target.txn.id;
+
+    const currentRank = sameDateRanks[currentId] ?? (1000 - index);
+    const targetRank = sameDateRanks[targetId] ?? (1000 - targetIndex);
+
+    saveSameDateRanks({
+      ...sameDateRanks,
+      [currentId]: targetRank,
+      [targetId]: currentRank,
+    });
+    toast.success("Same-date order updated");
+  }
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -459,7 +522,17 @@ function TxnsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {displayRows.map((row) => {
+              {displayRows.map((row, rowIdx) => {
+                const rowDate = row.type === "event" ? row.group.date : row.txn.occurred_on;
+                const prevRow = rowIdx > 0 ? displayRows[rowIdx - 1] : null;
+                const nextRow = rowIdx < displayRows.length - 1 ? displayRows[rowIdx + 1] : null;
+
+                const prevDate = prevRow ? (prevRow.type === "event" ? prevRow.group.date : prevRow.txn.occurred_on) : null;
+                const nextDate = nextRow ? (nextRow.type === "event" ? nextRow.group.date : nextRow.txn.occurred_on) : null;
+
+                const isSameDateUp = prevDate ? new Date(rowDate).toISOString().split("T")[0] === new Date(prevDate).toISOString().split("T")[0] : false;
+                const isSameDateDown = nextDate ? new Date(rowDate).toISOString().split("T")[0] === new Date(nextDate).toISOString().split("T")[0] : false;
+
                 if (row.type === "event") {
                   const grp = row.group;
                   const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
@@ -520,6 +593,22 @@ function TxnsPage() {
                         </TableCell>
                         <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => moveSameDateRow(rowIdx, "up")}
+                              disabled={!isSameDateUp}
+                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                              title={isSameDateUp ? "Move Up (Same Date)" : "Only same-date items can be reordered"}
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => moveSameDateRow(rowIdx, "down")}
+                              disabled={!isSameDateDown}
+                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                              title={isSameDateDown ? "Move Down (Same Date)" : "Only same-date items can be reordered"}
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -669,6 +758,22 @@ function TxnsPage() {
                     </TableCell>
                     <TableCell className="py-3 px-4">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => moveSameDateRow(rowIdx, "up")}
+                          disabled={!isSameDateUp}
+                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                          title={isSameDateUp ? "Move Up (Same Date)" : "Only same-date items can be reordered"}
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => moveSameDateRow(rowIdx, "down")}
+                          disabled={!isSameDateDown}
+                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                          title={isSameDateDown ? "Move Down (Same Date)" : "Only same-date items can be reordered"}
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => setEditingTxn(t)}
                           className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"

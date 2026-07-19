@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type TxnKind, type Transaction, syncTransactionToLoan, computeAccountBalances, fmtMoney } from "@/lib/finance";
 import { toast } from "sonner";
-import { Plus, PlusCircle, X, Trash2 } from "lucide-react";
+import { Plus, PlusCircle, X, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -326,6 +326,20 @@ export function TransactionDialog({
     setEventItems(prev => prev.map(item => item.id === id ? { ...item, [field]: val } : item));
   }
 
+  function moveEventItem(id: string, direction: "up" | "down") {
+    setEventItems((prev) => {
+      const idx = prev.findIndex((item) => item.id === id);
+      if (idx < 0) return prev;
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const next = [...prev];
+      const temp = next[idx];
+      next[idx] = next[targetIdx];
+      next[targetIdx] = temp;
+      return next;
+    });
+  }
+
   const eventTotal = eventItems.reduce((sum, item) => {
     const amt = Number(item.amount) || 0;
     if (item.kind === "income") return sum + amt;
@@ -580,19 +594,40 @@ export function TransactionDialog({
 
               <div className="space-y-3">
                 {eventItems.map((item, idx) => (
-                  <div key={item.id} className="p-3 rounded-xl border bg-card/60 space-y-2.5 relative">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-serif font-bold text-muted-foreground">Item #{idx + 1}</span>
-                      {eventItems.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeEventItem(item.id)}
-                          className="text-muted-foreground hover:text-destructive p-1 rounded cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
+        <div key={item.id} className="p-3 rounded-xl border bg-card/60 space-y-2.5 relative">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-serif font-bold text-muted-foreground">Item #{idx + 1}</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={idx === 0}
+                onClick={() => moveEventItem(item.id, "up")}
+                className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                title="Move item up"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={idx === eventItems.length - 1}
+                onClick={() => moveEventItem(item.id, "down")}
+                className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                title="Move item down"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              {eventItems.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeEventItem(item.id)}
+                  className="text-muted-foreground hover:text-destructive p-1 rounded cursor-pointer ml-1"
+                  title="Remove item"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>

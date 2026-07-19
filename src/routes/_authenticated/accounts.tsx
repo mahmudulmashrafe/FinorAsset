@@ -138,11 +138,35 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
 
   async function save() {
     setErrors({});
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       setErrors({ name: "Account name is required" });
       return;
     }
     setSaving(true);
+
+    // Duplicate account name & category validation
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { setSaving(false); return; }
+
+    const { data: existingAccounts } = await supabase
+      .from("accounts")
+      .select("id, name, type")
+      .eq("user_id", u.user.id);
+
+    const isDuplicate = existingAccounts?.some((a) =>
+      a.name.trim().toLowerCase() === trimmedName.toLowerCase() &&
+      a.type === type &&
+      (!isEdit || a.id !== editingAccount?.id)
+    );
+
+    if (isDuplicate) {
+      setSaving(false);
+      const catLabel = TYPE_LABELS[type as keyof typeof TYPE_LABELS] || type;
+      const errMsg = `An account named "${trimmedName}" already exists in ${catLabel}.`;
+      setErrors({ name: errMsg });
+      return toast.error(errMsg);
+    }
 
     if (isEdit) {
       const { error } = await supabase
