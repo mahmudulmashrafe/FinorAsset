@@ -18,6 +18,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/warranties")({
   component: WarrantiesPage,
@@ -75,6 +85,7 @@ function WarrantiesPage() {
   // Form & Dialog States
   const [open, setOpen] = useState(false);
   const [editingWarranty, setEditingWarranty] = useState<Warranty | null>(null);
+  const [deleteWarranty, setDeleteWarranty] = useState<{ id: string; title: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Form values
@@ -336,19 +347,18 @@ function WarrantiesPage() {
     }
   }
 
-  async function handleDelete() {
-    if (!editingWarranty) return;
-    const ok = confirm(`Delete warranty for "${editingWarranty.title}"?`);
-    if (!ok) return;
+  async function confirmDeleteWarranty(id: string) {
+    const target = warranties.find(w => w.id === id);
+    if (!target) return;
 
     setSaving(true);
     try {
       // 1. Delete associated transaction if any
-      if (editingWarranty.transaction_id) {
+      if (target.transaction_id) {
         const { error: txnErr } = await supabase
           .from("transactions")
           .delete()
-          .eq("id", editingWarranty.transaction_id);
+          .eq("id", target.transaction_id);
         if (txnErr) console.error("Failed to delete linked transaction:", txnErr);
       }
 
@@ -356,19 +366,24 @@ function WarrantiesPage() {
       const { error } = await supabase
         .from("warranties")
         .delete()
-        .eq("id", editingWarranty.id);
+        .eq("id", id);
 
       if (error) throw error;
       toast.success("Warranty deleted");
       qc.invalidateQueries({ queryKey: ["warranties"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["accounts"] });
-      setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Delete failed");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDelete() {
+    if (!editingWarranty) return;
+    setOpen(false);
+    setDeleteWarranty({ id: editingWarranty.id, title: editingWarranty.title });
   }
 
   // Stats Computations
@@ -1053,6 +1068,32 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
         </button>,
         document.body
       )}
+
+      {/* Delete Confirmation Alert */}
+      <AlertDialog open={!!deleteWarranty} onOpenChange={(val) => !val && setDeleteWarranty(null)}>
+        <AlertDialogContent className="z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete Warranty?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the warranty for "{deleteWarranty?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-between">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteWarranty) {
+                  confirmDeleteWarranty(deleteWarranty.id);
+                  setDeleteWarranty(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

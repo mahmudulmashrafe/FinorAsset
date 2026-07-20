@@ -446,7 +446,7 @@ function TxnsPage() {
           editingTransaction={editingTxn}
           open={!!editingTxn}
           onOpenChange={(v) => { if (!v) { setEditingTxn(null); refresh(); } }}
-          onDelete={(id) => { confirmDelete(id); setEditingTxn(null); }}
+          onDelete={(id) => { setDeleteId(id); setEditingTxn(null); }}
         />
       )}
 
