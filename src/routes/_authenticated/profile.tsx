@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { User, Mail, DollarSign, Calendar, Save } from "lucide-react";
+import { User, Mail, DollarSign, Calendar, Save, Pencil } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import {
   AlertDialog,
@@ -193,18 +193,29 @@ function ProfilePage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Left side card - Info overview */}
         <div className="rounded-xl border bg-card p-6 md:col-span-1 flex flex-col items-center text-center space-y-4">
-          <div 
-            onClick={() => avatarInputRef.current?.click()}
-            className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-border/80 group cursor-pointer hover:border-accent/40 bg-accent/5 flex items-center justify-center transition-all shrink-0 shadow-sm"
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
-            ) : (
-              <User className="h-10 w-10 text-accent/80" />
-            )}
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className="text-[10px] text-white font-medium">Change</span>
+          <div className="relative group">
+            <div 
+              onClick={() => avatarInputRef.current?.click()}
+              className="h-24 w-24 rounded-full overflow-hidden border-2 border-border/80 cursor-pointer hover:border-accent/40 bg-accent/5 flex items-center justify-center transition-all shrink-0 shadow-sm"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-10 w-10 text-accent/80" />
+              )}
+              <div className="absolute inset-0 bg-black/45 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[10px] text-white font-semibold">Change Picture</span>
+              </div>
             </div>
+            {/* Overlapping Camera / Edit button */}
+            <button 
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 bg-background border border-border text-muted-foreground hover:text-foreground h-7.5 w-7.5 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-all"
+              title="Upload profile picture"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
             <input 
               type="file" 
               ref={avatarInputRef} 
