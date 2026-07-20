@@ -89,9 +89,29 @@ function ProfilePage() {
           .getPublicUrl(filePath);
           
         setAvatarUrl(publicUrl);
-        toast.success("Profile picture uploaded!");
+
+        // Immediately save the avatar to the profiles table
+        const saveCurrency = currency || "USD";
+        const { error: dbErr } = await supabase
+          .from("profiles")
+          .upsert({
+            id: authUser.id,
+            display_name: displayName.trim() || authUser.email?.split("@")[0] || "User",
+            currency: saveCurrency.toUpperCase(),
+            avatar_url: publicUrl,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (dbErr) throw dbErr;
+
+        toast.success("Profile picture updated and saved successfully!");
+        qc.invalidateQueries({ queryKey: ["profile"] });
       } catch (err: any) {
-        toast.error(`Avatar upload failed: ${err.message}`);
+        if (err.message && err.message.includes('column "avatar_url"')) {
+          toast.error("Database schema is missing 'avatar_url' column. Please run the SQL migrations in your Supabase dashboard first!");
+        } else {
+          toast.error(`Avatar upload failed: ${err.message}`);
+        }
       } finally {
         setUploadingAvatar(false);
       }
