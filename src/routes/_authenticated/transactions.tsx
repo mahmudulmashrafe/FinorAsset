@@ -629,29 +629,29 @@ function TxnsPage() {
                             }}
                           />
                         </TableCell>
-                        <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
+                        <TableCell className="py-3 px-4 tabular-nums text-xs text-muted-foreground/80 font-medium">
                           {new Date(grp.date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="py-3 px-4">
-                          <Badge variant="secondary" className="gap-1 font-semibold text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                          <Badge variant="secondary" className="gap-1 font-semibold text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
                             <Layers className="h-3 w-3" /> Event
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-3 px-4 text-sm md:text-base font-bold">
+                        <TableCell className="py-3 px-4 text-xs font-semibold text-foreground/95">
                           <div className="flex items-center gap-2">
                             <span className="p-0.5 rounded text-amber-600 dark:text-amber-400 shrink-0">
                               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             </span>
                             <span>🗓️ {grp.eventTitle}</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-normal">
                               {grp.items.length} records
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
+                        <TableCell className="py-3 px-4 text-xs font-semibold text-muted-foreground/80">
                           Multiple accounts
                         </TableCell>
-                        <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base italic">
+                        <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-xs italic">
                           {isExpanded ? "Expanded inline" : "Click row to expand"}
                         </TableCell>
                         <TableCell className="py-3 px-4 text-right">
@@ -659,7 +659,7 @@ function TxnsPage() {
                             const sign = grp.totalAmount > 0 ? "+" : grp.totalAmount < 0 ? "−" : "";
                             const color = grp.totalAmount > 0 ? "text-[color:var(--success)]" : grp.totalAmount < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
                             return (
-                              <span className={`num font-serif font-bold text-sm md:text-base ${color}`}>
+                              <span className={`num font-serif font-black text-sm ${color}`}>
                                 {sign}{fmtMoney(Math.abs(grp.totalAmount), currency)}
                               </span>
                             );
@@ -962,9 +962,9 @@ function TxnsPage() {
                           🗓️
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="text-sm font-serif font-black truncate">{grp.eventTitle}</span>
-                            <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-semibold truncate">{grp.eventTitle}</span>
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0 leading-none bg-amber-500/10 text-amber-600 border-amber-500/20">
                               {grp.items.length} records
                             </Badge>
                           </div>
