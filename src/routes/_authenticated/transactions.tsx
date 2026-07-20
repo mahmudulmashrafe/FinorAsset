@@ -667,7 +667,7 @@ function TxnsPage() {
                         </TableCell>
                         <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
-                            {reorderDate === rStr ? (
+                            {reorderDate === rStr && (
                               <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
                                 <Button
                                   variant="secondary"
@@ -690,16 +690,6 @@ function TxnsPage() {
                                   <ChevronDown className="h-4 w-4" />
                                 </Button>
                               </div>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleExpandEvent(grp.eventId)}
-                                className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
-                              >
-                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                                {isExpanded ? "Hide" : "Expand"}
-                              </Button>
                             )}
                           </div>
                         </TableCell>
@@ -986,7 +976,7 @@ function TxnsPage() {
                         );
                       })()}
                       <div className="flex items-center gap-0.5">
-                        {reorderDate === rStr ? (
+                        {reorderDate === rStr && (
                           <div className="flex items-center gap-1 animate-in fade-in duration-200">
                             <button
                               onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "up"); }}
@@ -1003,14 +993,6 @@ function TxnsPage() {
                               <ChevronDown className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => toggleExpandEvent(grp.eventId)}
-                            className="h-6 px-2 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 flex items-center gap-1 cursor-pointer"
-                          >
-                            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                            {isExpanded ? "Hide" : "Expand"}
-                          </button>
                         )}
                       </div>
                     </div>
