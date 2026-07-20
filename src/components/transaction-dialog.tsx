@@ -875,20 +875,24 @@ export function TransactionDialog({
         </div>
       </div>
 
-      <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
-        {isEditSingle && editingTransaction && onDelete && (
+      <DialogFooter className="p-4 border-t flex flex-row items-center justify-between gap-2 shrink-0">
+        {isEditSingle && editingTransaction && onDelete ? (
           <Button
             variant="destructive"
-            className="mr-auto"
             onClick={() => { onDelete(editingTransaction.id); setOpen(false); }}
+            className="cursor-pointer"
           >
-            <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+            <Trash2 className="h-4 w-4 mr-1" /> Delete
           </Button>
+        ) : (
+          <div />
         )}
-        <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-        <Button onClick={submit} disabled={saving} id="txn-save-btn">
-          {saving ? "Saving…" : isEdit ? "Save changes" : "Save"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Cancel</Button>
+          <Button onClick={submit} disabled={saving} id="txn-save-btn" className="cursor-pointer">
+            {saving ? "Saving…" : isEdit ? "Save Changes" : "Save"}
+          </Button>
+        </div>
       </DialogFooter>
         </>
       )}
