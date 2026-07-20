@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { 
   ShieldCheck, Plus, Trash2, Pencil, Calendar, Image as ImageIcon, 
-  ExternalLink, AlertTriangle, ShieldAlert, Loader2, Upload, X, Shield 
+  ExternalLink, AlertTriangle, ShieldAlert, Loader2, Upload, X, Shield, FileText 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,10 +86,15 @@ function WarrantiesPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImageUrl, setProductImageUrl] = useState("");
+  const [uploadingProductImage, setUploadingProductImage] = useState(false);
+
   // Lightbox / Image Preview State
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const productFileInputRef = useRef<HTMLInputElement>(null);
 
   function resetForm() {
     setTitle("");
@@ -101,7 +106,10 @@ function WarrantiesPage() {
     setNote("");
     setImageFile(null);
     setImageUrl("");
+    setProductImageFile(null);
+    setProductImageUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (productFileInputRef.current) productFileInputRef.current.value = "";
   }
 
   function handleAddClick() {
@@ -120,6 +128,8 @@ function WarrantiesPage() {
     setNote(w.note || "");
     setImageUrl(w.image_url || "");
     setImageFile(null);
+    setProductImageUrl(w.product_image_url || "");
+    setProductImageFile(null);
     setEditingWarranty(w);
     setOpen(true);
   }
@@ -127,6 +137,12 @@ function WarrantiesPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImageFile(e.target.files[0]);
+    }
+  };
+
+  const handleProductFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setProductImageFile(e.target.files[0]);
     }
   };
 
@@ -143,13 +159,14 @@ function WarrantiesPage() {
 
     setSaving(true);
     let finalImageUrl = imageUrl;
+    let finalProductImageUrl = productImageUrl;
 
     try {
-      // 1. Upload image if selected
+      // 1. Upload receipt image if selected
       if (imageFile) {
         setUploadingImage(true);
         const fileExt = imageFile.name.split('.').pop();
-        const filePath = `${authUser.id}/${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `${authUser.id}/receipt-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('warranties')
@@ -165,6 +182,28 @@ function WarrantiesPage() {
           
         finalImageUrl = publicUrl;
         setUploadingImage(false);
+      }
+
+      // 2. Upload product image if selected
+      if (productImageFile) {
+        setUploadingProductImage(true);
+        const fileExt = productImageFile.name.split('.').pop();
+        const filePath = `${authUser.id}/product-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('warranties')
+          .upload(filePath, productImageFile);
+          
+        if (uploadError) {
+          throw new Error(`Product picture upload failed: ${uploadError.message}`);
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('warranties')
+          .getPublicUrl(filePath);
+          
+        finalProductImageUrl = publicUrl;
+        setUploadingProductImage(false);
       }
 
       const categoryVal = categoryId === "none" ? null : categoryId;
@@ -219,6 +258,7 @@ function WarrantiesPage() {
             transaction_id: finalTxnId,
             note: note.trim() || null,
             image_url: finalImageUrl || null,
+            product_image_url: finalProductImageUrl || null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingWarranty.id);
@@ -257,6 +297,7 @@ function WarrantiesPage() {
           transaction_id: newTxn ? newTxn.id : null,
           note: note.trim() || null,
           image_url: finalImageUrl || null,
+          product_image_url: finalProductImageUrl || null,
         });
 
         if (error) throw error;
@@ -459,7 +500,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   <TableHead className="font-bold py-3 px-4">Paid From</TableHead>
                   <TableHead className="font-bold py-3 px-4">Category</TableHead>
                   <TableHead className="font-bold py-3 px-4 text-right">Cost</TableHead>
-                  <TableHead className="font-bold py-3 px-4 text-center">Receipt</TableHead>
+                  <TableHead className="font-bold py-3 px-4 text-center">Receipt & Pic</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -541,19 +582,33 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                         {fmtMoney(Number(w.amount), currency)}
                       </TableCell>
                       <TableCell className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        {w.image_url ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 w-7 p-0 cursor-pointer text-accent hover:text-accent/80"
-                            onClick={() => setPreviewImage(w.image_url)}
-                            title="View Receipt"
-                          >
-                            <ImageIcon className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground/30 text-xs">—</span>
-                        )}
+                        <div className="flex items-center justify-center gap-1.5">
+                          {w.product_image_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 cursor-pointer text-emerald-500 hover:text-emerald-400"
+                              onClick={() => setPreviewImage(w.product_image_url)}
+                              title="View Product Picture"
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {w.image_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 cursor-pointer text-accent hover:text-accent/80"
+                              onClick={() => setPreviewImage(w.image_url)}
+                              title="View Receipt"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!w.image_url && !w.product_image_url && (
+                            <span className="text-muted-foreground/30 text-xs">—</span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -640,16 +695,28 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                     )}
                   </div>
 
-                  {w.image_url && (
-                    <div className="pt-2 border-t border-border/40 flex justify-end" onClick={(e) => e.stopPropagation()}>
-                      <Button 
-                        variant="outline" 
-                        size="xs" 
-                        className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1"
-                        onClick={() => setPreviewImage(w.image_url)}
-                      >
-                        <ImageIcon className="h-3 w-3" /> View Receipt
-                      </Button>
+                  {(w.image_url || w.product_image_url) && (
+                    <div className="pt-2 border-t border-border/40 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                      {w.product_image_url && (
+                        <Button 
+                          variant="outline" 
+                          size="xs" 
+                          className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1 text-emerald-600 hover:text-emerald-700 bg-emerald-500/[0.03]"
+                          onClick={() => setPreviewImage(w.product_image_url)}
+                        >
+                          <ImageIcon className="h-3 w-3" /> Product Pic
+                        </Button>
+                      )}
+                      {w.image_url && (
+                        <Button 
+                          variant="outline" 
+                          size="xs" 
+                          className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1"
+                          onClick={() => setPreviewImage(w.image_url)}
+                        >
+                          <FileText className="h-3 w-3" /> Receipt
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -765,45 +832,87 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               />
             </div>
 
-            {/* Image / Receipt Upload */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">Receipt / Product Image</Label>
-              
-              {imageUrl && (
-                <div className="relative border rounded-lg overflow-hidden h-28 bg-muted flex items-center justify-center">
-                  <img src={imageUrl} alt="Receipt Preview" className="h-full object-contain" />
-                  <Button 
-                    variant="destructive" 
-                    size="xs" 
-                    className="absolute top-1.5 right-1.5 h-5 w-5 p-0 rounded-full cursor-pointer"
-                    onClick={() => setImageUrl("")}
-                    disabled={saving}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
+            {/* Image Uploaders */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+              {/* Receipt Image Upload */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Receipt / Invoice</Label>
+                
+                {imageUrl && (
+                  <div className="relative border rounded-lg overflow-hidden h-28 bg-muted flex items-center justify-center">
+                    <img src={imageUrl} alt="Receipt Preview" className="h-full object-contain" />
+                    <Button 
+                      variant="destructive" 
+                      size="xs" 
+                      className="absolute top-1.5 right-1.5 h-5 w-5 p-0 rounded-full cursor-pointer"
+                      onClick={() => setImageUrl("")}
+                      disabled={saving}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
 
-              {!imageUrl && (
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-border/60 hover:border-accent/40 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-accent/[0.01] hover:bg-accent/[0.03] transition-all"
-                >
-                  <Upload className="h-5 w-5 text-muted-foreground opacity-60" />
-                  <span className="text-[11px] font-medium">
-                    {imageFile ? imageFile.name : "Click to select or upload receipt"}
-                  </span>
-                  <span className="text-[9px] text-muted-foreground opacity-75">Max file size: 5MB</span>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
-                    disabled={saving}
-                  />
-                </div>
-              )}
+                {!imageUrl && (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border/60 hover:border-accent/40 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-accent/[0.01] hover:bg-accent/[0.03] transition-all h-28 text-center"
+                  >
+                    <Upload className="h-4 w-4 text-muted-foreground opacity-60" />
+                    <span className="text-[10px] font-medium leading-tight">
+                      {imageFile ? imageFile.name : "Upload Receipt"}
+                    </span>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                      disabled={saving}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Product Picture Upload */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Product Picture</Label>
+                
+                {productImageUrl && (
+                  <div className="relative border rounded-lg overflow-hidden h-28 bg-muted flex items-center justify-center">
+                    <img src={productImageUrl} alt="Product Preview" className="h-full object-contain" />
+                    <Button 
+                      variant="destructive" 
+                      size="xs" 
+                      className="absolute top-1.5 right-1.5 h-5 w-5 p-0 rounded-full cursor-pointer"
+                      onClick={() => setProductImageUrl("")}
+                      disabled={saving}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {!productImageUrl && (
+                  <div 
+                    onClick={() => productFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border/60 hover:border-emerald-500/40 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-emerald-500/[0.01] hover:bg-emerald-500/[0.03] transition-all h-28 text-center"
+                  >
+                    <ImageIcon className="h-4 w-4 text-muted-foreground opacity-60" />
+                    <span className="text-[10px] font-medium leading-tight">
+                      {productImageFile ? productImageFile.name : "Upload Product Pic"}
+                    </span>
+                    <input 
+                      type="file" 
+                      ref={productFileInputRef} 
+                      onChange={handleProductFileChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                      disabled={saving}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -812,7 +921,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               <Button 
                 variant="destructive" 
                 onClick={handleDelete} 
-                disabled={saving || uploadingImage}
+                disabled={saving || uploadingImage || uploadingProductImage}
                 className="cursor-pointer mr-auto"
               >
                 <Trash2 className="h-4 w-4 mr-1" /> Delete
@@ -822,20 +931,20 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               <Button 
                 variant="outline" 
                 onClick={() => { setOpen(false); resetForm(); }} 
-                disabled={saving || uploadingImage}
+                disabled={saving || uploadingImage || uploadingProductImage}
                 className="cursor-pointer"
               >
                 Cancel
               </Button>
               <Button 
                 onClick={handleSave} 
-                disabled={saving || uploadingImage}
+                disabled={saving || uploadingImage || uploadingProductImage}
                 className="cursor-pointer"
               >
-                {saving || uploadingImage ? (
+                {saving || uploadingImage || uploadingProductImage ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    {uploadingImage ? "Uploading..." : "Saving..."}
+                    {uploadingImage || uploadingProductImage ? "Uploading..." : "Saving..."}
                   </>
                 ) : (
                   "Save"

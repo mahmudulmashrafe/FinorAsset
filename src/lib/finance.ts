@@ -18,6 +18,8 @@ export type Warranty = {
   category_id: string | null;
   note: string | null;
   image_url: string | null;
+  product_image_url: string | null;
+  transaction_id: string | null;
   created_at: string;
   updated_at: string;
 };

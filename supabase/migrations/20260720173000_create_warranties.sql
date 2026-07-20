@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS public.warranties (
   category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
   transaction_id UUID REFERENCES public.transactions(id) ON DELETE SET NULL,
   note TEXT,
-  image_url TEXT,
+  image_url TEXT, -- Receipt image
+  product_image_url TEXT, -- Product picture
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
