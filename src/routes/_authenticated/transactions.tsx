@@ -130,7 +130,7 @@ function TxnsPage() {
         } catch {}
       }
       toast.success(`Same-date reordering active for ${new Date(dateStr).toLocaleDateString()}`);
-    }, 2000);
+    }, 1000);
   };
 
   const cancelPress = () => {
