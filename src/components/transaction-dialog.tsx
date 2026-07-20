@@ -724,8 +724,8 @@ export function TransactionDialog({
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button size="sm" onClick={submitEvent} disabled={saving} className="font-bold">
-                {saving ? (isEditEvent ? "Updating Event…" : "Saving Event…") : (isEditEvent ? "Update Event" : "Save Event")}
+              <Button size="sm" onClick={submitEvent} disabled={saving} className="font-bold cursor-pointer">
+                {saving ? "Saving…" : "Save"}
               </Button>
             </div>
           </DialogFooter>

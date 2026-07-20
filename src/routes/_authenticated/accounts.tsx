@@ -395,7 +395,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving} className="cursor-pointer">Cancel</Button>
             <Button onClick={save} disabled={saving} className="cursor-pointer">
-              {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Account"}
+              {saving ? "Saving…" : "Save"}
             </Button>
           </div>
         </DialogFooter>

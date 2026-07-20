@@ -55,6 +55,7 @@ function BudgetsPage() {
   const [amount, setAmount] = useState("");
   const [editingBudget, setEditingBudget] = useState<any | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const expenseCats = cats.filter(c => c.kind === "expense");
   const usedIds = new Set(budgets.map(b => b.category_id));
@@ -65,14 +66,16 @@ function BudgetsPage() {
   async function save() {
     const targetCatId = editingBudget ? editingBudget.category_id : catId;
     if (!targetCatId || !Number(amount)) return toast.error("Pick category and amount");
+    setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
+    if (!u.user) { setSaving(false); return; }
 
     if (editingBudget) {
       const { error } = await supabase
         .from("budgets")
         .update({ amount: Number(amount) })
         .eq("id", editingBudget.id);
+      setSaving(false);
       if (error) return toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["budgets", period] });
       setOpen(false); setEditingBudget(null); setCatId(""); setAmount("");
@@ -81,6 +84,7 @@ function BudgetsPage() {
       const { error } = await supabase.from("budgets").insert({
         user_id: u.user.id, category_id: targetCatId, amount: Number(amount), period_month: period,
       });
+      setSaving(false);
       if (error) return toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["budgets", period] });
       setOpen(false); setCatId(""); setAmount("");
@@ -246,8 +250,8 @@ function BudgetsPage() {
               <Button variant="outline" onClick={() => { setOpen(false); setEditingBudget(null); }} className="cursor-pointer">
                 Cancel
               </Button>
-              <Button onClick={save} className="cursor-pointer">
-                {editingBudget ? "Save Changes" : "Set Budget"}
+              <Button onClick={save} disabled={saving} className="cursor-pointer">
+                {saving ? "Saving…" : "Save"}
               </Button>
             </div>
           </DialogFooter>

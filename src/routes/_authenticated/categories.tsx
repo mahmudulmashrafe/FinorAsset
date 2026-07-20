@@ -339,7 +339,7 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
         <DialogFooter className="p-4 border-t gap-2 flex flex-row items-center justify-end shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer">Cancel</Button>
           <Button onClick={save} disabled={saving} className="cursor-pointer">
-            {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save Changes" : "Create")}
+            {saving ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

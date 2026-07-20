@@ -822,7 +822,7 @@ function LoansPage() {
                     setDeleteLoan({ id: editingLoan.id, name: editingLoan.person_name });
                   }} 
                   disabled={loading}
-                  className="rounded-xl h-11 cursor-pointer"
+                  className="cursor-pointer"
                 >
                   <Trash2 className="h-4 w-4 mr-1" /> Delete
                 </Button>
@@ -830,9 +830,9 @@ function LoansPage() {
                 <div />
               )}
               <div className="flex gap-2 ml-auto">
-                <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="rounded-xl h-11 cursor-pointer" disabled={loading}>Cancel</Button>
-                <Button type="submit" className="rounded-xl h-11 font-bold cursor-pointer" disabled={loading}>
-                  {loading ? "Saving..." : "Save Record"}
+                <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="cursor-pointer" disabled={loading}>Cancel</Button>
+                <Button type="submit" className="cursor-pointer" disabled={loading}>
+                  {loading ? "Saving…" : "Save"}
                 </Button>
               </div>
             </DialogFooter>
@@ -865,10 +865,10 @@ function LoansPage() {
               )}
             </div>
 
-            <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
-              <Button type="button" variant="outline" onClick={() => setRepayLoan(null)} className="rounded-xl h-11 cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-xl h-11 font-bold cursor-pointer" disabled={loading}>
-                {loading ? "Recording..." : "Confirm Repayment"}
+            <DialogFooter className="p-4 border-t gap-2 flex flex-row justify-end items-center shrink-0">
+              <Button type="button" variant="outline" onClick={() => setRepayLoan(null)} className="cursor-pointer" disabled={loading}>Cancel</Button>
+              <Button type="submit" className="cursor-pointer" disabled={loading}>
+                {loading ? "Saving…" : "Save"}
               </Button>
             </DialogFooter>
           </form>
