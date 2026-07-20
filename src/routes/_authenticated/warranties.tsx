@@ -554,9 +554,22 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                       className="cursor-pointer hover:bg-accent/5 transition-colors group"
                     >
                       <TableCell className="font-medium py-3 px-4">
-                        <div className="flex flex-col">
-                          <span className="font-serif font-black">{w.title}</span>
-                          {w.note && <span className="text-[10px] text-muted-foreground max-w-[30ch] truncate mt-0.5">{w.note}</span>}
+                        <div className="flex items-center gap-3">
+                          {w.product_image_url ? (
+                            <img 
+                              src={w.product_image_url} 
+                              alt={w.title} 
+                              className="h-8 w-8 rounded-lg object-cover bg-muted border border-border/60 shrink-0" 
+                            />
+                          ) : (
+                            <div className="h-8 w-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
+                              <ShieldCheck className="h-4 w-4" />
+                            </div>
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-serif font-black truncate">{w.title}</span>
+                            {w.note && <span className="text-[10px] text-muted-foreground max-w-[30ch] truncate mt-0.5">{w.note}</span>}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="py-3 px-4 tabular-nums text-xs sm:text-sm">
@@ -664,18 +677,31 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   className={`rounded-xl border bg-card/85 p-3.5 space-y-3 cursor-pointer hover:bg-accent/[0.02] active:bg-accent/[0.04] transition-all`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h4 className="font-serif font-black text-sm truncate">{w.title}</h4>
-                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${isExpired ? "bg-destructive/10 text-destructive border border-destructive/20" : diffDays <= 30 ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"}`}>
-                          {daysLabel}
-                        </span>
-                        {cat && (
-                          <Badge variant="outline" className="text-[8px] py-0 px-1 border-border/80 text-muted-foreground gap-0.5">
-                            <span>{cat.icon}</span>
-                            <span>{cat.name}</span>
-                          </Badge>
-                        )}
+                    <div className="flex items-center gap-3 min-w-0">
+                      {w.product_image_url ? (
+                        <img 
+                          src={w.product_image_url} 
+                          alt={w.title} 
+                          className="h-10 w-10 rounded-lg object-cover bg-muted border border-border/60 shrink-0" 
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
+                          <ShieldCheck className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h4 className="font-serif font-black text-sm truncate">{w.title}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${isExpired ? "bg-destructive/10 text-destructive border border-destructive/20" : diffDays <= 30 ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"}`}>
+                            {daysLabel}
+                          </span>
+                          {cat && (
+                            <Badge variant="outline" className="text-[8px] py-0 px-1 border-border/80 text-muted-foreground gap-0.5">
+                              <span>{cat.icon}</span>
+                              <span>{cat.name}</span>
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <span className="font-serif font-bold text-sm tabular-nums shrink-0">
