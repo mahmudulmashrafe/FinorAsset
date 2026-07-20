@@ -109,6 +109,12 @@ function WarrantiesPage() {
   const [deleteWarranty, setDeleteWarranty] = useState<{ id: string; title: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Mobile list & Detail popup states (Matching Loans Page design)
+  const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null);
+  const [activeListOpen, setActiveListOpen] = useState(false);
+  const [expiringListOpen, setExpiringListOpen] = useState(false);
+  const [expiredListOpen, setExpiredListOpen] = useState(false);
+
   // Form values
   const [title, setTitle] = useState("");
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split("T")[0]);
@@ -154,6 +160,10 @@ function WarrantiesPage() {
   }
 
   function handleRowClick(w: Warranty) {
+    setSelectedWarranty(w);
+  }
+
+  function handleEditWarranty(w: Warranty) {
     setTitle(w.title);
     setPurchaseDate(w.purchase_date);
     setExpiryDate(w.expiry_date);
@@ -163,7 +173,7 @@ function WarrantiesPage() {
     setNote(w.note || "");
     setImageUrl(w.image_url || "");
     setImageFile(null);
-    setProductImageUrl(w.product_image_url || "");
+    setProductImageUrl((w as any).product_image_url || "");
     setProductImageFile(null);
     setEditingWarranty(w);
     setOpen(true);
@@ -499,30 +509,63 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
       {/* Stats Grid */}
       {!dbError && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+          <div 
+            onClick={() => {
+              if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+                setActiveListOpen(true);
+              }
+            }}
+            className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+          >
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Active Warranties</p>
-              <h3 className="font-serif text-2xl font-black mt-1 num">{activeWarranties.length}</h3>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+                Active Warranties
+                <span className="md:hidden text-[9px] font-sans bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
+              </p>
+              <h3 className="font-serif text-2xl font-black mt-1 num text-emerald-600">{activeWarranties.length}</h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Currently under coverage</p>
             </div>
             <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
               <Shield className="h-5 w-5" />
             </div>
           </div>
 
-          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+          <div 
+            onClick={() => {
+              if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+                setExpiringListOpen(true);
+              }
+            }}
+            className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+          >
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expiring (30d)</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+                Expiring (30d)
+                <span className="md:hidden text-[9px] font-sans bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
+              </p>
               <h3 className="font-serif text-2xl font-black mt-1 num text-amber-500">{soonExpiring.length}</h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Coverage ending within 30 days</p>
             </div>
             <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center animate-pulse">
               <ShieldAlert className="h-5 w-5" />
             </div>
           </div>
 
-          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+          <div 
+            onClick={() => {
+              if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+                setExpiredListOpen(true);
+              }
+            }}
+            className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+          >
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expired</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+                Expired
+                <span className="md:hidden text-[9px] font-sans bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
+              </p>
               <h3 className="font-serif text-2xl font-black mt-1 num text-destructive">{expiredWarranties.length}</h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Past warranty validity</p>
             </div>
             <div className="h-10 w-10 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
               <AlertTriangle className="h-5 w-5" />
@@ -1022,6 +1065,274 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               </Button>
             </div>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warranty Details Pop-up Dialog */}
+      <Dialog open={!!selectedWarranty} onOpenChange={(val) => { if (!val) setSelectedWarranty(null); }}>
+        <DialogContent className="max-w-md z-[100]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl flex items-center gap-2">
+              <ShieldCheck className="h-6 w-6 text-accent" />
+              Warranty Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedWarranty && (() => {
+            const acc = selectedWarranty.account_id ? accMap.get(selectedWarranty.account_id) : null;
+            const cat = selectedWarranty.category_id ? catMap.get(selectedWarranty.category_id) : null;
+            const isExpired = new Date(selectedWarranty.expiry_date) < today;
+            const expiryDateObj = new Date(selectedWarranty.expiry_date);
+            const diffTime = expiryDateObj.getTime() - today.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            let daysLabel = "";
+            if (isExpired) {
+              daysLabel = "Expired";
+            } else if (diffDays === 0) {
+              daysLabel = "Expires today";
+            } else if (diffDays === 1) {
+              daysLabel = "Expires tomorrow";
+            } else {
+              daysLabel = `${diffDays} days left`;
+            }
+
+            return (
+              <div className="space-y-4 mt-3">
+                <div className="flex items-center gap-3 border-b pb-3">
+                  {(selectedWarranty as any).product_image_url ? (
+                    <img 
+                      src={(selectedWarranty as any).product_image_url} 
+                      alt={selectedWarranty.title} 
+                      className="h-12 w-12 rounded-xl object-cover border shrink-0" 
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="font-serif font-black text-lg text-foreground truncate">{selectedWarranty.title}</h3>
+                    <p className="text-xs text-muted-foreground">Purchased: {new Date(selectedWarranty.purchase_date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-b pb-2">
+                  <span className="text-xs text-muted-foreground uppercase font-bold">Coverage Status</span>
+                  <Badge className={`capitalize font-semibold ${isExpired ? "bg-destructive text-destructive-foreground" : diffDays <= 30 ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"}`}>
+                    {daysLabel}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between border-b pb-2">
+                  <span className="text-xs text-muted-foreground uppercase font-bold">Cost</span>
+                  <span className="font-serif num font-black text-lg text-foreground">
+                    {fmtMoney(Number(selectedWarranty.amount), currency)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-b pb-2">
+                  <span className="text-xs text-muted-foreground uppercase font-bold">Expiry Date</span>
+                  <span className={`text-xs font-bold ${isExpired ? "text-destructive" : diffDays <= 30 ? "text-amber-500" : "text-emerald-600"}`}>
+                    {new Date(selectedWarranty.expiry_date).toLocaleDateString()}
+                  </span>
+                </div>
+
+                {acc && (
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-xs text-muted-foreground uppercase font-bold">Paid From</span>
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full" style={{ background: acc.color }} />
+                      {acc.name}
+                    </span>
+                  </div>
+                )}
+
+                {cat && (
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-xs text-muted-foreground uppercase font-bold">Category</span>
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      {cat.image_url ? (
+                        <img src={cat.image_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                      ) : (
+                        <span>{cat.icon}</span>
+                      )}
+                      <span>{cat.name}</span>
+                    </span>
+                  </div>
+                )}
+
+                {selectedWarranty.note && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground uppercase font-bold block">Note</span>
+                    <p className="p-3 bg-muted/40 rounded-xl border text-xs text-foreground font-serif italic">"{selectedWarranty.note}"</p>
+                  </div>
+                )}
+
+                {(selectedWarranty.image_url || (selectedWarranty as any).product_image_url) && (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-xs text-muted-foreground uppercase font-bold block">Attachments</span>
+                    <div className="flex gap-2">
+                      {(selectedWarranty as any).product_image_url && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs h-8 cursor-pointer gap-1 text-emerald-600 border-emerald-500/30"
+                          onClick={() => setPreviewImage((selectedWarranty as any).product_image_url)}
+                        >
+                          <ImageIcon className="h-3.5 w-3.5" /> Product Pic
+                        </Button>
+                      )}
+                      {selectedWarranty.image_url && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs h-8 cursor-pointer gap-1 text-accent border-accent/30"
+                          onClick={() => setPreviewImage(selectedWarranty.image_url)}
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Receipt
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const w = selectedWarranty;
+                      setSelectedWarranty(null);
+                      handleEditWarranty(w);
+                    }}
+                    className="gap-1 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit Details
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      const w = selectedWarranty;
+                      setSelectedWarranty(null);
+                      setDeleteWarranty({ id: w.id, title: w.title });
+                    }}
+                    className="gap-1 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile popup lists */}
+      {/* Active Warranties Popup List */}
+      <Dialog open={activeListOpen} onOpenChange={setActiveListOpen}>
+        <DialogContent className="max-w-[95vw] rounded-xl max-h-[85vh] overflow-y-auto thin-scroll z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg flex items-center gap-2">
+              <Shield className="h-5 w-5 text-emerald-600" />
+              Active Warranties ({activeWarranties.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-3 max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll">
+            {activeWarranties.length === 0 && (
+              <p className="text-center text-muted-foreground py-10 text-xs">No active warranties found.</p>
+            )}
+            {activeWarranties.map((w) => (
+              <div 
+                key={w.id} 
+                onClick={() => { 
+                  setActiveListOpen(false); 
+                  setSelectedWarranty(w);
+                }} 
+                className="p-3 rounded-lg border bg-card hover:bg-muted/10 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
+                    <span className="text-emerald-600 font-semibold">Expires: {new Date(w.expiry_date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expiring Warranties Popup List */}
+      <Dialog open={expiringListOpen} onOpenChange={setExpiringListOpen}>
+        <DialogContent className="max-w-[95vw] rounded-xl max-h-[85vh] overflow-y-auto thin-scroll z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+              Expiring Warranties (30d) ({soonExpiring.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-3 max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll">
+            {soonExpiring.length === 0 && (
+              <p className="text-center text-muted-foreground py-10 text-xs">No warranties expiring within 30 days.</p>
+            )}
+            {soonExpiring.map((w) => (
+              <div 
+                key={w.id} 
+                onClick={() => { 
+                  setExpiringListOpen(false); 
+                  setSelectedWarranty(w);
+                }} 
+                className="p-3 rounded-lg border bg-card hover:bg-muted/10 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
+                    <span className="text-amber-500 font-bold">Expires: {new Date(w.expiry_date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expired Warranties Popup List */}
+      <Dialog open={expiredListOpen} onOpenChange={setExpiredListOpen}>
+        <DialogContent className="max-w-[95vw] rounded-xl max-h-[85vh] overflow-y-auto thin-scroll z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Expired Warranties ({expiredWarranties.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-3 max-h-[360px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll">
+            {expiredWarranties.length === 0 && (
+              <p className="text-center text-muted-foreground py-10 text-xs">No expired warranties found.</p>
+            )}
+            {expiredWarranties.map((w) => (
+              <div 
+                key={w.id} 
+                onClick={() => { 
+                  setExpiredListOpen(false); 
+                  setSelectedWarranty(w);
+                }} 
+                className="p-3 rounded-lg border bg-muted/40 opacity-80 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
+                    <span className="text-destructive font-bold">Expired: {new Date(w.expiry_date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
