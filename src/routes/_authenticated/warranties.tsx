@@ -426,7 +426,10 @@ ALTER TABLE public.warranties ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.warranties TO authenticated;
 GRANT ALL ON public.warranties TO service_role;
 
--- RLS policies
+-- Drop policies on warranties if they exist (to avoid duplication errors)
+DROP POLICY IF EXISTS "own warranties" ON public.warranties;
+
+-- RLS policies for warranties
 CREATE POLICY "own warranties" ON public.warranties 
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -434,6 +437,11 @@ CREATE POLICY "own warranties" ON public.warranties
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('warranties', 'warranties', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- Drop policies on storage objects if they exist
+DROP POLICY IF EXISTS "Allow authenticated upload to warranties" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public read from warranties" ON storage.objects;
+DROP POLICY IF EXISTS "Allow users to delete own objects from warranties" ON storage.objects;
 
 -- Storage policies for bucket
 CREATE POLICY "Allow authenticated upload to warranties" ON storage.objects
