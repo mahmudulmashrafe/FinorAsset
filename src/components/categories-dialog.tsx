@@ -150,24 +150,28 @@ const NoOverlayDialogContent = React.forwardRef<
 ));
 NoOverlayDialogContent.displayName = "NoOverlayDialogContent";
 
-interface FormDialogProps {
+function CategoryFormDialog({
+  open,
+  onOpenChange,
+  editingCategory,
+  onSaved,
+  onDelete,
+}: {
   open: boolean;
-  onOpenChange: (v: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   editingCategory?: Category | null;
   onSaved: () => void;
-}
-
-function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: FormDialogProps) {
+  onDelete?: (id: string, name: string) => void;
+}) {
   const isEdit = !!editingCategory;
-
   const [name, setName] = useState("");
   const [kind, setKind] = useState<Kind>("expense");
   const [color, setColor] = useState(COLORS[0]);
   const [icon, setIcon] = useState(ICONS[0]);
   const [saving, setSaving] = useState(false);
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -252,12 +256,12 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <NoOverlayDialogContent className="max-w-lg z-[100]">
-        <DialogHeader>
-          <DialogTitle className="font-serif">{isEdit ? "Edit category" : "New category"}</DialogTitle>
+      <NoOverlayDialogContent className="max-w-md max-h-[90vh] sm:max-h-[600px] flex flex-col p-0 z-[100] overflow-hidden">
+        <DialogHeader className="p-4 border-b shrink-0 bg-background">
+          <DialogTitle className="font-serif">{isEdit ? "Edit Category" : "New Category"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="cat-name">Name</Label>
@@ -265,8 +269,7 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
                 id="cat-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Rickshaw"
-                onKeyDown={(e) => e.key === "Enter" && save()}
+                placeholder="e.g., Food"
               />
             </div>
             <div>
@@ -286,7 +289,7 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
             <IconPicker value={icon} onChange={setIcon} />
           </div>
 
-           <div>
+          <div>
             <Label>Color</Label>
             <ColorPicker value={color} onChange={setColor} />
           </div>
@@ -363,11 +366,28 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save changes" : "Create")}
-          </Button>
+        <DialogFooter className="p-4 border-t flex items-center justify-between shrink-0 bg-background w-full">
+          {isEdit && onDelete && editingCategory ? (
+            <Button 
+              type="button" 
+              variant="destructive" 
+              onClick={() => {
+                onOpenChange(false);
+                onDelete(editingCategory.id, editingCategory.name);
+              }}
+              className="cursor-pointer font-semibold"
+            >
+              Delete
+            </Button>
+          ) : <div />}
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer font-semibold">
+              Cancel
+            </Button>
+            <Button type="button" onClick={save} disabled={saving || uploadingImage} className="cursor-pointer font-semibold min-w-[80px]">
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </DialogFooter>
       </NoOverlayDialogContent>
     </Dialog>
@@ -378,14 +398,15 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
 function CategoryCard({
   cat,
   onEdit,
-  onDelete,
 }: {
   cat: Category;
   onEdit: () => void;
-  onDelete: () => void;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 flex items-center gap-3 group relative transition-shadow hover:shadow-md">
+    <div 
+      onClick={onEdit}
+      className="rounded-xl border bg-card p-4 flex items-center gap-3 cursor-pointer transition-all hover:shadow-md hover:border-accent/40 hover:bg-accent/[0.02] group"
+    >
       {cat.image_url ? (
         <img 
           src={cat.image_url} 
@@ -403,22 +424,6 @@ function CategoryCard({
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{cat.name}</p>
         <p className="text-xs text-muted-foreground capitalize">{cat.kind}</p>
-      </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <button
-          onClick={onEdit}
-          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
-          title="Edit category"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={onDelete}
-          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          title="Delete category"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
       </div>
     </div>
   );
@@ -486,6 +491,7 @@ export function CategoriesDialog({
             onOpenChange={(v) => { if (!v) setEditCategory(null); }}
             editingCategory={editCategory}
             onSaved={refresh}
+            onDelete={(id, name) => setDeleteCat({ id, name })}
           />
 
           {isLoading && <p className="text-muted-foreground animate-pulse">Loading categories…</p>}
