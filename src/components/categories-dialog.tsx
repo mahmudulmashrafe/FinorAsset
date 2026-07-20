@@ -459,7 +459,7 @@ export function CategoriesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl flex flex-col max-h-[85vh] p-0 z-[90] overflow-hidden">
         {/* Fixed Header */}
-        <div className="p-6 pb-4 border-b flex items-end justify-between flex-wrap gap-4 shrink-0 bg-background z-10">
+        <div className="p-6 pb-4 border-b flex items-end justify-between flex-wrap gap-4 shrink-0 bg-background z-10 pr-12">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Personalization</p>
             <h1 className="mt-1 font-serif text-3xl">Manage Categories</h1>
