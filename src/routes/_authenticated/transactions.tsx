@@ -337,7 +337,7 @@ function TxnsPage() {
     try {
       const { error } = await supabase
         .from("transactions")
-        .update({ occurred_on: batchNewDate, updated_at: new Date().toISOString() })
+        .update({ occurred_on: batchNewDate })
         .in("id", selectedIds);
       
       if (error) throw error;
@@ -379,7 +379,7 @@ function TxnsPage() {
         
         const { error } = await supabase
           .from("transactions")
-          .update({ note: newNote, updated_at: new Date().toISOString() })
+          .update({ note: newNote })
           .eq("id", t.id);
         if (error) throw error;
         
