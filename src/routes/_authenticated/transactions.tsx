@@ -757,7 +757,20 @@ function TxnsPage() {
                               ) : "—"}
                             </TableCell>
                             <TableCell className="py-3.5 px-4 text-xs font-bold text-foreground/95">
-                              {acc?.name ?? "—"}
+                              <span className="inline-flex items-center gap-1.5">
+                                {acc ? (
+                                  <>
+                                    {(acc as any).image_url ? (
+                                      <img src={(acc as any).image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0 border border-border/40" />
+                                    ) : (
+                                      <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: acc.color }} />
+                                    )}
+                                    <span>{acc.name}</span>
+                                  </>
+                                ) : (
+                                  <span>—</span>
+                                )}
+                              </span>
                             </TableCell>
                             <TableCell className="py-3.5 px-4 text-muted-foreground/80 max-w-[24ch] truncate text-xs">
                               {parsed?.itemNote ?? t.note ?? "—"}
@@ -846,8 +859,40 @@ function TxnsPage() {
                       ) : "—"}
                     </TableCell>
                     <TableCell className="py-3.5 px-4 text-xs font-bold text-foreground/95">
-                      {acc?.name ?? "—"}
-                      {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {acc ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            {(acc as any).image_url ? (
+                              <img src={(acc as any).image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0 border border-border/40" />
+                            ) : (
+                              <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: acc.color }} />
+                            )}
+                            <span>{acc.name}</span>
+                          </span>
+                        ) : (
+                          <span>—</span>
+                        )}
+                        {t.to_account_id && (
+                          <>
+                            <span className="text-muted-foreground font-normal">→</span>
+                            {(() => {
+                              const toAcc = accMap.get(t.to_account_id);
+                              return toAcc ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                  {(toAcc as any).image_url ? (
+                                    <img src={(toAcc as any).image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0 border border-border/40" />
+                                  ) : (
+                                    <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: toAcc.color }} />
+                                  )}
+                                  <span>{toAcc.name}</span>
+                                </span>
+                              ) : (
+                                <span>—</span>
+                              );
+                            })()}
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="py-3.5 px-4 text-muted-foreground/80 max-w-[24ch] truncate text-xs">
                       {parsed?.itemNote ?? t.note ?? "—"}
