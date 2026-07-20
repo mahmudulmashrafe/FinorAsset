@@ -220,6 +220,7 @@ export function TransactionDialog({
     accountId: string;
     amount: string;
     note: string;
+    date: string;
   }[]>([]);
 
   // Splits states
@@ -252,6 +253,7 @@ export function TransactionDialog({
           accountId: t.account_id,
           amount: String(t.amount),
           note: itemNoteStr,
+          date: t.occurred_on,
         };
       });
       setEventItems(mapped);
@@ -278,10 +280,11 @@ export function TransactionDialog({
       setEventDate(new Date().toISOString().slice(0, 10));
       if (accounts.length) {
         const defAcc = accounts[0].id;
+        const curDate = new Date().toISOString().slice(0, 10);
         setSplits([{ accountId: defAcc, amount: 0 }]);
         setEventItems([
-          { id: "1", kind: "expense", categoryId: "", accountId: defAcc, amount: "", note: "" },
-          { id: "2", kind: "expense", categoryId: "", accountId: defAcc, amount: "", note: "" },
+          { id: "1", kind: "expense", categoryId: "", accountId: defAcc, amount: "", note: "", date: curDate },
+          { id: "2", kind: "expense", categoryId: "", accountId: defAcc, amount: "", note: "", date: curDate },
         ]);
       }
     }
@@ -296,9 +299,10 @@ export function TransactionDialog({
       setAccountId(defaultId);
       setSplits([{ accountId: defaultId, amount: Number(amount) || 0 }]);
       if (eventItems.length === 0) {
+        const curDate = new Date().toISOString().slice(0, 10);
         setEventItems([
-          { id: "1", kind: "expense", categoryId: "", accountId: defaultId, amount: "", note: "" },
-          { id: "2", kind: "expense", categoryId: "", accountId: defaultId, amount: "", note: "" },
+          { id: "1", kind: "expense", categoryId: "", accountId: defaultId, amount: "", note: "", date: curDate },
+          { id: "2", kind: "expense", categoryId: "", accountId: defaultId, amount: "", note: "", date: curDate },
         ]);
       }
     }
@@ -315,7 +319,7 @@ export function TransactionDialog({
     const defaultAcc = accountId || accounts[0]?.id || "";
     setEventItems(prev => [
       ...prev,
-      { id: String(Date.now() + Math.random()), kind: "expense", categoryId: "", accountId: defaultAcc, amount: "", note: "" }
+      { id: String(Date.now() + Math.random()), kind: "expense", categoryId: "", accountId: defaultAcc, amount: "", note: "", date: eventDate }
     ]);
   }
 
@@ -381,7 +385,7 @@ export function TransactionDialog({
         kind: item.kind,
         amount: Number(item.amount),
         note: formattedNote,
-        occurred_on: eventDate,
+        occurred_on: item.date || eventDate,
       };
     });
 
@@ -641,6 +645,16 @@ export function TransactionDialog({
                             <SelectItem value="income">Income</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-[10px]">Date</Label>
+                        <Input
+                          type="date"
+                          value={item.date || eventDate}
+                          onChange={(e) => updateEventItem(item.id, "date", e.target.value)}
+                          className="h-8 text-xs bg-background"
+                        />
                       </div>
 
                       <div>

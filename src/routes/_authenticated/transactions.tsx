@@ -84,6 +84,9 @@ function TxnsPage() {
   const [showBatchDateChange, setShowBatchDateChange] = useState(false);
   const [batchNewDate, setBatchNewDate] = useState("");
   const [batchDateLoading, setBatchDateLoading] = useState(false);
+  const [showBatchEventGroup, setShowBatchEventGroup] = useState(false);
+  const [batchEventTitle, setBatchEventTitle] = useState("");
+  const [batchEventLoading, setBatchEventLoading] = useState(false);
 
   const [selectedEventGroup, setSelectedEventGroup] = useState<EventGroup | null>(null);
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -204,6 +207,9 @@ function TxnsPage() {
         }
         const grp = eventMap.get(parsed.eventId)!;
         grp.items.push(t);
+        if (new Date(t.occurred_on) > new Date(grp.date)) {
+          grp.date = t.occurred_on;
+        }
         const amt = Number(t.amount);
         if (t.kind === "income") grp.totalAmount += amt;
         else if (t.kind === "expense") grp.totalAmount -= amt;
@@ -351,6 +357,44 @@ function TxnsPage() {
     } finally {
       setBatchDateLoading(false);
       setShowBatchDateChange(false);
+    }
+  }
+
+  async function confirmBatchEventGroup() {
+    if (!batchEventTitle.trim()) return toast.error("Please enter an event title");
+    setBatchEventLoading(true);
+    try {
+      const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const txnsToGroup = txns.filter(t => selectedIds.includes(t.id));
+      
+      for (const t of txnsToGroup) {
+        let cleanNote = t.note ?? "";
+        if (cleanNote.startsWith("[Event: ")) {
+          const parsed = parseEventNote(cleanNote);
+          if (parsed) {
+            cleanNote = parsed.itemNote;
+          }
+        }
+        const newNote = `[Event: ${batchEventTitle.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`.trim();
+        
+        const { error } = await supabase
+          .from("transactions")
+          .update({ note: newNote, updated_at: new Date().toISOString() })
+          .eq("id", t.id);
+        if (error) throw error;
+        
+        await syncTransactionToLoan("update", { ...t, note: newNote });
+      }
+
+      toast.success(`Grouped ${selectedIds.length} transactions under event "${batchEventTitle.trim()}"`);
+      setSelectedIds([]);
+      refresh();
+      qc.invalidateQueries({ queryKey: ["loans"] });
+    } catch (err: any) {
+      toast.error(`Grouping failed: ${err.message}`);
+    } finally {
+      setBatchEventLoading(false);
+      setShowBatchEventGroup(false);
     }
   }
 
@@ -1237,6 +1281,18 @@ function TxnsPage() {
             <span>Change Date</span>
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setBatchEventTitle("");
+              setShowBatchEventGroup(true);
+            }}
+            className="h-7 px-3 text-xs font-bold rounded-full cursor-pointer flex items-center gap-1.5 bg-background border hover:bg-muted text-foreground"
+          >
+            <Layers className="h-3.5 w-3.5 text-accent" />
+            <span>Group as Event</span>
+          </Button>
+          <Button
             variant="destructive"
             size="sm"
             onClick={() => setShowBatchDelete(true)}
@@ -1304,6 +1360,45 @@ function TxnsPage() {
               className="rounded-full h-10 px-5 text-xs font-bold bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer"
             >
               {batchDateLoading ? "Saving..." : "Change Date"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Event Group Dialog */}
+      <Dialog open={showBatchEventGroup} onOpenChange={setShowBatchEventGroup}>
+        <DialogContent className="max-w-sm rounded-2xl p-6 z-[99]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg font-bold">Group as Event</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-xs text-muted-foreground">
+              Enter a title to group the {selectedIds.length} selected transactions into a new event.
+            </p>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Event Title</label>
+              <Input
+                placeholder="e.g. Vacation, Conference, Birthday Party"
+                value={batchEventTitle}
+                onChange={(e) => setBatchEventTitle(e.target.value)}
+                className="w-full bg-background"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowBatchEventGroup(false)}
+              className="rounded-full h-10 px-4 text-xs font-bold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmBatchEventGroup}
+              disabled={batchEventLoading || !batchEventTitle.trim()}
+              className="rounded-full h-10 px-5 text-xs font-bold bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer"
+            >
+              {batchEventLoading ? "Saving…" : "Save"}
             </Button>
           </div>
         </DialogContent>
