@@ -103,9 +103,10 @@ interface AccountFormProps {
   defaultCurrency: string;
   editingAccount?: Account | null;
   onSaved: () => void;
+  onDelete?: (id: string) => void;
 }
 
-function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount, onSaved }: AccountFormProps) {
+function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount, onSaved, onDelete }: AccountFormProps) {
   const isEdit = !!editingAccount;
 
   const [name, setName] = useState("");
@@ -275,11 +276,30 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
           </div>
         </div>
 
-        <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? (isEdit ? "Saving…" : "Adding…") : (isEdit ? "Save changes" : "Add account")}
-          </Button>
+        <DialogFooter className="p-4 border-t gap-2 flex-row justify-between items-center shrink-0">
+          {isEdit && onDelete ? (
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (confirm(`Are you sure you want to delete "${editingAccount?.name}"?`)) {
+                  onDelete(editingAccount.id);
+                  onOpenChange(false);
+                }
+              }}
+              disabled={saving}
+              className="cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
+            </Button>
+          ) : (
+            <div />
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving} className="cursor-pointer">Cancel</Button>
+            <Button onClick={save} disabled={saving} className="cursor-pointer">
+              {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Account"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -330,6 +350,7 @@ function AccountsPage() {
         defaultCurrency={profileCurrency}
         editingAccount={editAccount}
         onSaved={refresh}
+        onDelete={confirmDelete}
       />
 
       {/* ── Account cards ── */}
@@ -337,7 +358,8 @@ function AccountsPage() {
         {accounts.map((a) => (
           <div
             key={a.id}
-            className="rounded-xl border bg-card p-4 relative group transition-shadow hover:shadow-md flex flex-col justify-between"
+            onClick={() => setEditAccount(a)}
+            className="rounded-xl border bg-card p-4 relative group transition-all hover:shadow-md hover:border-accent/40 cursor-pointer flex flex-col justify-between"
           >
             <div>
               {/* Color dot + name */}
@@ -347,26 +369,6 @@ function AccountsPage() {
               </div>
               <h3 className="mt-1.5 font-serif text-base font-bold">{a.name}</h3>
               <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
-            </div>
-
-            {/* Action buttons at bottom — always visible and easy to tap */}
-            <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); setEditAccount(a); }}
-                className="flex-1 gap-1.5 h-8 text-xs cursor-pointer"
-              >
-                <Pencil className="h-3 w-3" /> Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); setDeleteAccount({ id: a.id, name: a.name }); }}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
             </div>
           </div>
         ))}

@@ -336,10 +336,10 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
           </div>
         </div>
 
-        <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save changes" : "Create")}
+        <DialogFooter className="p-4 border-t gap-2 flex flex-row items-center justify-end shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer">Cancel</Button>
+          <Button onClick={save} disabled={saving} className="cursor-pointer">
+            {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save Changes" : "Create")}
           </Button>
         </DialogFooter>
       </DialogContent>

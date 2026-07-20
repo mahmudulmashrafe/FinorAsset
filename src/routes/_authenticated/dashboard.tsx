@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api, computeAccountBalances, fmtMoney, monthKey } from "@/lib/finance";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Zap, Target } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useUserProfile } from "@/hooks/use-user-profile";
-import { Link } from "@tanstack/react-router";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -13,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const navigate = useNavigate();
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
@@ -170,100 +170,115 @@ function Dashboard() {
       {/* ── Budget Health + Accounts + Recent ── */}
       <div className="grid gap-2.5 lg:grid-cols-3 md:flex-1 md:min-h-0">
         {/* Budget health */}
-        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+        <section 
+          onClick={() => navigate({ to: "/budgets" })}
+          className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0 cursor-pointer hover:border-accent/40 hover:shadow-sm transition-all group"
+        >
           <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <h2 className="font-serif text-base font-bold">Budget Health</h2>
+            <h2 className="font-serif text-base font-bold group-hover:text-accent transition-colors">Budget Health</h2>
             <Link to="/budgets" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
-              All <ArrowRight className="h-2.5 w-2.5" />
+              All <ArrowRight className="h-2.5 w-2.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
-          {budgetItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-28 md:h-full text-muted-foreground text-xs text-center gap-1.5 flex-1">
-              <PiggyBank className="h-7 w-7 opacity-40" />
-              <p>No budgets set</p>
-              <Link to="/budgets" className="text-xs text-accent hover:underline">Set a budget →</Link>
-            </div>
-          ) : (
-            <ul className="space-y-2 max-h-[160px] md:max-h-[220px] overflow-y-auto flex-1 pb-1 thin-scroll pr-1 text-xs">
-              {budgetItems.map(({ b, spent, pct, over, cat }) => (
-                <li key={b.id}>
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-medium flex items-center gap-1.5">
-                      {cat?.icon} {cat?.name ?? "—"}
-                    </span>
-                    <span className={`font-mono text-[10px] ${over ? "text-destructive" : "text-muted-foreground"}`}>
-                      {fmtMoney(spent, currency)} / {fmtMoney(Number(b.amount), currency)}
-                    </span>
-                  </div>
-                  <Progress value={pct} className={`h-1.5 ${over ? "[&>div]:bg-destructive" : ""}`} />
-                  {over && <p className="text-[10px] text-destructive mt-0.5 leading-none">Over by {fmtMoney(spent - Number(b.amount), currency)}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
+            {budgetItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-28 md:h-full text-muted-foreground text-xs text-center gap-1.5 flex-1">
+                <PiggyBank className="h-7 w-7 opacity-40" />
+                <p>No budgets set</p>
+                <Link to="/budgets" className="text-xs text-accent hover:underline">Set a budget →</Link>
+              </div>
+            ) : (
+              <ul className="space-y-2 max-h-[160px] md:max-h-[220px] overflow-y-auto flex-1 pb-1 thin-scroll pr-1 text-xs">
+                {budgetItems.map(({ b, spent, pct, over, cat }) => (
+                  <li key={b.id}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-medium flex items-center gap-1.5">
+                        {cat?.icon} {cat?.name ?? "—"}
+                      </span>
+                      <span className={`font-mono text-[10px] ${over ? "text-destructive" : "text-muted-foreground"}`}>
+                        {fmtMoney(spent, currency)} / {fmtMoney(Number(b.amount), currency)}
+                      </span>
+                    </div>
+                    <Progress value={pct} className={`h-1.5 ${over ? "[&>div]:bg-destructive" : ""}`} />
+                    {over && <p className="text-[10px] text-destructive mt-0.5 leading-none">Over by {fmtMoney(spent - Number(b.amount), currency)}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         {/* Accounts */}
-        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+        <section 
+          onClick={() => navigate({ to: "/accounts" })}
+          className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0 cursor-pointer hover:border-accent/40 hover:shadow-sm transition-all group"
+        >
           <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <h2 className="font-serif text-base font-bold">Accounts</h2>
+            <h2 className="font-serif text-base font-bold group-hover:text-accent transition-colors">Accounts</h2>
             <Link to="/accounts" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
-              All <ArrowRight className="h-2.5 w-2.5" />
+              All <ArrowRight className="h-2.5 w-2.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
-          <ul className="divide-y max-h-[160px] md:max-h-[220px] overflow-y-auto flex-1 pb-1 thin-scroll pr-1 text-xs">
-            {accounts.length === 0 && (
-              <li className="py-4 text-xs text-muted-foreground text-center">
-                No accounts yet.{" "}
-                <Link to="/accounts" className="text-accent hover:underline">Add one →</Link>
-              </li>
-            )}
-            {accounts.map((a) => (
-              <li key={a.id} className="flex items-center justify-between py-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: a.color }} />
-                  <div>
-                    <div className="font-medium">{a.name}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{a.type}</div>
+          <div className="flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
+            <ul className="divide-y max-h-[160px] md:max-h-[220px] overflow-y-auto flex-1 pb-1 thin-scroll pr-1 text-xs">
+              {accounts.length === 0 && (
+                <li className="py-4 text-xs text-muted-foreground text-center">
+                  No accounts yet.{" "}
+                  <Link to="/accounts" className="text-accent hover:underline">Add one →</Link>
+                </li>
+              )}
+              {accounts.map((a) => (
+                <li key={a.id} className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                    <div>
+                      <div className="font-medium">{a.name}</div>
+                      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{a.type}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="num font-serif text-xs">{fmtMoney(balances.get(a.id) ?? 0, currency)}</div>
-              </li>
-            ))}
-          </ul>
+                  <div className="num font-serif text-xs">{fmtMoney(balances.get(a.id) ?? 0, currency)}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         {/* Recent activity */}
-        <section className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0">
+        <section 
+          onClick={() => navigate({ to: "/transactions" })}
+          className="rounded-xl border bg-card p-3.5 flex flex-col md:h-full md:min-h-0 cursor-pointer hover:border-accent/40 hover:shadow-sm transition-all group"
+        >
           <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <h2 className="font-serif text-base font-bold">Recent</h2>
+            <h2 className="font-serif text-base font-bold group-hover:text-accent transition-colors">Recent</h2>
             <Link to="/transactions" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
-              All <ArrowRight className="h-2.5 w-2.5" />
+              All <ArrowRight className="h-2.5 w-2.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
-          <ul className="divide-y max-h-[160px] md:max-h-[220px] overflow-y-auto flex-1 pb-1 thin-scroll pr-1 text-xs">
-            {recent.length === 0 && (
-              <li className="py-4 text-xs text-muted-foreground text-center">No transactions yet.</li>
-            )}
-            {recent.map((t) => {
-              const cat = t.category_id ? catMap.get(t.category_id) : null;
-              const acc = accMap.get(t.account_id);
-              const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
-              const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "text-muted-foreground";
-              return (
-                <li key={t.id} className="flex items-center justify-between py-1.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {cat?.icon && <span className="text-sm flex-shrink-0">{cat.icon}</span>}
-                    <div className="min-w-0">
-                      <div className="truncate max-w-[90px] font-medium">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</div>
-                      <div className="text-[9px] text-muted-foreground truncate">{acc?.name} · {new Date(t.occurred_on).toLocaleDateString(undefined, {month: "numeric", day: "numeric"})}</div>
+          <div className="flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
+            <ul className="divide-y max-h-[160px] md:max-h-[220px] overflow-y-auto flex-1 pb-1 thin-scroll pr-1 text-xs">
+              {recent.length === 0 && (
+                <li className="py-4 text-xs text-muted-foreground text-center">No transactions yet.</li>
+              )}
+              {recent.map((t) => {
+                const cat = t.category_id ? catMap.get(t.category_id) : null;
+                const acc = accMap.get(t.account_id);
+                const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                const color = t.kind === "income" ? "text-[color:var(--success)]" : t.kind === "expense" ? "text-[color:var(--destructive)]" : "text-muted-foreground";
+                return (
+                  <li key={t.id} className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {cat?.icon && <span className="text-sm flex-shrink-0">{cat.icon}</span>}
+                      <div className="min-w-0">
+                        <div className="truncate max-w-[90px] font-medium">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</div>
+                        <div className="text-[9px] text-muted-foreground truncate">{acc?.name} · {new Date(t.occurred_on).toLocaleDateString(undefined, {month: "numeric", day: "numeric"})}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className={`num font-serif text-xs flex-shrink-0 ${color}`}>{sign}{fmtMoney(Number(t.amount), currency)}</div>
-                </li>
-              );
-            })}
-          </ul>
+                    <div className={`num font-serif text-xs flex-shrink-0 ${color}`}>{sign}{fmtMoney(Number(t.amount), currency)}</div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </section>
       </div>
     </div>

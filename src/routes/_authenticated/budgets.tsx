@@ -110,32 +110,20 @@ function BudgetsPage() {
           const pct = Math.min(100, (spent / Number(b.amount)) * 100);
           const over = spent > Number(b.amount);
           return (
-            <div key={b.id} className="rounded-xl border bg-card p-6">
+            <div 
+              key={b.id} 
+              onClick={() => {
+                setEditingBudget(b);
+                setAmount(String(b.amount));
+                setCatId(b.category_id);
+                setOpen(true);
+              }}
+              className="rounded-xl border bg-card p-6 cursor-pointer hover:border-accent/40 hover:shadow-md transition-all flex flex-col justify-between"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full" style={{ background: cat?.color }} />
                   <h3 className="font-serif text-xl">{cat?.name ?? "—"}</h3>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button 
-                    onClick={() => {
-                      setEditingBudget(b);
-                      setAmount(String(b.amount));
-                      setCatId(b.category_id);
-                      setOpen(true);
-                    }} 
-                    className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer"
-                    title="Edit budget"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button 
-                    onClick={() => setDeleteId(b.id)} 
-                    className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                    title="Delete budget"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
@@ -239,13 +227,29 @@ function BudgetsPage() {
               />
             </div>
           </div>
-          <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => { setOpen(false); setEditingBudget(null); }}>
-              Cancel
-            </Button>
-            <Button onClick={save}>
-              {editingBudget ? "Save changes" : "Set budget"}
-            </Button>
+          <DialogFooter className="p-4 border-t gap-2 flex-row justify-between items-center shrink-0">
+            {editingBudget ? (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setOpen(false);
+                  setDeleteId(editingBudget.id);
+                }}
+                className="cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Delete
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => { setOpen(false); setEditingBudget(null); }} className="cursor-pointer">
+                Cancel
+              </Button>
+              <Button onClick={save} className="cursor-pointer">
+                {editingBudget ? "Save Changes" : "Set Budget"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

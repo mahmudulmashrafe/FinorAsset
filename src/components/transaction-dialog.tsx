@@ -152,10 +152,10 @@ function CategoryCreatorDialog({
             </div>
           </div>
         </div>
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={create} disabled={saving}>
-            {saving ? "Creating…" : "Create & select"}
+        <DialogFooter className="mt-4 flex flex-row items-center justify-end gap-2 shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer">Cancel</Button>
+          <Button onClick={create} disabled={saving} className="cursor-pointer">
+            {saving ? "Creating…" : "Create & Select"}
           </Button>
         </DialogFooter>
       </NoOverlayDialogContent>
