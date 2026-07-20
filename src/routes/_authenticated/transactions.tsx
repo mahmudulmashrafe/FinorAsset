@@ -4,7 +4,7 @@ import { api, fmtMoney, type Transaction, syncTransactionToLoan } from "@/lib/fi
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState, Fragment, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
@@ -113,6 +113,38 @@ function TxnsPage() {
       return next;
     });
   }
+
+  const [reorderDate, setReorderDate] = useState<string | null>(null);
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressActive = useRef(false);
+
+  const startPress = (dateStr: string) => {
+    isLongPressActive.current = false;
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = setTimeout(() => {
+      isLongPressActive.current = true;
+      setReorderDate(prev => prev === dateStr ? null : dateStr);
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(100);
+        } catch {}
+      }
+      toast.success(`Same-date reordering active for ${new Date(dateStr).toLocaleDateString()}`);
+    }, 2000);
+  };
+
+  const cancelPress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    };
+  }, []);
 
   const catMap = useMemo(() => new Map(cats.map(c => [c.id, c])), [cats]);
   const accMap = useMemo(() => new Map(accounts.map(a => [a.id, a])), [accounts]);
@@ -560,8 +592,20 @@ function TxnsPage() {
                   return (
                     <Fragment key={grp.eventId}>
                       <TableRow
-                        onClick={() => toggleExpandEvent(grp.eventId)}
-                        className={`group bg-amber-500/5 hover:bg-amber-500/10 transition-colors cursor-pointer ${isAllSel ? 'bg-accent/10' : ''}`}
+                        onMouseDown={() => startPress(rStr)}
+                        onMouseUp={cancelPress}
+                        onMouseLeave={cancelPress}
+                        onTouchStart={() => startPress(rStr)}
+                        onTouchEnd={cancelPress}
+                        onTouchMove={cancelPress}
+                        onClick={(e) => {
+                          if (isLongPressActive.current) {
+                            isLongPressActive.current = false;
+                            return;
+                          }
+                          toggleExpandEvent(grp.eventId);
+                        }}
+                        className={`group bg-amber-500/5 hover:bg-amber-500/10 transition-colors cursor-pointer ${isAllSel ? 'bg-accent/10' : ''} ${rStr === reorderDate ? 'border-y border-dashed border-primary/50 bg-primary/[0.03]' : ''}`}
                       >
                         <TableCell className="w-12 py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <input
@@ -613,15 +657,40 @@ function TxnsPage() {
                         </TableCell>
                         <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleExpandEvent(grp.eventId)}
-                              className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
-                            >
-                              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                              {isExpanded ? "Hide" : "Expand"}
-                            </Button>
+                            {reorderDate === rStr ? (
+                              <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => moveSameDateRow(rowIdx, "up")}
+                                  disabled={!isSameDateUp}
+                                  className="h-7 w-7 p-0 flex items-center justify-center bg-accent/20 text-foreground hover:bg-accent/30 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                  title="Move Up"
+                                >
+                                  <ChevronUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => moveSameDateRow(rowIdx, "down")}
+                                  disabled={!isSameDateDown}
+                                  className="h-7 w-7 p-0 flex items-center justify-center bg-accent/20 text-foreground hover:bg-accent/30 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                  title="Move Down"
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleExpandEvent(grp.eventId)}
+                                className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
+                              >
+                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                                {isExpanded ? "Hide" : "Expand"}
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -696,7 +765,23 @@ function TxnsPage() {
                   : "";
                 const isSelected = selectedIds.includes(t.id);
                 return (
-                  <TableRow key={t.id} onClick={() => setEditingTxn(t)} className={`group cursor-pointer hover:bg-accent/5 ${isSelected ? 'bg-accent/10 hover:bg-accent/15' : ''}`}>
+                  <TableRow
+                    key={t.id}
+                    onMouseDown={() => startPress(rStr)}
+                    onMouseUp={cancelPress}
+                    onMouseLeave={cancelPress}
+                    onTouchStart={() => startPress(rStr)}
+                    onTouchEnd={cancelPress}
+                    onTouchMove={cancelPress}
+                    onClick={(e) => {
+                      if (isLongPressActive.current) {
+                        isLongPressActive.current = false;
+                        return;
+                      }
+                      setEditingTxn(t);
+                    }}
+                    className={`group cursor-pointer hover:bg-accent/5 ${isSelected ? 'bg-accent/10 hover:bg-accent/15' : ''} ${rStr === reorderDate ? 'border-y border-dashed border-primary/50 bg-primary/[0.01]' : ''}`}
+                  >
                     <TableCell className="w-12 py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
@@ -730,7 +815,32 @@ function TxnsPage() {
                     <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-sm md:text-base ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
-                    <TableCell />
+                    <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      {reorderDate === rStr && (
+                        <div className="flex items-center justify-end gap-1.5 animate-in fade-in duration-200">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => moveSameDateRow(rowIdx, "up")}
+                            disabled={!isSameDateUp}
+                            className="h-7 w-7 p-0 flex items-center justify-center bg-accent/20 text-foreground hover:bg-accent/30 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                            title="Move Up"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => moveSameDateRow(rowIdx, "down")}
+                            disabled={!isSameDateDown}
+                            className="h-7 w-7 p-0 flex items-center justify-center bg-accent/20 text-foreground hover:bg-accent/30 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                            title="Move Down"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -747,13 +857,35 @@ function TxnsPage() {
           </div>
         )}
         <div className="divide-y divide-border/50">
-          {displayRows.map((row) => {
+          {displayRows.map((row, rowIdx) => {
+            const rowDate = row.type === "event" ? row.group.date : row.txn.occurred_on;
+            const prevRow = rowIdx > 0 ? displayRows[rowIdx - 1] : null;
+            const nextRow = rowIdx < displayRows.length - 1 ? displayRows[rowIdx + 1] : null;
+
+            const rStr = safeDateStr(rowDate);
+            const prevDate = prevRow ? (prevRow.type === "event" ? prevRow.group.date : prevRow.txn.occurred_on) : null;
+            const nextDate = nextRow ? (nextRow.type === "event" ? nextRow.group.date : nextRow.txn.occurred_on) : null;
+            const pStr = safeDateStr(prevDate);
+            const nStr = safeDateStr(nextDate);
+
+            const isSameDateUp = !!rStr && !!pStr && rStr === pStr;
+            const isSameDateDown = !!rStr && !!nStr && rStr === nStr;
+
             if (row.type === "event") {
               const grp = row.group;
               const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
               const isExpanded = expandedEventIds.has(grp.eventId);
               return (
-                <div key={grp.eventId} className="py-2.5 px-2 rounded-xl border bg-card/80 my-1 space-y-2">
+                <div
+                  key={grp.eventId}
+                  onMouseDown={() => startPress(rStr)}
+                  onMouseUp={cancelPress}
+                  onMouseLeave={cancelPress}
+                  onTouchStart={() => startPress(rStr)}
+                  onTouchEnd={cancelPress}
+                  onTouchMove={cancelPress}
+                  className={`py-2.5 px-2 rounded-xl border bg-card/80 my-1 space-y-2 transition-all ${rStr === reorderDate ? 'border-dashed border-primary/50 bg-primary/[0.02]' : ''}`}
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <input
@@ -767,7 +899,13 @@ function TxnsPage() {
                         }}
                       />
                       <div
-                        onClick={() => toggleExpandEvent(grp.eventId)}
+                        onClick={(e) => {
+                          if (isLongPressActive.current) {
+                            isLongPressActive.current = false;
+                            return;
+                          }
+                          toggleExpandEvent(grp.eventId);
+                        }}
                         className="flex items-center gap-2.5 text-left min-w-0 flex-1 cursor-pointer"
                       >
                         <span className="text-lg h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
@@ -798,13 +936,32 @@ function TxnsPage() {
                         );
                       })()}
                       <div className="flex items-center gap-0.5">
-                        <button
-                          onClick={() => toggleExpandEvent(grp.eventId)}
-                          className="h-6 px-2 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 flex items-center gap-1 cursor-pointer"
-                        >
-                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                          {isExpanded ? "Hide" : "Expand"}
-                        </button>
+                        {reorderDate === rStr ? (
+                          <div className="flex items-center gap-1 animate-in fade-in duration-200">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "up"); }}
+                              disabled={!isSameDateUp}
+                              className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer"
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "down"); }}
+                              disabled={!isSameDateDown}
+                              className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => toggleExpandEvent(grp.eventId)}
+                            className="h-6 px-2 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 flex items-center gap-1 cursor-pointer"
+                          >
+                            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            {isExpanded ? "Hide" : "Expand"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -877,7 +1034,23 @@ function TxnsPage() {
               : "";
             const isSelected = selectedIds.includes(t.id);
             return (
-              <div key={t.id} onClick={() => setEditingTxn(t)} className={`py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg cursor-pointer hover:bg-accent/5 ${isSelected ? 'bg-accent/10' : ''}`}>
+              <div
+                key={t.id}
+                onMouseDown={() => startPress(rStr)}
+                onMouseUp={cancelPress}
+                onMouseLeave={cancelPress}
+                onTouchStart={() => startPress(rStr)}
+                onTouchEnd={cancelPress}
+                onTouchMove={cancelPress}
+                onClick={(e) => {
+                  if (isLongPressActive.current) {
+                    isLongPressActive.current = false;
+                    return;
+                  }
+                  setEditingTxn(t);
+                }}
+                className={`py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg cursor-pointer hover:bg-accent/5 transition-all ${isSelected ? 'bg-accent/10' : ''} ${rStr === reorderDate ? 'border border-dashed border-primary/50 bg-primary/[0.02]' : ''}`}
+              >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <input
                     type="checkbox"
@@ -906,7 +1079,27 @@ function TxnsPage() {
                   </div>
                 </div>
 
-                <span className={`num font-serif text-sm font-bold flex-shrink-0 ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`num font-serif text-sm font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
+                  {reorderDate === rStr && (
+                    <div className="flex items-center gap-1 animate-in fade-in duration-200">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "up"); }}
+                        disabled={!isSameDateUp}
+                        className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "down"); }}
+                        disabled={!isSameDateDown}
+                        className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
