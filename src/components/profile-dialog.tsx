@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { User, Mail, DollarSign, Calendar, Save } from "lucide-react";
+import { User, Mail, DollarSign, Calendar, Save, Pencil } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import {
   AlertDialog,
@@ -57,6 +57,10 @@ export function ProfileDialog({
   const [deletePassword, setDeletePassword] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   const { profile, authUser, isLoading } = useUserProfile();
 
   useEffect(() => {
@@ -64,13 +68,43 @@ export function ProfileDialog({
     if (profile) {
       setDisplayName(profile.display_name ?? "");
       setCurrency((profile.currency ?? "USD").toUpperCase());
+      setAvatarUrl(profile.avatar_url ?? "");
       setInitialized(true);
     } else if (!isLoading && authUser) {
       setDisplayName(authUser.email?.split("@")[0] ?? "");
       setCurrency("USD");
+      setAvatarUrl("");
       setInitialized(true);
     }
   }, [profile, authUser, isLoading, initialized]);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && authUser) {
+      const file = e.target.files[0];
+      setUploadingAvatar(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${authUser.id}/avatar-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('warranties')
+          .upload(filePath, file);
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('warranties')
+          .getPublicUrl(filePath);
+          
+        setAvatarUrl(publicUrl);
+        toast.success("Profile picture uploaded!");
+      } catch (err: any) {
+        toast.error(`Avatar upload failed: ${err.message}`);
+      } finally {
+        setUploadingAvatar(false);
+      }
+    }
+  };
 
   async function updateProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -87,6 +121,7 @@ export function ProfileDialog({
         id: authUser.id,
         display_name: displayName.trim(),
         currency: saveCurrency.toUpperCase(),
+        avatar_url: avatarUrl || null,
         updated_at: new Date().toISOString(),
       });
 
@@ -214,9 +249,39 @@ export function ProfileDialog({
           <div className="grid gap-6 md:grid-cols-3 mt-4">
             {/* Info summary */}
             <div className="rounded-xl border bg-card p-5 md:col-span-1 flex flex-col items-center text-center space-y-4">
-              <div className="h-16 w-16 rounded-full bg-accent/10 text-accent flex items-center justify-center">
-                <User className="h-8 w-8" />
+              <div className="relative group">
+                <div 
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="h-20 w-20 rounded-full overflow-hidden border-2 border-border/80 cursor-pointer hover:border-accent/40 bg-accent/5 flex items-center justify-center transition-all shrink-0 shadow-sm"
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-8 w-8 text-accent/80" />
+                  )}
+                  <div className="absolute inset-0 bg-black/45 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[9px] text-white font-semibold">Change</span>
+                  </div>
+                </div>
+                {/* Overlapping Camera / Edit button */}
+                <button 
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 bg-background border border-border text-muted-foreground hover:text-foreground h-6.5 w-6.5 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:scale-105 transition-all"
+                  title="Upload profile picture"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+                <input 
+                  type="file" 
+                  ref={avatarInputRef} 
+                  onChange={handleAvatarChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                  disabled={saving || uploadingAvatar}
+                />
               </div>
+              {uploadingAvatar && <span className="text-[9px] text-accent animate-pulse">Uploading...</span>}
               <div className="min-w-0 w-full">
                 <h2 className="font-serif text-xl font-semibold truncate">{displayName || "Anonymous"}</h2>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1 flex-wrap break-all w-full select-all">
