@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { User, Mail, DollarSign, Calendar, Save, Pencil } from "lucide-react";
+import { User, Mail, DollarSign, Calendar, Save, Pencil, Bell, Smartphone } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -62,6 +63,7 @@ export function ProfileDialog({
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const { profile, authUser, isLoading } = useUserProfile();
+  const { permission, requestPermission, sendTestNotification, isIOS, isStandalone } = usePushNotifications();
 
   useEffect(() => {
     if (initialized) return;
@@ -445,6 +447,57 @@ export function ProfileDialog({
                     </Button>
                   </div>
                 </form>
+              </div>
+
+              <hr className="border-border/60" />
+
+              {/* Push Notifications Section */}
+              <div className="rounded-xl border bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="font-serif text-base font-semibold flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-accent" /> Push Notifications
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">
+                      Receive alerts on your iPhone or mobile device for warranty expirations, due dates & budget warnings.
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${
+                    permission === "granted" ? "bg-emerald-500/10 text-emerald-600" : permission === "denied" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {permission === "granted" ? "Enabled" : permission === "denied" ? "Disabled" : "Not Set"}
+                  </span>
+                </div>
+
+                {isIOS && !isStandalone && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                    <Smartphone className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="text-[11px] leading-snug">
+                      <strong>iPhone Requirement:</strong> To receive push notifications on iOS, tap the Share icon (bottom of Safari) → <strong>"Add to Home Screen"</strong>, then open FinorAsset from your Home Screen.
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {permission !== "granted" ? (
+                    <Button 
+                      type="button"
+                      onClick={() => requestPermission()} 
+                      className="gap-1.5 text-xs font-semibold cursor-pointer h-9"
+                    >
+                      <Bell className="h-3.5 w-3.5" /> Enable Push Notifications
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => sendTestNotification()} 
+                      className="gap-1.5 text-xs font-semibold cursor-pointer h-9"
+                    >
+                      <Bell className="h-3.5 w-3.5 text-accent" /> Send Test Push Notification
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <hr className="border-border/60" />
