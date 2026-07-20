@@ -126,7 +126,7 @@ function CategoryCreatorDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label htmlFor="quick-cat-name" className="text-xs font-semibold">Category Name</Label>
-            <Input id="quick-cat-name" autoFocus value={name} onChange={(e) => setName(e.target.value)}
+            <Input id="quick-cat-name" value={name} onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Rickshaw" onKeyDown={(e) => e.key === "Enter" && create()} />
           </div>
 
@@ -792,7 +792,7 @@ export function TransactionDialog({
                   setSplits([{ ...splits[0], amount: Number(val) || 0 }]);
                 }
               }}
-              placeholder="0.00" aria-invalid={!!errors.amount} autoFocus={isEdit} />
+              placeholder="0.00" aria-invalid={!!errors.amount} />
             {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount}</p>}
           </div>
 

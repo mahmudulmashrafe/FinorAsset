@@ -262,7 +262,6 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., bKash, My Bank"
               aria-invalid={!!errors.name}
-              autoFocus
             />
             {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name}</p>}
           </div>

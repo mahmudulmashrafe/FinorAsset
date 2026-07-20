@@ -235,7 +235,6 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Rickshaw"
-                autoFocus
                 onKeyDown={(e) => e.key === "Enter" && save()}
               />
             </div>
