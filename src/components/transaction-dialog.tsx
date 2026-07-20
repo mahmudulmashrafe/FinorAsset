@@ -173,6 +173,7 @@ interface TransactionDialogProps {
   editingEvent?: EventGroup | null;
   open?: boolean;
   onOpenChange?: (v: boolean) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function TransactionDialog({
@@ -181,6 +182,7 @@ export function TransactionDialog({
   editingEvent,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  onDelete,
 }: TransactionDialogProps) {
   const qc = useQueryClient();
   const { currency } = useUserProfile();
@@ -865,6 +867,15 @@ export function TransactionDialog({
       </div>
 
       <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
+        {isEditSingle && editingTransaction && onDelete && (
+          <Button
+            variant="destructive"
+            className="mr-auto"
+            onClick={() => { onDelete(editingTransaction.id); setOpen(false); }}
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
         <Button onClick={submit} disabled={saving} id="txn-save-btn">
           {saving ? "Saving…" : isEdit ? "Save changes" : "Save"}

@@ -360,6 +360,7 @@ function TxnsPage() {
           editingTransaction={editingTxn}
           open={!!editingTxn}
           onOpenChange={(v) => { if (!v) { setEditingTxn(null); refresh(); } }}
+          onDelete={(id) => { confirmDelete(id); setEditingTxn(null); }}
         />
       )}
 
@@ -527,7 +528,7 @@ function TxnsPage() {
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Account</TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Note</TableHead>
                 <TableHead className="py-3 px-4 text-sm md:text-base font-bold text-right">Amount</TableHead>
-                <TableHead className="py-3 px-4 w-36 text-sm md:text-base font-bold text-right">Actions</TableHead>
+                <TableHead className="py-3 px-4 w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -612,22 +613,6 @@ function TxnsPage() {
                         </TableCell>
                         <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => moveSameDateRow(rowIdx, "up")}
-                              disabled={!isSameDateUp}
-                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                              title={isSameDateUp ? "Move Up (Same Date)" : "Only same-date items can be reordered"}
-                            >
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => moveSameDateRow(rowIdx, "down")}
-                              disabled={!isSameDateDown}
-                              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                              title={isSameDateDown ? "Move Down (Same Date)" : "Only same-date items can be reordered"}
-                            >
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            </button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -637,20 +622,6 @@ function TxnsPage() {
                               {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                               {isExpanded ? "Hide" : "Expand"}
                             </Button>
-                            <button
-                              onClick={() => setEditingEventGroup(grp)}
-                              className="h-7 w-7 flex items-center justify-center rounded-md bg-accent/15 text-foreground hover:bg-accent/30 transition-colors cursor-pointer"
-                              title="Edit Event"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteEventId(grp.eventId)}
-                              className="h-7 w-7 flex items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-                              title="Delete Event"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -670,9 +641,10 @@ function TxnsPage() {
                         return (
                           <TableRow
                             key={t.id}
-                            className={`group bg-amber-500/[0.03] dark:bg-amber-500/[0.08] hover:bg-amber-500/10 transition-colors border-l-4 border-amber-500/60 ${isSelected ? 'bg-accent/15' : ''}`}
+                            onClick={() => setEditingTxn(t)}
+                            className={`group bg-amber-500/[0.03] dark:bg-amber-500/[0.08] hover:bg-amber-500/10 transition-colors border-l-4 border-amber-500/60 cursor-pointer ${isSelected ? 'bg-accent/15' : ''}`}
                           >
-                            <TableCell className="w-12 py-3 px-4 text-center pl-6">
+                            <TableCell className="w-12 py-3 px-4 text-center pl-6" onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="checkbox"
                                 className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
@@ -704,24 +676,7 @@ function TxnsPage() {
                             <TableCell className={`py-3 px-4 text-right num font-serif font-bold text-sm md:text-base ${amtColor}`}>
                               {sign}{fmtMoney(Number(t.amount), currency)}
                             </TableCell>
-                            <TableCell className="py-3 px-4">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => setEditingTxn(t)}
-                                  className="h-7 w-7 flex items-center justify-center rounded-md bg-accent/15 text-foreground hover:bg-accent/30 transition-colors cursor-pointer"
-                                  title="Edit item"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteId(t.id)}
-                                  className="h-7 w-7 flex items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-                                  title="Delete item"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </TableCell>
+                            <TableCell />
                           </TableRow>
                         );
                       })}
@@ -741,8 +696,8 @@ function TxnsPage() {
                   : "";
                 const isSelected = selectedIds.includes(t.id);
                 return (
-                  <TableRow key={t.id} className={`group ${isSelected ? 'bg-accent/10 hover:bg-accent/15' : ''}`}>
-                    <TableCell className="w-12 py-3 px-4 text-center">
+                  <TableRow key={t.id} onClick={() => setEditingTxn(t)} className={`group cursor-pointer hover:bg-accent/5 ${isSelected ? 'bg-accent/10 hover:bg-accent/15' : ''}`}>
+                    <TableCell className="w-12 py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
@@ -775,40 +730,7 @@ function TxnsPage() {
                     <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-sm md:text-base ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
-                    <TableCell className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => moveSameDateRow(rowIdx, "up")}
-                          disabled={!isSameDateUp}
-                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                          title={isSameDateUp ? "Move Up (Same Date)" : "Only same-date items can be reordered"}
-                        >
-                          <ChevronUp className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => moveSameDateRow(rowIdx, "down")}
-                          disabled={!isSameDateDown}
-                          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                          title={isSameDateDown ? "Move Down (Same Date)" : "Only same-date items can be reordered"}
-                        >
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setEditingTxn(t)}
-                          className="h-7 w-7 flex items-center justify-center rounded-md bg-accent/15 text-foreground hover:bg-accent/30 transition-colors cursor-pointer"
-                          title="Edit transaction"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(t.id)}
-                          className="h-7 w-7 flex items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-                          title="Delete transaction"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </TableCell>
+                    <TableCell />
                   </TableRow>
                 );
               })}
@@ -877,13 +799,6 @@ function TxnsPage() {
                       })()}
                       <div className="flex items-center gap-0.5">
                         <button
-                          onClick={() => setEditingEventGroup(grp)}
-                          className="h-6 w-6 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
-                          title="Edit Event"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-                        <button
                           onClick={() => toggleExpandEvent(grp.eventId)}
                           className="h-6 px-2 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 flex items-center gap-1 cursor-pointer"
                         >
@@ -911,14 +826,15 @@ function TxnsPage() {
                         return (
                           <div
                             key={t.id}
-                            className={`py-2 px-2.5 rounded-lg border-l-4 border-amber-500/60 bg-amber-500/[0.04] flex items-center justify-between gap-3 ${isSelected ? 'bg-accent/15' : ''}`}
+                            onClick={() => setEditingTxn(t)}
+                            className={`py-2 px-2.5 rounded-lg border-l-4 border-amber-500/60 bg-amber-500/[0.04] flex items-center justify-between gap-3 cursor-pointer ${isSelected ? 'bg-accent/15' : ''}`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <input
                                 type="checkbox"
                                 className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer flex-shrink-0"
                                 checked={isSelected}
-                                onChange={() => toggleSelect(t.id)}
+                                onChange={(e) => { e.stopPropagation(); toggleSelect(t.id); }}
                               />
                               <span className="text-base h-8 w-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                                 {cat?.icon ?? "💵"}
@@ -939,25 +855,7 @@ function TxnsPage() {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <span className={`num font-serif text-xs font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
-                              <div className="flex items-center gap-0.5">
-                                <button
-                                  onClick={() => setEditingTxn(t)}
-                                  className="h-5 w-5 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
-                                  title="Edit item"
-                                >
-                                  <Pencil className="h-2.5 w-2.5" />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteId(t.id)}
-                                  className="h-5 w-5 flex items-center justify-center rounded bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
-                                  title="Delete item"
-                                >
-                                  <Trash2 className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            </div>
+                            <span className={`num font-serif text-xs font-bold flex-shrink-0 ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
                           </div>
                         );
                       })}
@@ -979,13 +877,13 @@ function TxnsPage() {
               : "";
             const isSelected = selectedIds.includes(t.id);
             return (
-              <div key={t.id} className={`py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg ${isSelected ? 'bg-accent/10' : ''}`}>
+              <div key={t.id} onClick={() => setEditingTxn(t)} className={`py-2.5 flex items-center justify-between gap-3 px-1 rounded-lg cursor-pointer hover:bg-accent/5 ${isSelected ? 'bg-accent/10' : ''}`}>
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer flex-shrink-0"
                     checked={isSelected}
-                    onChange={() => toggleSelect(t.id)}
+                    onChange={(e) => { e.stopPropagation(); toggleSelect(t.id); }}
                   />
                   <span className="text-xl h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     {cat?.icon ?? "💵"}
@@ -1008,25 +906,7 @@ function TxnsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`num font-serif text-sm font-bold ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      onClick={() => setEditingTxn(t)}
-                      className="h-6 w-6 flex items-center justify-center rounded bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
-                      title="Edit transaction"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteId(t.id)}
-                      className="h-6 w-6 flex items-center justify-center rounded bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
-                      title="Delete transaction"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
+                <span className={`num font-serif text-sm font-bold flex-shrink-0 ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
               </div>
             );
           })}
