@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { SearchableSelect } from "@/components/searchable-select";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,13 @@ function BudgetsPage() {
   const expenseCats = cats.filter(c => c.kind === "expense");
   const usedIds = new Set(budgets.map(b => b.category_id));
   const availCats = expenseCats.filter(c => !usedIds.has(c.id));
+
+  const categoryOptions = (editingBudget ? expenseCats : availCats).map(c => ({
+    value: c.id,
+    label: c.name,
+    imageUrl: c.image_url || undefined,
+    icon: c.image_url ? undefined : <span>{c.icon}</span>
+  }));
 
   const activeCat = cats.find(c => c.id === (editingBudget ? editingBudget.category_id : catId));
 
@@ -205,18 +213,13 @@ function BudgetsPage() {
               {editingBudget ? (
                 <Input value={activeCat ? `${activeCat.icon} ${activeCat.name}` : "—"} disabled className="bg-muted" />
               ) : (
-                <Select value={catId} onValueChange={setCatId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[150]">
-                    {availCats.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.icon} {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={categoryOptions}
+                  value={catId}
+                  onValueChange={setCatId}
+                  placeholder="Select category"
+                  searchPlaceholder="Search category..."
+                />
               )}
             </div>
             <div>

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -494,6 +495,16 @@ function LoansPage() {
 
   const accMap = new Map(accounts.map(a => [a.id, a]));
 
+  const accountOptions = [
+    { value: "none", label: "Do not link account" },
+    ...accounts.map(a => ({
+      value: a.id,
+      label: `${a.name} (${fmtMoney(balances.get(a.id) ?? 0, currency)})`,
+      imageUrl: (a as any).image_url,
+      icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+    }))
+  ];
+
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Summary Stats */}
@@ -753,15 +764,14 @@ function LoansPage() {
                 ) : (
                   <div className="space-y-1.5">
                     <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link Account (Optional)</Label>
-                    <Select value={accountId} onValueChange={(val) => setAccountId(val)}>
-                      <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent className="z-[100]">
-                        <SelectItem value="none">Do not link account</SelectItem>
-                        {accounts.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>{a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={accountOptions}
+                      value={accountId}
+                      onValueChange={setAccountId}
+                      placeholder="Link Account"
+                      searchPlaceholder="Search Account..."
+                      triggerClassName="h-11 rounded-xl"
+                    />
                     <p className="text-[10px] text-muted-foreground leading-normal mt-1">
                       Linking an account automatically records the financial inflow/outflow as a transaction in that account.
                     </p>
@@ -770,15 +780,15 @@ function LoansPage() {
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="loan-account" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Linked Account</Label>
-                  <Select value={accountId} onValueChange={(val) => setAccountId(val)} disabled>
-                    <SelectTrigger className="w-full h-11 bg-background rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      <SelectItem value="none">Do not link account</SelectItem>
-                      {accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={accountOptions}
+                    value={accountId}
+                    onValueChange={setAccountId}
+                    placeholder="Link Account"
+                    searchPlaceholder="Search Account..."
+                    triggerClassName="h-11 rounded-xl"
+                    disabled
+                  />
                 </div>
               )}
 
@@ -1186,25 +1196,27 @@ function AccountSplitsSelector({
           const balance = balances.get(split.accountId) ?? 0;
           const isOverdrawn = showBalanceCheck && split.accountId !== "none" && balance < split.amount;
 
+          const splitAccountOptions = [
+            { value: "none", label: "Do not link account" },
+            ...accounts.map(a => ({
+              value: a.id,
+              label: `${a.name} (${fmtMoney(balances.get(a.id) ?? 0, currency)})`,
+              imageUrl: (a as any).image_url,
+              icon: (a as any).image_url ? undefined : <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+            }))
+          ];
+
           return (
             <div key={idx} className="flex gap-2 items-start">
               <div className="flex-1 min-w-0">
-                <Select
+                <SearchableSelect
+                  options={splitAccountOptions}
                   value={split.accountId || "none"}
                   onValueChange={(val) => handleSplitChange(idx, "accountId", val)}
-                >
-                  <SelectTrigger className="w-full h-10 bg-background rounded-lg text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[250]">
-                    <SelectItem value="none">Do not link account</SelectItem>
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select Account"
+                  searchPlaceholder="Search Account..."
+                  triggerClassName="h-10 text-xs bg-background rounded-lg"
+                />
                 {split.accountId !== "none" && (
                   <div className="text-[10px] text-muted-foreground mt-0.5 px-1 flex justify-between">
                     <span>Available: {fmtMoney(balance, currency)}</span>

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -81,6 +82,26 @@ function WarrantiesPage() {
   const balances = computeAccountBalances(accounts, txns);
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
+
+  const accountOptions = accounts.map(a => {
+    const bal = balances.get(a.id) ?? 0;
+    return {
+      value: a.id,
+      label: `${a.name} (${fmtMoney(bal, currency)})`,
+      imageUrl: (a as any).image_url,
+      icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+    };
+  });
+
+  const categoryOptions = [
+    { value: "none", label: "None" },
+    ...cats.filter(c => c.kind === "expense").map(c => ({
+      value: c.id,
+      label: c.name,
+      imageUrl: c.image_url || undefined,
+      icon: c.image_url ? undefined : <span>{c.icon}</span>
+    }))
+  ];
 
   // Form & Dialog States
   const [open, setOpen] = useState(false);
@@ -846,47 +867,26 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="account" className="text-xs font-semibold">Paid From</Label>
-                <Select value={accountId} onValueChange={setAccountId} disabled={saving}>
-                  <SelectTrigger id="account" className="bg-background">
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[150]">
-                    {accounts.map(a => {
-                      const bal = balances.get(a.id) ?? 0;
-                      return (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name} ({fmtMoney(bal, currency)})
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={accountOptions}
+                  value={accountId}
+                  onValueChange={setAccountId}
+                  placeholder="Select account"
+                  searchPlaceholder="Search account..."
+                />
               </div>
             </div>
 
             {/* Category */}
             <div className="space-y-1.5">
               <Label htmlFor="category" className="text-xs font-semibold">Category (Optional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId} disabled={saving}>
-                <SelectTrigger id="category" className="bg-background">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="z-[150]">
-                  <SelectItem value="none">None</SelectItem>
-                  {cats.filter(c => c.kind === "expense").map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <span className="flex items-center gap-1.5">
-                        {c.image_url ? (
-                          <img src={c.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <span>{c.icon}</span>
-                        )}
-                        <span>{c.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={categoryOptions}
+                value={categoryId}
+                onValueChange={setCategoryId}
+                placeholder="Select category"
+                searchPlaceholder="Search category..."
+              />
             </div>
 
             {/* Note */}

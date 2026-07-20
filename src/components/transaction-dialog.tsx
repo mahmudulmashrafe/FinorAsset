@@ -12,10 +12,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type TxnKind, type Transaction, syncTransactionToLoan, computeAccountBalances, fmtMoney } from "@/lib/finance";
 import { toast } from "sonner";
 import { Plus, PlusCircle, X, Trash2, ChevronUp, ChevronDown } from "lucide-react";
-import { z } from "zod";
-import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { SearchableSelect } from "@/components/searchable-select";
+import { z } from "zod";
+import { cn } from "@/lib/utils";
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 const transactionSchema = z
@@ -540,6 +541,25 @@ export function TransactionDialog({
     if (!isEdit) reset();
   }
 
+  const accountOptions = accounts.map(a => {
+    const bal = balances.get(a.id) ?? 0;
+    return {
+      value: a.id,
+      label: `${a.name} (${fmtMoney(bal, currency)})`,
+      imageUrl: (a as any).image_url,
+      icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+    };
+  });
+
+  const categoryOptions = filteredCats.map(c => {
+    return {
+      value: c.id,
+      label: c.name,
+      imageUrl: c.image_url || undefined,
+      icon: c.image_url ? undefined : <span>{c.icon}</span>
+    };
+  });
+
   const dialogContent = (
     <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[99] overflow-hidden" onCloseAutoFocus={(e) => e.preventDefault()}>
       <DialogHeader className="p-4 border-b">
@@ -686,40 +706,31 @@ export function TransactionDialog({
 
                       <div>
                         <Label className="text-[10px]">Category</Label>
-                        <Select value={item.categoryId} onValueChange={(v) => updateEventItem(item.id, "categoryId", v)}>
-                          <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Category" /></SelectTrigger>
-                          <SelectContent className="z-[150]">
-                            {categories.filter(c => c.kind === item.kind).map((c) => (
-                               <SelectItem key={c.id} value={c.id}>
-                                <span className="flex items-center gap-1.5">
-                                  {c.image_url ? (
-                                    <img src={c.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
-                                  ) : (
-                                    <span>{c.icon}</span>
-                                  )}
-                                  <span>{c.name}</span>
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={categories.filter(c => c.kind === item.kind).map(c => ({
+                            value: c.id,
+                            label: c.name,
+                            imageUrl: c.image_url || undefined,
+                            icon: c.image_url ? undefined : <span>{c.icon}</span>
+                          }))}
+                          value={item.categoryId}
+                          onValueChange={(v) => updateEventItem(item.id, "categoryId", v)}
+                          placeholder="Category"
+                          searchPlaceholder="Search Category..."
+                          triggerClassName="h-8 text-xs bg-background"
+                        />
                       </div>
 
                       <div>
                         <Label className="text-[10px]">Account</Label>
-                        <Select value={item.accountId} onValueChange={(v) => updateEventItem(item.id, "accountId", v)}>
-                          <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Account" /></SelectTrigger>
-                          <SelectContent className="z-[150]">
-                            {accounts.map((a) => {
-                               const bal = balances.get(a.id) ?? 0;
-                               return (
-                                 <SelectItem key={a.id} value={a.id}>
-                                   {a.name} ({fmtMoney(bal, currency)})
-                                 </SelectItem>
-                               );
-                             })}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={accountOptions}
+                          value={item.accountId}
+                          onValueChange={(v) => updateEventItem(item.id, "accountId", v)}
+                          placeholder="Account"
+                          searchPlaceholder="Search Account..."
+                          triggerClassName="h-8 text-xs bg-background"
+                        />
                       </div>
 
                       <div className="col-span-2">
@@ -818,19 +829,13 @@ export function TransactionDialog({
           ) : (
             <div>
               <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger id="txn-account" aria-invalid={!!errors.accountId}><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent className="z-[150]">
-                  {accounts.map((a) => {
-                    const bal = balances.get(a.id) ?? 0;
-                    return (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} ({fmtMoney(bal, currency)})
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={accountOptions}
+                value={accountId}
+                onValueChange={setAccountId}
+                placeholder="Select Account"
+                searchPlaceholder="Search Account..."
+              />
               {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
             </div>
           )}
@@ -838,43 +843,25 @@ export function TransactionDialog({
           {kind === "transfer" ? (
             <div>
               <Label htmlFor="txn-to-account">To account</Label>
-              <Select value={toAccountId} onValueChange={setToAccountId}>
-                <SelectTrigger id="txn-to-account" aria-invalid={!!errors.toAccountId}><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent className="z-[150]">
-                  {accounts.filter((a) => a.id !== accountId).map((a) => {
-                    const bal = balances.get(a.id) ?? 0;
-                    return (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} ({fmtMoney(bal, currency)})
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={accountOptions.filter((a) => a.value !== accountId)}
+                value={toAccountId}
+                onValueChange={setToAccountId}
+                placeholder="Select Destination"
+                searchPlaceholder="Search Destination Account..."
+              />
               {errors.toAccountId && <p className="mt-1 text-xs text-destructive">{errors.toAccountId}</p>}
             </div>
           ) : (
             <div className={isSplit ? "col-span-2" : ""}>
               <Label htmlFor="txn-category">Category</Label>
-              <Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setShowNewCat(false); }}>
-                <SelectTrigger id="txn-category"><SelectValue placeholder="Select or create" /></SelectTrigger>
-                <SelectContent className="z-[150]">
-                  {filteredCats.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">No categories yet</div>}
-                  {filteredCats.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <span className="flex items-center gap-2">
-                        {c.image_url ? (
-                          <img src={c.image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <span>{c.icon}</span>
-                        )}
-                        <span className="h-2 w-2 rounded-full inline-block flex-shrink-0" style={{ background: c.color }} />
-                        {c.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={categoryOptions}
+                value={categoryId}
+                onValueChange={(v) => { setCategoryId(v); setShowNewCat(false); }}
+                placeholder="Select Category"
+                searchPlaceholder="Search Category..."
+              />
               <button type="button" onClick={() => setShowNewCat(true)}
                 className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                 <PlusCircle className="h-3.5 w-3.5" /> Create new category

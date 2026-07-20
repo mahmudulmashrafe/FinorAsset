@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { SearchableSelect } from "@/components/searchable-select";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -63,6 +64,23 @@ function AutomationPage() {
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
   const balances = computeAccountBalances(accounts, txns);
+
+  const accountOptions = accounts.map(a => {
+    const bal = balances.get(a.id) ?? 0;
+    return {
+      value: a.id,
+      label: `${a.name} (${fmtMoney(bal, currency)})`,
+      imageUrl: (a as any).image_url,
+      icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+    };
+  });
+
+  const categoryOptions = cats.map(c => ({
+    value: c.id,
+    label: c.name,
+    imageUrl: c.image_url || undefined,
+    icon: c.image_url ? undefined : <span>{c.icon}</span>
+  }));
 
   // Load rules — try localStorage first (instant), then Supabase as background upgrade
   function loadLocalRules(): AutomationRule[] {
@@ -970,24 +988,14 @@ function AutomationPage() {
                           {(act.splits || []).map((split, sIdx) => {
                             return (
                               <div key={sIdx} className="flex gap-2 items-center">
-                                <Select
-                                  value={split.accountId || "none"}
-                                  onValueChange={(val) => updateActionSplit(idx, sIdx, "accountId", val === "none" ? "" : val)}
-                                >
-                                  <SelectTrigger className="flex-1 h-8 text-xs bg-background">
-                                    <SelectValue placeholder="Select account" />
-                                  </SelectTrigger>
-                                  <SelectContent className="z-[160]">
-                                    {(!split.accountId || split.accountId === "none") && (
-                                      <SelectItem value="none">Select account...</SelectItem>
-                                    )}
-                                    {accounts.map((a) => (
-                                      <SelectItem key={a.id} value={a.id}>
-                                        {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                  options={accountOptions}
+                                  value={split.accountId || ""}
+                                  onValueChange={(val) => updateActionSplit(idx, sIdx, "accountId", val)}
+                                  placeholder="Select account"
+                                  searchPlaceholder="Search Account..."
+                                  triggerClassName="flex-1 h-8 text-xs bg-background"
+                                />
                                 <Input
                                   type="number"
                                   step="any"
@@ -1015,18 +1023,14 @@ function AutomationPage() {
                         
                         <div className="space-y-1">
                           <Label className="text-[10px] font-semibold">Category</Label>
-                          <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent className="z-[150]">
-                              {cats.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.icon} {c.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <SearchableSelect
+                            options={categoryOptions}
+                            value={act.category_id || ""}
+                            onValueChange={(v) => updateActionField(idx, "category_id", v)}
+                            placeholder="Select Category"
+                            searchPlaceholder="Search Category..."
+                            triggerClassName="h-8 text-xs bg-background"
+                          />
                         </div>
                       </div>
                     ) : (
@@ -1035,51 +1039,39 @@ function AutomationPage() {
                           <Label className="text-[10px] font-semibold">
                             {act.kind === "transfer" ? "Source Account" : "Account"}
                           </Label>
-                          <Select value={act.account_id} onValueChange={(v) => updateActionField(idx, "account_id", v)}>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select account" />
-                            </SelectTrigger>
-                            <SelectContent className="z-[150]">
-                              {accounts.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>
-                                  {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <SearchableSelect
+                            options={accountOptions}
+                            value={act.account_id}
+                            onValueChange={(v) => updateActionField(idx, "account_id", v)}
+                            placeholder="Select Account"
+                            searchPlaceholder="Search Account..."
+                            triggerClassName="h-8 text-xs bg-background"
+                          />
                         </div>
 
                         {act.kind === "transfer" ? (
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold">Destination Account</Label>
-                            <Select value={act.to_account_id || ""} onValueChange={(v) => updateActionField(idx, "to_account_id", v)}>
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Select account" />
-                              </SelectTrigger>
-                              <SelectContent className="z-[150]">
-                                {accounts.map((a) => (
-                                  <SelectItem key={a.id} value={a.id}>
-                                    {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                              options={accountOptions.filter(a => a.value !== act.account_id)}
+                              value={act.to_account_id || ""}
+                              onValueChange={(v) => updateActionField(idx, "to_account_id", v)}
+                              placeholder="Select Destination"
+                              searchPlaceholder="Search Account..."
+                              triggerClassName="h-8 text-xs bg-background"
+                            />
                           </div>
                         ) : (
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold">Category</Label>
-                            <Select value={act.category_id || ""} onValueChange={(v) => updateActionField(idx, "category_id", v)}>
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent className="z-[150]">
-                                {cats.map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {c.icon} {c.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                              options={categoryOptions}
+                              value={act.category_id || ""}
+                              onValueChange={(v) => updateActionField(idx, "category_id", v)}
+                              placeholder="Select Category"
+                              searchPlaceholder="Search Category..."
+                              triggerClassName="h-8 text-xs bg-background"
+                            />
                           </div>
                         )}
                       </div>
