@@ -875,7 +875,7 @@ export function TransactionDialog({
         </div>
       </div>
 
-      <DialogFooter className="p-4 border-t flex flex-row items-center justify-between gap-2 shrink-0">
+      <DialogFooter className="p-4 border-t flex flex-row items-center justify-between sm:justify-between gap-2 shrink-0">
         {isEditSingle && editingTransaction && onDelete ? (
           <Button
             variant="destructive"

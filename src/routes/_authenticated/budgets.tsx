@@ -231,7 +231,7 @@ function BudgetsPage() {
               />
             </div>
           </div>
-          <DialogFooter className="p-4 border-t gap-2 flex-row justify-between items-center shrink-0">
+          <DialogFooter className="p-4 border-t gap-2 flex-row justify-between sm:justify-between items-center shrink-0">
             {editingBudget ? (
               <Button
                 variant="destructive"

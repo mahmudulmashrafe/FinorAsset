@@ -971,7 +971,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-border/40 gap-2 flex-row justify-between items-center shrink-0">
+          <DialogFooter className="p-4 border-t border-border/40 gap-2 flex-row justify-between sm:justify-between items-center shrink-0">
             {editingWarranty && (
               <Button 
                 variant="destructive" 

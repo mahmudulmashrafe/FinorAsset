@@ -649,24 +649,10 @@ function AutomationPage() {
                     })()}
 
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setEditingRule(rule)}
-                        className="h-8 w-8 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground hover:bg-accent/15 transition-colors cursor-pointer"
-                        title="Edit Macro"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteRuleId(rule.id)}
-                        className="h-8 w-8 flex items-center justify-center rounded-full bg-destructive/10 text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
-                        title="Delete Macro"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
                       <Button
                         onClick={() => executeAutomation(rule)}
                         disabled={executingId === rule.id}
-                        className="gap-1 rounded-full cursor-pointer h-8 px-3 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground ml-1"
+                        className="gap-1 rounded-full cursor-pointer h-8 px-3 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
                       >
                         <Play className="h-3 w-3 fill-current shrink-0" />
                         {executingId === rule.id ? "Running..." : "Trigger"}
@@ -726,22 +712,7 @@ function AutomationPage() {
                       </span>
                     </span>
 
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => setEditingSub(sub)}
-                        className="h-8 w-8 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground hover:bg-accent/15 transition-colors cursor-pointer"
-                        title="Edit Subscription"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteSubId(sub.id)}
-                        className="h-8 w-8 flex items-center justify-center rounded-full bg-destructive/10 text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
-                        title="Delete Subscription"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+
                   </div>
                 </div>
               );
