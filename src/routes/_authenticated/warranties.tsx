@@ -386,19 +386,6 @@ function WarrantiesPage() {
 
   return (
     <div className="space-y-6 w-full pb-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-3xl font-black tracking-tight flex items-center gap-2.5">
-            <ShieldCheck className="h-8 w-8 text-accent" />
-            Warranties
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Track product warranties, purchase details, receipts, and expiration alerts.
-          </p>
-        </div>
-      </div>
-
       {/* SQL Setup Notice if table doesn't exist */}
       {dbError && (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 space-y-4">
