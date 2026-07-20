@@ -710,7 +710,25 @@ function TxnsPage() {
                           })()}
                         </TableCell>
                         <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingEventGroup(grp)}
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer rounded-full"
+                              title="Edit Event"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteEventId(grp.eventId)}
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer rounded-full"
+                              title="Delete Event"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                             {reorderDate === rStr && (
                               <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
                                 <Button
@@ -1064,7 +1082,21 @@ function TxnsPage() {
                           </span>
                         );
                       })()}
-                      <div className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingEventGroup(grp); }}
+                          className="h-6 w-6 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
+                          title="Edit Event"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteEventId(grp.eventId); }}
+                          className="h-6 w-6 flex items-center justify-center rounded-full bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                          title="Delete Event"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                         {reorderDate === rStr && (
                           <div className="flex items-center gap-1 animate-in fade-in duration-200">
                             <button

@@ -264,7 +264,13 @@ export function TransactionDialog({
       setAccountId(editingTransaction.account_id);
       setToAccountId(editingTransaction.to_account_id ?? "");
       setCategoryId(editingTransaction.category_id ?? "");
-      setNote(editingTransaction.note ?? "");
+      
+      let itemNoteStr = editingTransaction.note ?? "";
+      if (itemNoteStr.startsWith("[Event: ")) {
+        const match = itemNoteStr.match(/^\[Event:\s*(.*?)\|id:(.*?)\]\s*(.*)$/);
+        if (match) itemNoteStr = match[3];
+      }
+      setNote(itemNoteStr);
       setDate(editingTransaction.occurred_on);
       setIsSplit(false);
     } else {
@@ -437,13 +443,22 @@ export function TransactionDialog({
       }
 
       // UPDATE existing transaction
+      let finalNote = note || null;
+      if (editingTransaction && editingTransaction.note && editingTransaction.note.startsWith("[Event: ")) {
+        const match = editingTransaction.note.match(/^\[Event:\s*(.*?)\|id:(.*?)\]/);
+        if (match) {
+          const prefix = match[0];
+          finalNote = `${prefix}${note ? ` ${note.trim()}` : ""}`.trim() || null;
+        }
+      }
+
       const { error } = await supabase.from("transactions").update({
         account_id: accountId,
         to_account_id: kind === "transfer" ? toAccountId : null,
         category_id: kind === "transfer" ? null : (categoryId || null),
         kind,
         amount: parsed.data.amount,
-        note: note || null,
+        note: finalNote,
         occurred_on: date,
       }).eq("id", editingTransaction!.id);
 
