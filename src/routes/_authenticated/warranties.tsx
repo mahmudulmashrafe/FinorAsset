@@ -1,0 +1,882 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, fmtMoney } from "@/lib/finance";
+import { useState, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import { 
+  ShieldCheck, Plus, Trash2, Pencil, Calendar, Image as ImageIcon, 
+  ExternalLink, AlertTriangle, ShieldAlert, Loader2, Upload, X, Shield 
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+export const Route = createFileRoute("/_authenticated/warranties")({
+  component: WarrantiesPage,
+  head: () => ({ meta: [{ title: "Warranties — FinorAsset" }] }),
+});
+
+interface Warranty {
+  id: string;
+  user_id: string;
+  title: string;
+  purchase_date: string;
+  expiry_date: string;
+  amount: number;
+  account_id: string | null;
+  category_id: string | null;
+  transaction_id: string | null;
+  note: string | null;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function WarrantiesPage() {
+  const qc = useQueryClient();
+  const { currency, authUser } = useUserProfile();
+
+  const [dbError, setDbError] = useState<any>(null);
+
+  const { data: warranties = [], isLoading } = useQuery({
+    queryKey: ["warranties"],
+    queryFn: async () => {
+      try {
+        const data = await api.listWarranties();
+        setDbError(null);
+        return data;
+      } catch (err: any) {
+        if (err.code === "42P01") {
+          setDbError(err);
+          return [];
+        }
+        throw err;
+      }
+    },
+    enabled: !!authUser,
+  });
+
+  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
+  const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
+
+  const catMap = new Map(cats.map(c => [c.id, c]));
+  const accMap = new Map(accounts.map(a => [a.id, a]));
+
+  // Form & Dialog States
+  const [open, setOpen] = useState(false);
+  const [editingWarranty, setEditingWarranty] = useState<Warranty | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form values
+  const [title, setTitle] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split("T")[0]);
+  const [expiryDate, setExpiryDate] = useState("");
+  const [amount, setAmount] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [categoryId, setCategoryId] = useState("none");
+  const [note, setNote] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Lightbox / Image Preview State
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function resetForm() {
+    setTitle("");
+    setPurchaseDate(new Date().toISOString().split("T")[0]);
+    setExpiryDate("");
+    setAmount("");
+    setAccountId(accounts[0]?.id || "");
+    setCategoryId("none");
+    setNote("");
+    setImageFile(null);
+    setImageUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleAddClick() {
+    resetForm();
+    setEditingWarranty(null);
+    setOpen(true);
+  }
+
+  function handleRowClick(w: Warranty) {
+    setTitle(w.title);
+    setPurchaseDate(w.purchase_date);
+    setExpiryDate(w.expiry_date);
+    setAmount(String(w.amount));
+    setAccountId(w.account_id || "");
+    setCategoryId(w.category_id || "none");
+    setNote(w.note || "");
+    setImageUrl(w.image_url || "");
+    setImageFile(null);
+    setEditingWarranty(w);
+    setOpen(true);
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
+  async function handleSave() {
+    if (!title.trim()) return toast.error("Please enter a title");
+    if (!purchaseDate) return toast.error("Please select purchase date");
+    if (!expiryDate) return toast.error("Please select expiry date");
+    if (new Date(expiryDate) <= new Date(purchaseDate)) {
+      return toast.error("Expiry date must be after purchase date");
+    }
+    if (!amount || Number(amount) <= 0) return toast.error("Please enter a valid amount");
+    if (!accountId) return toast.error("Please select an account");
+    if (!authUser) return;
+
+    setSaving(true);
+    let finalImageUrl = imageUrl;
+
+    try {
+      // 1. Upload image if selected
+      if (imageFile) {
+        setUploadingImage(true);
+        const fileExt = imageFile.name.split('.').pop();
+        const filePath = `${authUser.id}/${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('warranties')
+          .upload(filePath, imageFile);
+          
+        if (uploadError) {
+          throw new Error(`Receipt image upload failed: ${uploadError.message}`);
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('warranties')
+          .getPublicUrl(filePath);
+          
+        finalImageUrl = publicUrl;
+        setUploadingImage(false);
+      }
+
+      const categoryVal = categoryId === "none" ? null : categoryId;
+
+      if (editingWarranty) {
+        // Update transaction if exists
+        let finalTxnId = editingWarranty.transaction_id;
+        if (finalTxnId) {
+          const { error: txnError } = await supabase
+            .from("transactions")
+            .update({
+              amount: Number(amount),
+              account_id: accountId,
+              category_id: categoryVal,
+              occurred_on: purchaseDate,
+              note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
+            })
+            .eq("id", finalTxnId);
+            
+          if (txnError) console.error("Failed to update linked transaction:", txnError);
+        } else {
+          // If transaction didn't exist before, create one now
+          const { data: newTxn, error: txnError } = await supabase
+            .from("transactions")
+            .insert({
+              user_id: authUser.id,
+              kind: "expense",
+              amount: Number(amount),
+              account_id: accountId,
+              category_id: categoryVal,
+              occurred_on: purchaseDate,
+              note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
+            })
+            .select()
+            .single();
+            
+          if (!txnError && newTxn) {
+            finalTxnId = newTxn.id;
+          }
+        }
+
+        // Update Warranty
+        const { error } = await supabase
+          .from("warranties")
+          .update({
+            title: title.trim(),
+            purchase_date: purchaseDate,
+            expiry_date: expiryDate,
+            amount: Number(amount),
+            account_id: accountId,
+            category_id: categoryVal,
+            transaction_id: finalTxnId,
+            note: note.trim() || null,
+            image_url: finalImageUrl || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingWarranty.id);
+
+        if (error) throw error;
+        toast.success("Warranty updated successfully!");
+      } else {
+        // Create Transaction first
+        const { data: newTxn, error: txnError } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: authUser.id,
+            kind: "expense",
+            amount: Number(amount),
+            account_id: accountId,
+            category_id: categoryVal,
+            occurred_on: purchaseDate,
+            note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
+          })
+          .select()
+          .single();
+
+        if (txnError) {
+          console.error("Failed to insert warranty transaction:", txnError);
+        }
+
+        // Insert Warranty
+        const { error } = await supabase.from("warranties").insert({
+          user_id: authUser.id,
+          title: title.trim(),
+          purchase_date: purchaseDate,
+          expiry_date: expiryDate,
+          amount: Number(amount),
+          account_id: accountId,
+          category_id: categoryVal,
+          transaction_id: newTxn ? newTxn.id : null,
+          note: note.trim() || null,
+          image_url: finalImageUrl || null,
+        });
+
+        if (error) throw error;
+        toast.success("Warranty created successfully!");
+      }
+
+      qc.invalidateQueries({ queryKey: ["warranties"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      setOpen(false);
+      resetForm();
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred");
+    } finally {
+      setSaving(false);
+      setUploadingImage(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!editingWarranty) return;
+    const ok = confirm(`Delete warranty for "${editingWarranty.title}"?`);
+    if (!ok) return;
+
+    setSaving(true);
+    try {
+      // 1. Delete associated transaction if any
+      if (editingWarranty.transaction_id) {
+        const { error: txnErr } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("id", editingWarranty.transaction_id);
+        if (txnErr) console.error("Failed to delete linked transaction:", txnErr);
+      }
+
+      // 2. Delete warranty
+      const { error } = await supabase
+        .from("warranties")
+        .delete()
+        .eq("id", editingWarranty.id);
+
+      if (error) throw error;
+      toast.success("Warranty deleted");
+      qc.invalidateQueries({ queryKey: ["warranties"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Delete failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Stats Computations
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const activeWarranties = warranties.filter(w => new Date(w.expiry_date) >= today);
+  const expiredWarranties = warranties.filter(w => new Date(w.expiry_date) < today);
+
+  const soonExpiring = warranties.filter(w => {
+    const expiry = new Date(w.expiry_date);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 30;
+  });
+
+  return (
+    <div className="space-y-6 w-full pb-10">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-3xl font-black tracking-tight flex items-center gap-2.5">
+            <ShieldCheck className="h-8 w-8 text-accent" />
+            Warranties
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Track product warranties, purchase details, receipts, and expiration alerts.
+          </p>
+        </div>
+        {!dbError && (
+          <Button onClick={handleAddClick} className="cursor-pointer gap-1.5 shrink-0 self-start sm:self-center">
+            <Plus className="h-4 w-4" /> Add Warranty
+          </Button>
+        )}
+      </div>
+
+      {/* SQL Setup Notice if table doesn't exist */}
+      {dbError && (
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+            <h3 className="font-serif font-black text-destructive text-lg">Database Table Setup Required</h3>
+          </div>
+          <div className="text-xs text-muted-foreground space-y-2 leading-relaxed">
+            <p>
+              The <strong>warranties</strong> table and storage bucket do not exist in your Supabase database yet.
+            </p>
+            <p>
+              Please copy the SQL commands below, open your <strong>Supabase Dashboard → SQL Editor</strong>, and click <strong>Run</strong>:
+            </p>
+          </div>
+          <pre className="p-4 bg-card border rounded-lg text-[10px] font-mono overflow-auto max-h-52 text-foreground/80 thin-scroll">
+{`-- Create warranties table
+CREATE TABLE IF NOT EXISTS public.warranties (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  purchase_date DATE NOT NULL,
+  expiry_date DATE NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
+  category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+  transaction_id UUID REFERENCES public.transactions(id) ON DELETE SET NULL,
+  note TEXT,
+  image_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.warranties ENABLE ROW LEVEL SECURITY;
+
+-- Grant permissions
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.warranties TO authenticated;
+GRANT ALL ON public.warranties TO service_role;
+
+-- RLS policies
+CREATE POLICY "own warranties" ON public.warranties 
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Create warranties storage bucket
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('warranties', 'warranties', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies for bucket
+CREATE POLICY "Allow authenticated upload to warranties" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'warranties');
+
+CREATE POLICY "Allow public read from warranties" ON storage.objects
+  FOR SELECT USING (bucket_id = 'warranties');
+
+CREATE POLICY "Allow users to delete own objects from warranties" ON storage.objects
+  FOR DELETE TO authenticated USING (bucket_id = 'warranties' AND auth.uid()::text = (storage.foldername(name))[1]);`}
+          </pre>
+          <div className="text-xs text-muted-foreground">
+            After running the script, refresh this page to begin managing warranties!
+          </div>
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      {!dbError && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Active Warranties</p>
+              <h3 className="font-serif text-2xl font-black mt-1 num">{activeWarranties.length}</h3>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <Shield className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expiring (30d)</p>
+              <h3 className="font-serif text-2xl font-black mt-1 num text-amber-500">{soonExpiring.length}</h3>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center animate-pulse">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expired</p>
+              <h3 className="font-serif text-2xl font-black mt-1 num text-destructive">{expiredWarranties.length}</h3>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* List / Table */}
+      {!dbError && (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-bold py-3 px-4">Item Name</TableHead>
+                  <TableHead className="font-bold py-3 px-4">Purchase Date</TableHead>
+                  <TableHead className="font-bold py-3 px-4">Expiry Date</TableHead>
+                  <TableHead className="font-bold py-3 px-4">Paid From</TableHead>
+                  <TableHead className="font-bold py-3 px-4">Category</TableHead>
+                  <TableHead className="font-bold py-3 px-4 text-right">Cost</TableHead>
+                  <TableHead className="font-bold py-3 px-4 text-center">Receipt</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto opacity-40 mb-2" />
+                      Loading warranties…
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && warranties.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                      No warranties added yet. Click Add Warranty to begin.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && warranties.map((w) => {
+                  const acc = w.account_id ? accMap.get(w.account_id) : null;
+                  const cat = w.category_id ? catMap.get(w.category_id) : null;
+                  
+                  const isExpired = new Date(w.expiry_date) < today;
+                  const expiryDateObj = new Date(w.expiry_date);
+                  const diffTime = expiryDateObj.getTime() - today.getTime();
+                  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                  let daysLabel = "";
+                  if (isExpired) {
+                    daysLabel = "Expired";
+                  } else if (diffDays === 0) {
+                    daysLabel = "Expires today";
+                  } else if (diffDays === 1) {
+                    daysLabel = "Expires tomorrow";
+                  } else {
+                    daysLabel = `${diffDays} days left`;
+                  }
+
+                  return (
+                    <TableRow 
+                      key={w.id} 
+                      onClick={() => handleRowClick(w)}
+                      className="cursor-pointer hover:bg-accent/5 transition-colors group"
+                    >
+                      <TableCell className="font-medium py-3 px-4">
+                        <div className="flex flex-col">
+                          <span className="font-serif font-black">{w.title}</span>
+                          {w.note && <span className="text-[10px] text-muted-foreground max-w-[30ch] truncate mt-0.5">{w.note}</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 px-4 tabular-nums text-xs sm:text-sm">
+                        {new Date(w.purchase_date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="py-3 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="tabular-nums text-xs sm:text-sm font-semibold">{new Date(w.expiry_date).toLocaleDateString()}</span>
+                          <span className={`text-[10px] font-medium leading-none ${isExpired ? "text-destructive" : diffDays <= 30 ? "text-amber-500" : "text-emerald-500"}`}>
+                            {daysLabel}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-xs sm:text-sm text-muted-foreground">
+                        {acc ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
+                            {acc.name}
+                          </div>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-xs sm:text-sm">
+                        {cat ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span>{cat.icon}</span>
+                            <span>{cat.name}</span>
+                          </span>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right font-serif font-bold tabular-nums">
+                        {fmtMoney(Number(w.amount), currency)}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        {w.image_url ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 cursor-pointer text-accent hover:text-accent/80"
+                            onClick={() => setPreviewImage(w.image_url)}
+                            title="View Receipt"
+                          >
+                            <ImageIcon className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground/30 text-xs">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile List View */}
+          <div className="md:hidden space-y-2.5">
+            {isLoading && (
+              <div className="py-12 text-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto opacity-40 mb-2" />
+                Loading warranties…
+              </div>
+            )}
+            {!isLoading && warranties.length === 0 && (
+              <div className="py-12 text-center text-muted-foreground text-sm border rounded-xl bg-card">
+                No warranties added yet.
+              </div>
+            )}
+            {!isLoading && warranties.map((w) => {
+              const acc = w.account_id ? accMap.get(w.account_id) : null;
+              const cat = w.category_id ? catMap.get(w.category_id) : null;
+              const isExpired = new Date(w.expiry_date) < today;
+              const expiryDateObj = new Date(w.expiry_date);
+              const diffTime = expiryDateObj.getTime() - today.getTime();
+              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+              let daysLabel = "";
+              if (isExpired) {
+                daysLabel = "Expired";
+              } else if (diffDays === 0) {
+                daysLabel = "Expires today";
+              } else if (diffDays === 1) {
+                daysLabel = "Expires tomorrow";
+              } else {
+                daysLabel = `${diffDays} days left`;
+              }
+
+              return (
+                <div 
+                  key={w.id} 
+                  onClick={() => handleRowClick(w)}
+                  className={`rounded-xl border bg-card/85 p-3.5 space-y-3 cursor-pointer hover:bg-accent/[0.02] active:bg-accent/[0.04] transition-all`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="font-serif font-black text-sm truncate">{w.title}</h4>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${isExpired ? "bg-destructive/10 text-destructive border border-destructive/20" : diffDays <= 30 ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"}`}>
+                          {daysLabel}
+                        </span>
+                        {cat && (
+                          <Badge variant="outline" className="text-[8px] py-0 px-1 border-border/80 text-muted-foreground gap-0.5">
+                            <span>{cat.icon}</span>
+                            <span>{cat.name}</span>
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-serif font-bold text-sm tabular-nums shrink-0">
+                      {fmtMoney(Number(w.amount), currency)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground pt-1.5 border-t border-border/40">
+                    <div>
+                      <p className="uppercase tracking-wider text-[8px]">Purchase Date</p>
+                      <p className="font-medium text-foreground mt-0.5">{new Date(w.purchase_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="uppercase tracking-wider text-[8px]">Expiry Date</p>
+                      <p className="font-medium text-foreground mt-0.5 font-semibold">{new Date(w.expiry_date).toLocaleDateString()}</p>
+                    </div>
+                    {acc && (
+                      <div className="col-span-2">
+                        <p className="uppercase tracking-wider text-[8px]">Paid From</p>
+                        <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
+                          {acc.name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {w.image_url && (
+                    <div className="pt-2 border-t border-border/40 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="outline" 
+                        size="xs" 
+                        className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1"
+                        onClick={() => setPreviewImage(w.image_url)}
+                      >
+                        <ImageIcon className="h-3 w-3" /> View Receipt
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Add / Edit Dialog */}
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto thin-scroll z-[95] rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl font-black">
+              {editingWarranty ? "Edit Warranty" : "Add Warranty"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            {/* Title */}
+            <div className="space-y-1.5">
+              <Label htmlFor="title" className="text-xs font-semibold">Product Name / Title</Label>
+              <Input 
+                id="title" 
+                placeholder="e.g. MacBook Pro, Sony Headphones" 
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                disabled={saving}
+              />
+            </div>
+
+            {/* Purchase & Expiry Dates */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="purchaseDate" className="text-xs font-semibold">Purchase Date</Label>
+                <Input 
+                  id="purchaseDate" 
+                  type="date" 
+                  value={purchaseDate} 
+                  onChange={(e) => setPurchaseDate(e.target.value)} 
+                  disabled={saving}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="expiryDate" className="text-xs font-semibold">Expiry Date</Label>
+                <Input 
+                  id="expiryDate" 
+                  type="date" 
+                  value={expiryDate} 
+                  onChange={(e) => setExpiryDate(e.target.value)} 
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            {/* Cost & Account */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="amount" className="text-xs font-semibold">Price / Cost ({currency})</Label>
+                <Input 
+                  id="amount" 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="0.00" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)} 
+                  disabled={saving}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="account" className="text-xs font-semibold">Paid From</Label>
+                <Select value={accountId} onValueChange={setAccountId} disabled={saving}>
+                  <SelectTrigger id="account" className="bg-background">
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[150]">
+                    {accounts.map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label htmlFor="category" className="text-xs font-semibold">Category (Optional)</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} disabled={saving}>
+                <SelectTrigger id="category" className="bg-background">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="z-[150]">
+                  <SelectItem value="none">None</SelectItem>
+                  {cats.filter(c => c.kind === "expense").map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.icon} {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Note */}
+            <div className="space-y-1.5">
+              <Label htmlFor="note" className="text-xs font-semibold">Notes / Serial Number</Label>
+              <Textarea 
+                id="note" 
+                placeholder="Serial number, service contact, conditions..." 
+                rows={2.5}
+                value={note} 
+                onChange={(e) => setNote(e.target.value)} 
+                disabled={saving}
+              />
+            </div>
+
+            {/* Image / Receipt Upload */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Receipt / Product Image</Label>
+              
+              {imageUrl && (
+                <div className="relative border rounded-lg overflow-hidden h-28 bg-muted flex items-center justify-center">
+                  <img src={imageUrl} alt="Receipt Preview" className="h-full object-contain" />
+                  <Button 
+                    variant="destructive" 
+                    size="xs" 
+                    className="absolute top-1.5 right-1.5 h-5 w-5 p-0 rounded-full cursor-pointer"
+                    onClick={() => setImageUrl("")}
+                    disabled={saving}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              {!imageUrl && (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-border/60 hover:border-accent/40 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-accent/[0.01] hover:bg-accent/[0.03] transition-all"
+                >
+                  <Upload className="h-5 w-5 text-muted-foreground opacity-60" />
+                  <span className="text-[11px] font-medium">
+                    {imageFile ? imageFile.name : "Click to select or upload receipt"}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground opacity-75">Max file size: 5MB</span>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    accept="image/*" 
+                    className="hidden" 
+                    disabled={saving}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="pt-3 border-t border-border/40 gap-2 sm:gap-0 flex-row justify-between items-center">
+            {editingWarranty && (
+              <Button 
+                variant="destructive" 
+                onClick={handleDelete} 
+                disabled={saving || uploadingImage}
+                className="cursor-pointer mr-auto"
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Delete
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button 
+                variant="outline" 
+                onClick={() => { setOpen(false); resetForm(); }} 
+                disabled={saving || uploadingImage}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={saving || uploadingImage}
+                className="cursor-pointer"
+              >
+                {saving || uploadingImage ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    {uploadingImage ? "Uploading..." : "Saving..."}
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Preview Lightbox */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[160] bg-black/85 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-3xl max-h-[90vh] flex flex-col items-center gap-3">
+            <button 
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 flex items-center gap-1 text-xs cursor-pointer"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="h-4 w-4" /> Close
+            </button>
+            <img 
+              src={previewImage} 
+              alt="Receipt receipt_image" 
+              className="max-w-full max-h-[80vh] rounded-lg object-contain border" 
+              onClick={(e) => e.stopPropagation()}
+            />
+            <a 
+              href={previewImage} 
+              target="_blank" 
+              rel="noreferrer"
+              className="text-xs text-accent hover:underline flex items-center gap-1 mt-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Open full image in new tab
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

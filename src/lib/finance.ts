@@ -7,6 +7,20 @@ export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 export type Budget = Database["public"]["Tables"]["budgets"]["Row"];
 export type Loan = Database["public"]["Tables"]["loans"]["Row"];
 export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
+export type Warranty = {
+  id: string;
+  user_id: string;
+  title: string;
+  purchase_date: string;
+  expiry_date: string;
+  amount: number;
+  account_id: string | null;
+  category_id: string | null;
+  note: string | null;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type TxnKind = "income" | "expense" | "transfer";
 
 export function fmtMoney(n: number, currency = "USD") {
@@ -56,6 +70,11 @@ export const api = {
     const { data, error } = await supabase.from("subscriptions").select("*").order("created_at");
     if (error) throw error;
     return data as Subscription[];
+  },
+  async listWarranties() {
+    const { data, error } = await supabase.from("warranties").select("*").order("expiry_date", { ascending: true });
+    if (error) throw error;
+    return data as any as Warranty[];
   },
 };
 

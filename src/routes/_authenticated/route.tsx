@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign } from "lucide-react";
+import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
@@ -37,6 +37,7 @@ const items = [
   { title: "Accounts",     url: "/accounts",     icon: Wallet,           mobile: true },
   { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: true },
   { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: true },
+  { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
   { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
   { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
 ] as const;
@@ -336,6 +337,19 @@ function Layout() {
     enabled: !!authUser,
   });
 
+  const { data: warranties = [] } = useQuery({
+    queryKey: ["warranties"],
+    queryFn: async () => {
+      try {
+        return await api.listWarranties();
+      } catch (err: any) {
+        if (err.code === "42P01") return [];
+        throw err;
+      }
+    },
+    enabled: !!authUser,
+  });
+
   const { data: dbNotifications = [], refetch: refetchNotifications } = useQuery({
     queryKey: ["notifications", authUser?.id],
     queryFn: async () => {
@@ -498,6 +512,39 @@ function Layout() {
       }
     }
 
+    // 3. Warranties Notifications Check
+    for (const w of warranties) {
+      if (!w.expiry_date) continue;
+
+      const expiry = parseLocalDate(w.expiry_date);
+      const diffTime = expiry.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      const todayStr = today.toISOString().split("T")[0];
+      
+      const alertDays = [30, 15, 7, 3, 2, 1, 0];
+
+      if (alertDays.includes(diffDays)) {
+        const identifier = `warranty-expire-${w.id}-${diffDays}-${todayStr}`;
+        const dayMsg = diffDays === 0 ? "today" : diffDays === 1 ? "tomorrow" : `in ${diffDays} days`;
+        newAlerts.push({
+          user_id: authUser.id,
+          title: "Warranty Expiring Soon",
+          message: `Warranty for "${w.title}" (${fmtMoney(Number(w.amount), currency)}) expires ${dayMsg}!`,
+          type: diffDays <= 3 ? "critical" : "warning",
+          identifier,
+        });
+      } else if (diffDays < 0) {
+        const identifier = `warranty-expired-${w.id}-${todayStr}`;
+        newAlerts.push({
+          user_id: authUser.id,
+          title: "Warranty Expired",
+          message: `Warranty for "${w.title}" expired on ${new Date(w.expiry_date).toLocaleDateString()}!`,
+          type: "critical",
+          identifier,
+        });
+      }
+    }
+
     if (newAlerts.length === 0) return;
 
     async function insertAlerts() {
@@ -519,18 +566,19 @@ function Layout() {
     }
 
     insertAlerts();
-  }, [subscriptions, loans, accounts, txns, dbNotifications, authUser, profile?.currency, qc]);
+  }, [subscriptions, loans, warranties, accounts, txns, dbNotifications, authUser, profile?.currency, qc]);
 
   // Comprehensive click-to-sync notifications handler (updates and loads on bell click without page refresh)
   async function syncNotifications() {
     if (!authUser) return;
     try {
       // 1. Refetch all source queries in parallel to get latest database records
-      const [freshSubs, freshLoans, freshAccounts, freshTxns] = await Promise.all([
+      const [freshSubs, freshLoans, freshAccounts, freshTxns, freshWarranties] = await Promise.all([
         api.listSubscriptions(),
         api.listLoans(),
         api.listAccounts(),
         api.listTransactions(1000),
+        api.listWarranties().catch(() => []),
       ]);
 
       const today = new Date();
@@ -655,6 +703,37 @@ function Layout() {
         }
       }
 
+      // Warranties
+      for (const w of freshWarranties) {
+        if (!w.expiry_date) continue;
+        const expiry = parseLocalDate(w.expiry_date);
+        const diffTime = expiry.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const todayStr = today.toISOString().split("T")[0];
+        const alertDays = [30, 15, 7, 3, 2, 1, 0];
+
+        if (alertDays.includes(diffDays)) {
+          const identifier = `warranty-expire-${w.id}-${diffDays}-${todayStr}`;
+          const dayMsg = diffDays === 0 ? "today" : diffDays === 1 ? "tomorrow" : `in ${diffDays} days`;
+          newAlerts.push({
+            user_id: authUser.id,
+            title: "Warranty Expiring Soon",
+            message: `Warranty for "${w.title}" (${fmtMoney(Number(w.amount), currency)}) expires ${dayMsg}!`,
+            type: diffDays <= 3 ? "critical" : "warning",
+            identifier,
+          });
+        } else if (diffDays < 0) {
+          const identifier = `warranty-expired-${w.id}-${todayStr}`;
+          newAlerts.push({
+            user_id: authUser.id,
+            title: "Warranty Expired",
+            message: `Warranty for "${w.title}" expired on ${new Date(w.expiry_date).toLocaleDateString()}!`,
+            type: "critical",
+            identifier,
+          });
+        }
+      }
+
       // 2. Load what is currently in the DB notifications table
       const { data: dbNotifs = [] } = await (supabase.from as any)("notifications").select("identifier");
       const existingIdentifiers = new Set((dbNotifs || []).map((n: any) => n.identifier));
@@ -672,6 +751,7 @@ function Layout() {
       qc.setQueryData(["loans"], freshLoans);
       qc.setQueryData(["accounts"], freshAccounts);
       qc.setQueryData(["transactions"], freshTxns);
+      qc.setQueryData(["warranties"], freshWarranties);
 
     } catch (err) {
       console.error("Failed to sync notifications", err);
