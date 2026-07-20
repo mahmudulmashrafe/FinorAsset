@@ -281,7 +281,19 @@ export function ProfileDialog({
                   disabled={saving || uploadingAvatar}
                 />
               </div>
-              {uploadingAvatar && <span className="text-[9px] text-accent animate-pulse">Uploading...</span>}
+              <div className="flex flex-col gap-1 items-center">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="xs"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="text-[10px] h-7 px-2.5 cursor-pointer font-semibold"
+                >
+                  Upload Picture
+                </Button>
+                {uploadingAvatar && <span className="text-[9px] text-accent animate-pulse">Uploading...</span>}
+              </div>
               <div className="min-w-0 w-full">
                 <h2 className="font-serif text-xl font-semibold truncate">{displayName || "Anonymous"}</h2>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1 flex-wrap break-all w-full select-all">

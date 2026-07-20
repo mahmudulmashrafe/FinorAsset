@@ -225,7 +225,19 @@ function ProfilePage() {
               disabled={saving || uploadingAvatar}
             />
           </div>
-          {uploadingAvatar && <span className="text-[10px] text-accent animate-pulse">Uploading picture…</span>}
+          <div className="flex flex-col gap-1 items-center">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="xs"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="text-[10px] h-7 px-2.5 cursor-pointer font-semibold"
+            >
+              Upload Picture
+            </Button>
+            {uploadingAvatar && <span className="text-[10px] text-accent animate-pulse">Uploading picture…</span>}
+          </div>
           <div>
             <h2 className="font-serif text-2xl font-semibold">{displayName || "Anonymous"}</h2>
             <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
