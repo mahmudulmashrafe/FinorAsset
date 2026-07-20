@@ -366,7 +366,7 @@ function CategoryFormDialog({
           </div>
         </div>
 
-        <DialogFooter className="p-4 border-t flex items-center justify-between shrink-0 bg-background w-full">
+        <DialogFooter className="p-4 border-t flex flex-row items-center justify-between sm:justify-between shrink-0 bg-background w-full">
           {isEdit && onDelete && editingCategory ? (
             <Button 
               type="button" 
@@ -375,9 +375,9 @@ function CategoryFormDialog({
                 onOpenChange(false);
                 onDelete(editingCategory.id, editingCategory.name);
               }}
-              className="cursor-pointer font-semibold"
+              className="cursor-pointer font-semibold flex items-center"
             >
-              Delete
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
             </Button>
           ) : <div />}
           <div className="flex items-center gap-2">
