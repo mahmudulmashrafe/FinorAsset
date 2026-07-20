@@ -256,11 +256,12 @@ export function ProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto thin-scroll z-[90]">
-        <DialogHeader className="border-b pb-4">
+      <DialogContent className="max-w-2xl flex flex-col max-h-[85vh] p-0 z-[90] overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b shrink-0 bg-background z-10">
           <DialogTitle className="font-serif text-3xl">Profile Settings</DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 thin-scroll">
         {isLoading || !initialized ? (
           <div className="flex h-64 items-center justify-center">
             <p className="text-muted-foreground font-serif italic text-lg animate-pulse">Loading settings...</p>
@@ -473,6 +474,7 @@ export function ProfileDialog({
             </div>
           </div>
         )}
+        </div>
       </DialogContent>
 
       {/* Delete Account Confirmation Dialog */}
