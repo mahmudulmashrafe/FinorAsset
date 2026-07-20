@@ -554,23 +554,23 @@ function TxnsPage() {
       <div className="hidden md:flex rounded-xl border bg-card flex-1 flex-col min-h-0">
         <div className="overflow-auto flex-1 thin-scroll">
           <Table className="w-full min-w-[800px]">
-            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
-              <TableRow>
-                <TableHead className="w-12 py-3 px-4 text-center">
+            <TableHeader className="sticky top-0 z-10 bg-card/90 backdrop-blur-md border-b">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12 py-3.5 px-4 text-center">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                    className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
                     checked={filtered.length > 0 && filtered.every(t => selectedIds.includes(t.id))}
                     onChange={toggleAllVisible}
                   />
                 </TableHead>
-                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Date</TableHead>
-                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Type</TableHead>
-                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Category</TableHead>
-                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Account</TableHead>
-                <TableHead className="py-3 px-4 text-sm md:text-base font-bold">Note</TableHead>
-                <TableHead className="py-3 px-4 text-sm md:text-base font-bold text-right">Amount</TableHead>
-                <TableHead className="py-3 px-4 w-24"></TableHead>
+                <TableHead className="py-3.5 px-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Date</TableHead>
+                <TableHead className="py-3.5 px-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Type</TableHead>
+                <TableHead className="py-3.5 px-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Category</TableHead>
+                <TableHead className="py-3.5 px-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Account</TableHead>
+                <TableHead className="py-3.5 px-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Note</TableHead>
+                <TableHead className="py-3.5 px-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Amount</TableHead>
+                <TableHead className="py-3.5 px-4 w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -731,32 +731,44 @@ function TxnsPage() {
                                 onChange={() => toggleSelect(t.id)}
                               />
                             </TableCell>
-                            <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base text-muted-foreground">
+                             <TableCell className="py-3.5 px-4 tabular-nums text-xs font-medium text-muted-foreground/80">
                               {new Date(t.occurred_on).toLocaleDateString()}
                             </TableCell>
-                            <TableCell className="py-3 px-4">
-                              <Badge variant="outline" className="capitalize text-sm px-2.5 py-0.5">{t.kind}</Badge>
+                            <TableCell className="py-3.5 px-4">
+                              {t.kind === "income" ? (
+                                <Badge variant="outline" className="capitalize text-[10px] px-2 py-0.5 font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shrink-0">
+                                  Income
+                                </Badge>
+                              ) : t.kind === "expense" ? (
+                                <Badge variant="outline" className="capitalize text-[10px] px-2 py-0.5 font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 shrink-0">
+                                  Expense
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="capitalize text-[10px] px-2 py-0.5 font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 shrink-0">
+                                  Transfer
+                                </Badge>
+                              )}
                             </TableCell>
-                            <TableCell className="py-3 px-4 text-sm md:text-base font-medium">
+                            <TableCell className="py-3.5 px-4 text-xs font-semibold">
                               {cat ? (
-                                <span className="inline-flex items-center gap-2">
+                                <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-accent/[0.04] border border-border/30">
                                   {cat.image_url ? (
-                                    <img src={cat.image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" />
+                                    <img src={cat.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
                                   ) : (
-                                    <span>{cat.icon}</span>
+                                    <span className="text-xs">{cat.icon}</span>
                                   )}
-                                  <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                                  {cat.name}
+                                  <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                                  <span className="text-muted-foreground text-[11px]">{cat.name}</span>
                                 </span>
                               ) : "—"}
                             </TableCell>
-                            <TableCell className="py-3 px-4 text-sm md:text-base text-muted-foreground">
+                            <TableCell className="py-3.5 px-4 text-xs font-bold text-foreground/95">
                               {acc?.name ?? "—"}
                             </TableCell>
-                            <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base">
+                            <TableCell className="py-3.5 px-4 text-muted-foreground/80 max-w-[24ch] truncate text-xs">
                               {parsed?.itemNote ?? t.note ?? "—"}
                             </TableCell>
-                            <TableCell className={`py-3 px-4 text-right num font-serif font-bold text-sm md:text-base ${amtColor}`}>
+                            <TableCell className={`py-3.5 px-4 text-right num font-serif font-black text-sm ${amtColor}`}>
                               {sign}{fmtMoney(Number(t.amount), currency)}
                             </TableCell>
                             <TableCell />
@@ -804,33 +816,45 @@ function TxnsPage() {
                         onChange={() => toggleSelect(t.id)}
                       />
                     </TableCell>
-                    <TableCell className="py-3 px-4 tabular-nums text-sm md:text-base">
+                    <TableCell className="py-3.5 px-4 tabular-nums text-xs font-medium text-muted-foreground/80">
                       {new Date(t.occurred_on).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="py-3 px-4">
-                      <Badge variant="outline" className="capitalize text-sm px-2.5 py-0.5">{t.kind}</Badge>
+                    <TableCell className="py-3.5 px-4">
+                      {t.kind === "income" ? (
+                        <Badge variant="outline" className="capitalize text-[10px] px-2 py-0.5 font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shrink-0">
+                          Income
+                        </Badge>
+                      ) : t.kind === "expense" ? (
+                        <Badge variant="outline" className="capitalize text-[10px] px-2 py-0.5 font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 shrink-0">
+                          Expense
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="capitalize text-[10px] px-2 py-0.5 font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 shrink-0">
+                          Transfer
+                        </Badge>
+                      )}
                     </TableCell>
-                    <TableCell className="py-3 px-4 text-sm md:text-base">
+                    <TableCell className="py-3.5 px-4 text-xs font-semibold">
                       {cat ? (
-                        <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-accent/[0.04] border border-border/30">
                           {cat.image_url ? (
-                            <img src={cat.image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" />
+                            <img src={cat.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
                           ) : (
-                            <span>{cat.icon}</span>
+                            <span className="text-xs">{cat.icon}</span>
                           )}
-                          <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                          {cat.name}
+                          <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                          <span className="text-muted-foreground text-[11px]">{cat.name}</span>
                         </span>
                       ) : "—"}
                     </TableCell>
-                    <TableCell className="py-3 px-4 text-sm md:text-base">
-                      {acc?.name}
+                    <TableCell className="py-3.5 px-4 text-xs font-bold text-foreground/95">
+                      {acc?.name ?? "—"}
                       {t.to_account_id && ` → ${accMap.get(t.to_account_id)?.name}`}
                     </TableCell>
-                    <TableCell className="py-3 px-4 text-muted-foreground max-w-[20ch] truncate text-sm md:text-base">
+                    <TableCell className="py-3.5 px-4 text-muted-foreground/80 max-w-[24ch] truncate text-xs">
                       {parsed?.itemNote ?? t.note ?? "—"}
                     </TableCell>
-                    <TableCell className={`py-3 px-4 text-right num font-serif font-semibold text-sm md:text-base ${amtColor}`}>
+                    <TableCell className={`py-3.5 px-4 text-right num font-serif font-black text-sm ${amtColor}`}>
                       {sign}{fmtMoney(Number(t.amount), currency)}
                     </TableCell>
                     <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>

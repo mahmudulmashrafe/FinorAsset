@@ -397,11 +397,6 @@ function WarrantiesPage() {
             Track product warranties, purchase details, receipts, and expiration alerts.
           </p>
         </div>
-        {!dbError && (
-          <Button onClick={handleAddClick} className="cursor-pointer gap-1.5 shrink-0 self-start sm:self-center">
-            <Plus className="h-4 w-4" /> Add Warranty
-          </Button>
-        )}
       </div>
 
       {/* SQL Setup Notice if table doesn't exist */}
@@ -788,14 +783,14 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
 
       {/* Add / Edit Dialog */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto thin-scroll z-[95] rounded-xl">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 z-[95] rounded-xl overflow-hidden">
+          <DialogHeader className="p-4 border-b border-border/40 shrink-0">
             <DialogTitle className="font-serif text-xl font-black">
               {editingWarranty ? "Edit Warranty" : "Add Warranty"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="title" className="text-xs font-semibold">Product Name / Title</Label>
@@ -988,7 +983,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
             </div>
           </div>
 
-          <DialogFooter className="pt-3 border-t border-border/40 gap-2 sm:gap-0 flex-row justify-between items-center">
+          <DialogFooter className="p-4 border-t border-border/40 gap-2 flex-row justify-between items-center shrink-0">
             {editingWarranty && (
               <Button 
                 variant="destructive" 
@@ -1057,6 +1052,17 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
             </a>
           </div>
         </div>
+      )}
+
+      {/* Floating Action Button (FAB) for adding new warranty */}
+      {!dbError && (
+        <button 
+          onClick={handleAddClick} 
+          className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer transition-transform active:scale-95 hover:scale-105"
+          title="Add Warranty"
+        >
+          <Plus className="h-5 w-5 md:h-6 md:w-6 text-accent-foreground" />
+        </button>
       )}
     </div>
   );
