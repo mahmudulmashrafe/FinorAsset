@@ -70,7 +70,7 @@ function Dashboard() {
     const pct = Math.min(100, income > 0 ? (spent / Number(b.amount)) * 100 : 0);
     const over = spent > Number(b.amount);
     return { b, spent, pct, over, cat: catMap.get(b.category_id) };
-  }).slice(0, 3);
+  });
 
   const recent = [...txns].sort((a, b) => {
     const dateDiff = new Date(b.occurred_on).getTime() - new Date(a.occurred_on).getTime();
@@ -78,7 +78,7 @@ function Dashboard() {
     const createdDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     if (createdDiff !== 0) return createdDiff;
     return b.id.localeCompare(a.id);
-  }).slice(0, 4);
+  }).slice(0, 20);
   const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
