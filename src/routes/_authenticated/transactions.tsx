@@ -760,6 +760,10 @@ function TxnsPage() {
                                   <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                                   <span className="text-muted-foreground text-[11px]">{cat.name}</span>
                                 </span>
+                              ) : t.kind === "transfer" ? (
+                                <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-blue-500/5 border border-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px]">
+                                  🔄 Transfer Category
+                                </span>
                               ) : "—"}
                             </TableCell>
                             <TableCell className="py-3.5 px-4 text-xs font-bold text-foreground/95">
@@ -844,6 +848,10 @@ function TxnsPage() {
                           )}
                           <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                           <span className="text-muted-foreground text-[11px]">{cat.name}</span>
+                        </span>
+                      ) : t.kind === "transfer" ? (
+                        <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-blue-500/5 border border-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px]">
+                          🔄 Transfer Category
                         </span>
                       ) : "—"}
                     </TableCell>
@@ -1040,7 +1048,7 @@ function TxnsPage() {
                               </span>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-serif font-bold truncate">{cat?.name ?? "Uncategorized"}</span>
+                                  <span className="text-xs font-serif font-bold truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer Category" : "Uncategorized")}</span>
                                   <Badge variant="outline" className="capitalize text-[8px] px-1 py-0 leading-none">{t.kind}</Badge>
                                 </div>
                                 <div className="text-[10px] text-muted-foreground truncate">
@@ -1105,7 +1113,7 @@ function TxnsPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-serif font-black truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}</span>
+                      <span className="text-sm font-serif font-black truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer Category" : "Uncategorized")}</span>
                       <Badge variant="outline" className="capitalize text-[9px] px-1 py-0 scale-90 origin-left leading-none">{t.kind}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
