@@ -6,6 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -410,6 +420,7 @@ function CategoriesPage() {
 
   const [newOpen, setNewOpen] = useState(false);
   const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [deleteCat, setDeleteCat] = useState<{ id: string; name: string } | null>(null);
 
   const incomeCategories = categories.filter((c) => c.kind === "income");
   const expenseCategories = categories.filter((c) => c.kind === "expense");
@@ -418,8 +429,7 @@ function CategoriesPage() {
     qc.invalidateQueries({ queryKey: ["categories"] });
   }
 
-  async function remove(id: string, catName: string) {
-    if (!confirm(`Delete "${catName}"? Transactions using this category will become uncategorized.`)) return;
+  async function confirmDelete(id: string) {
     const { error } = await supabase.from("categories").delete().eq("id", id);
     if (error) return toast.error(error.message);
     refresh();
@@ -428,13 +438,17 @@ function CategoriesPage() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-end justify-between flex-wrap gap-4">
+      <div className="flex items-end justify-between flex-wrap gap-4 border-b pb-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Organize</p>
-          <h1 className="mt-1 font-serif text-4xl">Categories</h1>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Personalization</p>
+          <h1 className="mt-1 font-serif text-4xl">Manage Categories</h1>
         </div>
-        <Button id="new-category-btn" onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> New category
+        <Button 
+          id="new-category-btn" 
+          onClick={() => setNewOpen(true)}
+          className="group relative gap-1.5 font-semibold rounded-full h-10 px-4 bg-primary hover:bg-[#2c2826] text-primary-foreground transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-sm hover:shadow-[0_4px_16px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
+        >
+          <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90 text-accent" /> New category
         </Button>
       </div>
 
@@ -472,7 +486,7 @@ function CategoriesPage() {
                 key={c.id}
                 cat={c}
                 onEdit={() => setEditCategory(c)}
-                onDelete={() => remove(c.id, c.name)}
+                onDelete={() => setDeleteCat({ id: c.id, name: c.name })}
               />
             ))}
           </div>
@@ -496,12 +510,38 @@ function CategoriesPage() {
                 key={c.id}
                 cat={c}
                 onEdit={() => setEditCategory(c)}
-                onDelete={() => remove(c.id, c.name)}
+                onDelete={() => setDeleteCat({ id: c.id, name: c.name })}
               />
             ))}
           </div>
         )}
       </section>
+
+      {/* Deletion confirmation alert dialog */}
+      <AlertDialog open={!!deleteCat} onOpenChange={(open) => !open && setDeleteCat(null)}>
+        <AlertDialogContent className="z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete Category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the "{deleteCat?.name}" category? Transactions using this category will become uncategorized.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteCat) {
+                  confirmDelete(deleteCat.id);
+                  setDeleteCat(null);
+                }
+              }} 
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -450,22 +450,24 @@ export function CategoriesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto thin-scroll z-[90]">
-        <div className="space-y-6 w-full">
-          <div className="flex items-end justify-between flex-wrap gap-4 border-b pb-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Personalization</p>
-              <h1 className="mt-1 font-serif text-3xl">Manage Categories</h1>
-            </div>
-            <Button 
-              id="new-category-btn" 
-              onClick={() => setNewOpen(true)}
-              className="group relative gap-1.5 font-semibold rounded-full h-10 px-4 bg-primary hover:bg-[#2c2826] text-primary-foreground transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-sm hover:shadow-[0_4px_16px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
-            >
-              <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90 text-accent" /> New category
-            </Button>
+      <DialogContent className="max-w-4xl flex flex-col max-h-[85vh] p-0 z-[90] overflow-hidden">
+        {/* Fixed Header */}
+        <div className="p-6 pb-4 border-b flex items-end justify-between flex-wrap gap-4 shrink-0 bg-background z-10">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Personalization</p>
+            <h1 className="mt-1 font-serif text-3xl">Manage Categories</h1>
           </div>
+          <Button 
+            id="new-category-btn" 
+            onClick={() => setNewOpen(true)}
+            className="group relative gap-1.5 font-semibold rounded-full h-10 px-4 bg-primary hover:bg-[#2c2826] text-primary-foreground transition-all duration-300 hover:scale-[1.04] active:scale-[0.96] shadow-sm hover:shadow-[0_4px_16px_rgba(217,119,6,0.25)] border border-primary/10 cursor-pointer"
+          >
+            <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90 text-accent" /> New category
+          </Button>
+        </div>
 
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 thin-scroll">
           <CategoryFormDialog
             open={newOpen}
             onOpenChange={setNewOpen}
