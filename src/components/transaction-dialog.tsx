@@ -890,7 +890,7 @@ export function TransactionDialog({
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Cancel</Button>
           <Button onClick={submit} disabled={saving} id="txn-save-btn" className="cursor-pointer">
-            {saving ? "Saving…" : isEdit ? "Save Changes" : "Save"}
+            {saving ? "Saving…" : "Save"}
           </Button>
         </div>
       </DialogFooter>

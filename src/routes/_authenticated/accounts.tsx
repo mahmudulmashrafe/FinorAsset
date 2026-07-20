@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, X } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import type { Account } from "@/lib/finance";
 import {
@@ -116,6 +116,10 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
   const [color, setColor] = useState(COLORS[0]);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Pre-fill when editing
   useEffect(() => {
@@ -126,12 +130,16 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         setStart(String(editingAccount.starting_balance));
         setCurrencyInput(editingAccount.currency ?? defaultCurrency);
         setColor(editingAccount.color ?? COLORS[0]);
+        setImageUrl((editingAccount as any).image_url ?? "");
+        setImageFile(null);
       } else {
         setName("");
         setType("bank");
         setStart("0");
         setCurrencyInput(defaultCurrency);
         setColor(COLORS[0]);
+        setImageUrl("");
+        setImageFile(null);
       }
       setErrors({});
     }
@@ -169,35 +177,68 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
       return toast.error(errMsg);
     }
 
-    if (isEdit) {
-      const { error } = await supabase
-        .from("accounts")
-        .update({
+    let finalImageUrl = imageUrl;
+    try {
+      if (imageFile) {
+        setUploadingImage(true);
+        const { data: userResp } = await supabase.auth.getUser();
+        if (userResp.user) {
+          const fileExt = imageFile.name.split('.').pop();
+          const filePath = `${userResp.user.id}/account-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('warranties')
+            .upload(filePath, imageFile);
+            
+          if (uploadError) throw uploadError;
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('warranties')
+            .getPublicUrl(filePath);
+            
+          finalImageUrl = publicUrl;
+        }
+      }
+
+      if (isEdit) {
+        const { error } = await supabase
+          .from("accounts")
+          .update({
+            name: name.trim(),
+            type,
+            color,
+            currency: currencyInput,
+            starting_balance: Number(start),
+            image_url: finalImageUrl || null,
+          } as any)
+          .eq("id", editingAccount!.id);
+
+        setSaving(false);
+        setUploadingImage(false);
+        if (error) return toast.error(error.message);
+        toast.success("Account updated!");
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) { setSaving(false); setUploadingImage(false); return; }
+        const { error } = await supabase.from("accounts").insert({
+          user_id: u.user.id,
           name: name.trim(),
           type,
+          starting_balance: Number(start),
           color,
           currency: currencyInput,
-          starting_balance: Number(start),
-        })
-        .eq("id", editingAccount!.id);
-
+          image_url: finalImageUrl || null,
+        } as any);
+        setSaving(false);
+        setUploadingImage(false);
+        if (error) return toast.error(error.message);
+        toast.success("Account added!");
+      }
+    } catch (err: any) {
       setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Account updated!");
-    } else {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) { setSaving(false); return; }
-      const { error } = await supabase.from("accounts").insert({
-        user_id: u.user.id,
-        name: name.trim(),
-        type,
-        starting_balance: Number(start),
-        color,
-        currency: currencyInput,
-      });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Account added!");
+      setUploadingImage(false);
+      toast.error(err.message || "An error occurred while uploading image");
+      return;
     }
 
     onSaved();
@@ -267,9 +308,66 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
           <div>
             <Label>Color</Label>
             <ColorPicker value={color} onChange={setColor} />
+            {/* Custom Account Image */}
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs font-semibold">Account Image (Optional)</Label>
+              <div className="flex items-center gap-3">
+                {imageUrl || imageFile ? (
+                  <div className="relative border rounded-lg overflow-hidden h-14 w-14 bg-muted flex items-center justify-center shrink-0">
+                    <img 
+                      src={imageFile ? URL.createObjectURL(imageFile) : imageUrl} 
+                      alt="Account Custom Pic" 
+                      className="h-full w-full object-cover" 
+                    />
+                    <Button 
+                      variant="destructive" 
+                      size="xs" 
+                      type="button"
+                      className="absolute top-0 right-0 h-4 w-4 p-0 rounded-full cursor-pointer z-10"
+                      onClick={() => { setImageUrl(""); setImageFile(null); }}
+                      disabled={saving || uploadingImage}
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => inputRef.current?.click()}
+                    className="border border-dashed hover:border-accent/40 rounded-lg p-2 flex flex-col items-center justify-center gap-1 cursor-pointer bg-accent/[0.01] hover:bg-accent/[0.03] transition-all text-center w-24 h-14 shrink-0"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-60" />
+                    <span className="text-[9px] font-medium leading-none text-muted-foreground">Upload</span>
+                    <input 
+                      type="file" 
+                      ref={inputRef} 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setImageFile(e.target.files[0]);
+                        }
+                      }} 
+                      accept="image/*" 
+                      className="hidden" 
+                      disabled={saving || uploadingImage}
+                    />
+                  </div>
+                )}
+                <div className="text-[10px] text-muted-foreground leading-normal">
+                  Upload a custom picture to identify this account visually.
+                </div>
+              </div>
+            </div>
+
             {/* Preview strip */}
             <div className="mt-3 flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
-              <span className="h-4 w-4 rounded-full flex-shrink-0" style={{ background: color }} />
+              {imageUrl || imageFile ? (
+                <img 
+                  src={imageFile ? URL.createObjectURL(imageFile) : imageUrl} 
+                  alt="preview" 
+                  className="h-5 w-5 rounded-full object-cover flex-shrink-0" 
+                />
+              ) : (
+                <span className="h-4 w-4 rounded-full flex-shrink-0" style={{ background: color }} />
+              )}
               <span className="text-sm font-medium truncate">{name || "Account name"}</span>
               <span className="ml-auto text-xs text-muted-foreground capitalize">{TYPE_LABELS[type] ?? type}</span>
             </div>
@@ -362,9 +460,17 @@ function AccountsPage() {
             className="rounded-xl border bg-card p-4 relative group transition-all hover:shadow-md hover:border-accent/40 cursor-pointer flex flex-col justify-between"
           >
             <div>
-              {/* Color dot + name */}
+              {/* Color dot or Account Image + name */}
               <div className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                {(a as any).image_url ? (
+                  <img 
+                    src={(a as any).image_url} 
+                    alt={a.name} 
+                    className="h-5 w-5 rounded-full object-cover flex-shrink-0 border border-border/40" 
+                  />
+                ) : (
+                  <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                )}
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
               </div>
               <h3 className="mt-1.5 font-serif text-base font-bold">{a.name}</h3>
