@@ -280,10 +280,14 @@ function TxnsPage() {
   function refresh() {
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["accounts"] });
+    qc.invalidateQueries({ queryKey: ["warranties"] });
   }
 
   async function confirmDelete(id: string) {
     const txnToDelete = txns.find(t => t.id === id);
+    // Delete linked warranty if any
+    await supabase.from("warranties").delete().eq("transaction_id", id);
+
     const { error } = await supabase.from("transactions").delete().eq("id", id);
     if (error) return toast.error(error.message);
     if (txnToDelete) {
@@ -299,6 +303,9 @@ function TxnsPage() {
     setBatchLoading(true);
     try {
       const txnsToDelete = txns.filter(t => selectedIds.includes(t.id));
+      // Delete linked warranties in batch
+      await supabase.from("warranties").delete().in("transaction_id", selectedIds);
+
       const { error } = await supabase.from("transactions").delete().in("id", selectedIds);
       if (error) throw error;
       
@@ -351,6 +358,9 @@ function TxnsPage() {
     const eventItemsToDelete = txns.filter(t => t.note && t.note.includes(`|id:${eventId}]`));
     const ids = eventItemsToDelete.map(t => t.id);
     if (ids.length === 0) return;
+
+    // Delete linked warranties
+    await supabase.from("warranties").delete().in("transaction_id", ids);
 
     const { error } = await supabase.from("transactions").delete().in("id", ids);
     if (error) return toast.error(error.message);
@@ -730,7 +740,11 @@ function TxnsPage() {
                             <TableCell className="py-3 px-4 text-sm md:text-base font-medium">
                               {cat ? (
                                 <span className="inline-flex items-center gap-2">
-                                  <span>{cat.icon}</span>
+                                  {cat.image_url ? (
+                                    <img src={cat.image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" />
+                                  ) : (
+                                    <span>{cat.icon}</span>
+                                  )}
                                   <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                                   {cat.name}
                                 </span>
@@ -799,7 +813,11 @@ function TxnsPage() {
                     <TableCell className="py-3 px-4 text-sm md:text-base">
                       {cat ? (
                         <span className="inline-flex items-center gap-2">
-                          <span>{cat.icon}</span>
+                          {cat.image_url ? (
+                            <img src={cat.image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <span>{cat.icon}</span>
+                          )}
                           <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                           {cat.name}
                         </span>

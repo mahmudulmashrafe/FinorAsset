@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { User, Mail, DollarSign, Calendar, Save } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -46,6 +46,10 @@ function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   // Use shared hook — same React Query cache as the rest of the app
   const { profile, authUser, isLoading } = useUserProfile();
 
@@ -55,14 +59,44 @@ function ProfilePage() {
     if (profile) {
       setDisplayName(profile.display_name ?? "");
       setCurrency((profile.currency ?? "USD").toUpperCase());
+      setAvatarUrl(profile.avatar_url ?? "");
       setInitialized(true);
     } else if (!isLoading && authUser) {
       // No profile row yet — use email-derived name and default to USD
       setDisplayName(authUser.email?.split("@")[0] ?? "");
       setCurrency("USD");
+      setAvatarUrl("");
       setInitialized(true);
     }
   }, [profile, authUser, isLoading, initialized]);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && authUser) {
+      const file = e.target.files[0];
+      setUploadingAvatar(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${authUser.id}/avatar-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('warranties')
+          .upload(filePath, file);
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('warranties')
+          .getPublicUrl(filePath);
+          
+        setAvatarUrl(publicUrl);
+        toast.success("Profile picture uploaded!");
+      } catch (err: any) {
+        toast.error(`Avatar upload failed: ${err.message}`);
+      } finally {
+        setUploadingAvatar(false);
+      }
+    }
+  };
 
   async function updateProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +113,7 @@ function ProfilePage() {
         id: authUser.id,
         display_name: displayName.trim(),
         currency: saveCurrency.toUpperCase(),
+        avatar_url: avatarUrl || null,
         updated_at: new Date().toISOString(),
       });
 
@@ -158,9 +193,28 @@ function ProfilePage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Left side card - Info overview */}
         <div className="rounded-xl border bg-card p-6 md:col-span-1 flex flex-col items-center text-center space-y-4">
-          <div className="h-20 w-20 rounded-full bg-accent/10 text-accent flex items-center justify-center">
-            <User className="h-10 w-10" />
+          <div 
+            onClick={() => avatarInputRef.current?.click()}
+            className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-border/80 group cursor-pointer hover:border-accent/40 bg-accent/5 flex items-center justify-center transition-all shrink-0 shadow-sm"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-10 w-10 text-accent/80" />
+            )}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-[10px] text-white font-medium">Change</span>
+            </div>
+            <input 
+              type="file" 
+              ref={avatarInputRef} 
+              onChange={handleAvatarChange} 
+              accept="image/*" 
+              className="hidden" 
+              disabled={saving || uploadingAvatar}
+            />
           </div>
+          {uploadingAvatar && <span className="text-[10px] text-accent animate-pulse">Uploading picture…</span>}
           <div>
             <h2 className="font-serif text-2xl font-semibold">{displayName || "Anonymous"}</h2>
             <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">

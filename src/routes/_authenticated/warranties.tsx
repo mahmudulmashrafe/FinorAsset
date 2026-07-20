@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, fmtMoney } from "@/lib/finance";
+import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,7 +65,9 @@ function WarrantiesPage() {
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
+  const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: api.listTransactions });
 
+  const balances = computeAccountBalances(accounts, txns);
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
 
@@ -155,6 +157,22 @@ function WarrantiesPage() {
     }
     if (!amount || Number(amount) <= 0) return toast.error("Please enter a valid amount");
     if (!accountId) return toast.error("Please select an account");
+
+    // Balance validation
+    const targetAcc = accounts.find(a => a.id === accountId);
+    if (targetAcc) {
+      const currentBal = balances.get(accountId) ?? 0;
+      let available = currentBal;
+      // If editing, add back original amount if same account
+      if (editingWarranty && editingWarranty.account_id === accountId) {
+        available += Number(editingWarranty.amount);
+      }
+      const required = Number(amount);
+      if (available < required) {
+        return toast.error(`Insufficient funds in ${targetAcc.name}. Available: ${fmtMoney(available, currency)}, required: ${fmtMoney(required, currency)}`);
+      }
+    }
+
     if (!authUser) return;
 
     setSaving(true);
@@ -594,7 +612,11 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                       <TableCell className="py-3 px-4 text-xs sm:text-sm">
                         {cat ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <span>{cat.icon}</span>
+                            {cat.image_url ? (
+                              <img src={cat.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                            ) : (
+                              <span>{cat.icon}</span>
+                            )}
                             <span>{cat.name}</span>
                           </span>
                         ) : "—"}
@@ -697,7 +719,11 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                           </span>
                           {cat && (
                             <Badge variant="outline" className="text-[8px] py-0 px-1 border-border/80 text-muted-foreground gap-0.5">
-                              <span>{cat.icon}</span>
+                              {cat.image_url ? (
+                                <img src={cat.image_url} alt="" className="h-3 w-3 rounded-full object-cover shrink-0" />
+                              ) : (
+                                <span>{cat.icon}</span>
+                              )}
                               <span>{cat.name}</span>
                             </Badge>
                           )}
@@ -827,9 +853,14 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
                   <SelectContent className="z-[150]">
-                    {accounts.map(a => (
-                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                    ))}
+                    {accounts.map(a => {
+                      const bal = balances.get(a.id) ?? 0;
+                      return (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name} ({fmtMoney(bal, currency)})
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -846,7 +877,14 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   <SelectItem value="none">None</SelectItem>
                   {cats.filter(c => c.kind === "expense").map(c => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.icon} {c.name}
+                      <span className="flex items-center gap-1.5">
+                        {c.image_url ? (
+                          <img src={c.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <span>{c.icon}</span>
+                        )}
+                        <span>{c.name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

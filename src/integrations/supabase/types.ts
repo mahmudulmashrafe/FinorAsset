@@ -97,6 +97,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["txn_kind"]
           name: string
           user_id: string
+          image_url: string | null
         }
         Insert: {
           color?: string
@@ -106,6 +107,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["txn_kind"]
           name: string
           user_id: string
+          image_url?: string | null
         }
         Update: {
           color?: string
@@ -115,6 +117,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["txn_kind"]
           name?: string
           user_id?: string
+          image_url?: string | null
         }
         Relationships: []
       }
@@ -125,6 +128,7 @@ export type Database = {
           display_name: string | null
           id: string
           updated_at: string
+          avatar_url: string | null
         }
         Insert: {
           created_at?: string
@@ -132,6 +136,7 @@ export type Database = {
           display_name?: string | null
           id: string
           updated_at?: string
+          avatar_url?: string | null
         }
         Update: {
           created_at?: string
@@ -139,6 +144,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+          avatar_url?: string | null
         }
         Relationships: []
       }

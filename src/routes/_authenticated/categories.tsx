@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, X } from "lucide-react";
 import type { Category } from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/categories")({
@@ -132,6 +132,12 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
   const [icon, setIcon] = useState(ICONS[0]);
   const [saving, setSaving] = useState(false);
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useState<any>(null)[0]; // We can just use a standard ref
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Pre-fill when editing
   useEffect(() => {
     if (open) {
@@ -140,11 +146,15 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
         setKind(editingCategory.kind as Kind);
         setColor(editingCategory.color ?? COLORS[0]);
         setIcon(editingCategory.icon ?? ICONS[0]);
+        setImageUrl(editingCategory.image_url || "");
+        setImageFile(null);
       } else {
         setName("");
         setKind("expense");
         setColor(COLORS[0]);
         setIcon(ICONS[0]);
+        setImageUrl("");
+        setImageFile(null);
       }
     }
   }, [open, editingCategory]);
@@ -153,31 +163,59 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
     if (!name.trim()) return toast.error("Category name is required");
     setSaving(true);
 
-    if (isEdit) {
-      const { error } = await supabase
-        .from("categories")
-        .update({ name: name.trim(), kind, color, icon })
-        .eq("id", editingCategory!.id);
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Category updated!");
-    } else {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) { setSaving(false); return; }
-      const { error } = await supabase.from("categories").insert({
-        user_id: u.user.id,
-        name: name.trim(),
-        kind,
-        color,
-        icon,
-      });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Category created!");
-    }
+    let finalImageUrl = imageUrl;
+    try {
+      if (imageFile) {
+        setUploadingImage(true);
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) {
+          const fileExt = imageFile.name.split('.').pop();
+          const filePath = `${u.user.id}/category-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('warranties')
+            .upload(filePath, imageFile);
+            
+          if (uploadError) throw uploadError;
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('warranties')
+            .getPublicUrl(filePath);
+            
+          finalImageUrl = publicUrl;
+        }
+      }
 
-    onSaved();
-    onOpenChange(false);
+      if (isEdit) {
+        const { error } = await supabase
+          .from("categories")
+          .update({ name: name.trim(), kind, color, icon, image_url: finalImageUrl || null })
+          .eq("id", editingCategory!.id);
+        if (error) throw error;
+        toast.success("Category updated!");
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) throw new Error("Not authenticated");
+        const { error } = await supabase.from("categories").insert({
+          user_id: u.user.id,
+          name: name.trim(),
+          kind,
+          color,
+          icon,
+          image_url: finalImageUrl || null,
+        });
+        if (error) throw error;
+        toast.success("Category created!");
+      }
+
+      onSaved();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred");
+    } finally {
+      setSaving(false);
+      setUploadingImage(false);
+    }
   }
 
   return (
@@ -225,14 +263,71 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved }: Fo
             <ColorPicker value={color} onChange={setColor} />
           </div>
 
+          {/* Custom Category Image */}
+          <div className="space-y-1.5 pt-1">
+            <Label className="text-xs font-semibold">Custom Category Image (Optional)</Label>
+            <div className="flex items-center gap-3">
+              {imageUrl || imageFile ? (
+                <div className="relative border rounded-lg overflow-hidden h-14 w-14 bg-muted flex items-center justify-center shrink-0">
+                  <img 
+                    src={imageFile ? URL.createObjectURL(imageFile) : imageUrl} 
+                    alt="Category Custom Pic" 
+                    className="h-full w-full object-cover" 
+                  />
+                  <Button 
+                    variant="destructive" 
+                    size="xs" 
+                    type="button"
+                    className="absolute top-0 right-0 h-4 w-4 p-0 rounded-full cursor-pointer"
+                    onClick={() => { setImageUrl(""); setImageFile(null); }}
+                    disabled={saving || uploadingImage}
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => inputRef.current?.click()}
+                  className="border border-dashed hover:border-accent/40 rounded-lg p-2 flex flex-col items-center justify-center gap-1 cursor-pointer bg-accent/[0.01] hover:bg-accent/[0.03] transition-all text-center w-24 h-14 shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-60" />
+                  <span className="text-[9px] font-medium leading-none text-muted-foreground">Upload</span>
+                  <input 
+                    type="file" 
+                    ref={inputRef} 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setImageFile(e.target.files[0]);
+                      }
+                    }} 
+                    accept="image/*" 
+                    className="hidden" 
+                    disabled={saving || uploadingImage}
+                  />
+                </div>
+              )}
+              <div className="text-[10px] text-muted-foreground leading-normal">
+                Upload a custom picture to override the emoji icon above.
+              </div>
+            </div>
+          </div>
+
           {/* Live preview */}
           <div className="rounded-lg border bg-muted/30 p-3 flex items-center gap-3">
-            <span
-              className="h-10 w-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 shadow-sm"
-              style={{ background: color + "33", border: `2px solid ${color}55` }}
-            >
-              {icon}
-            </span>
+            {imageUrl || imageFile ? (
+              <img 
+                src={imageFile ? URL.createObjectURL(imageFile) : imageUrl} 
+                alt="preview" 
+                className="h-10 w-10 rounded-full object-cover flex-shrink-0" 
+              />
+            ) : (
+              <span
+                className="h-10 w-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 shadow-sm"
+                style={{ background: color + "33", border: `2px solid ${color}55` }}
+              >
+                {icon}
+              </span>
+            )}
             <div>
               <p className="font-semibold text-sm">{name || "Category name"}</p>
               <p className="text-xs text-muted-foreground capitalize">{kind}</p>
@@ -266,12 +361,20 @@ function CategoryCard({
   return (
     <div className="rounded-xl border bg-card p-4 flex items-center gap-3 group relative transition-shadow hover:shadow-md"
     >
-      <span
-        className="h-10 w-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-        style={{ background: cat.color + "22" }}
-      >
-        {cat.icon}
-      </span>
+      {cat.image_url ? (
+        <img 
+          src={cat.image_url} 
+          alt={cat.name} 
+          className="h-10 w-10 rounded-full object-cover flex-shrink-0 border border-border/40" 
+        />
+      ) : (
+        <span
+          className="h-10 w-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+          style={{ background: cat.color + "22" }}
+        >
+          {cat.icon}
+        </span>
+      )}
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{cat.name}</p>
         <p className="text-xs text-muted-foreground capitalize">{cat.kind}</p>

@@ -661,9 +661,14 @@ export function TransactionDialog({
                           <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Category" /></SelectTrigger>
                           <SelectContent className="z-[150]">
                             {categories.filter(c => c.kind === item.kind).map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
+                               <SelectItem key={c.id} value={c.id}>
                                 <span className="flex items-center gap-1.5">
-                                  <span>{c.icon}</span> {c.name}
+                                  {c.image_url ? (
+                                    <img src={c.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                                  ) : (
+                                    <span>{c.icon}</span>
+                                  )}
+                                  <span>{c.name}</span>
                                 </span>
                               </SelectItem>
                             ))}
@@ -829,7 +834,11 @@ export function TransactionDialog({
                   {filteredCats.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <span className="flex items-center gap-2">
-                        <span>{c.icon}</span>
+                        {c.image_url ? (
+                          <img src={c.image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <span>{c.icon}</span>
+                        )}
                         <span className="h-2 w-2 rounded-full inline-block flex-shrink-0" style={{ background: c.color }} />
                         {c.name}
                       </span>

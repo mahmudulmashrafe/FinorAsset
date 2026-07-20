@@ -206,9 +206,17 @@ function SidebarProfileMenu({
           className="w-full h-12 justify-start px-2.5 rounded-xl hover:bg-accent/10 transition-all text-left flex items-center gap-3 cursor-pointer group-data-[collapsible=icon]:!p-2"
         >
           {/* Avatar */}
-          <div className="h-9 w-9 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:-translate-x-1.5 group-data-[collapsible=icon]:-translate-y-1 transform rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-xs group-data-[collapsible=icon]:text-xs font-bold text-accent-foreground flex-shrink-0 shadow-sm transition-all">
-            {initials}
-          </div>
+          {profile?.avatar_url ? (
+            <img 
+              src={profile.avatar_url} 
+              alt="Avatar" 
+              className="h-9 w-9 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:-translate-x-1.5 group-data-[collapsible=icon]:-translate-y-1 rounded-full object-cover flex-shrink-0 border border-border/40" 
+            />
+          ) : (
+            <div className="h-9 w-9 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7 group-data-[collapsible=icon]:-translate-x-1.5 group-data-[collapsible=icon]:-translate-y-1 transform rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-xs group-data-[collapsible=icon]:text-xs font-bold text-accent-foreground flex-shrink-0 shadow-sm transition-all">
+              {initials}
+            </div>
+          )}
           {/* Name — hidden when sidebar is collapsed */}
           {state === "expanded" && (
             <div className="flex-1 min-w-0">
@@ -248,9 +256,15 @@ function HeaderProfileMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="h-10 w-10 rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-sm font-bold text-accent-foreground flex-shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
-          {initials}
-        </button>
+        {profile?.avatar_url ? (
+          <button className="h-10 w-10 rounded-full overflow-hidden border border-border/40 flex-shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+            <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+          </button>
+        ) : (
+          <button className="h-10 w-10 rounded-full bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center text-sm font-bold text-accent-foreground flex-shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+            {initials}
+          </button>
+        )}
       </DropdownMenuTrigger>
       <ProfileDropdownContent
         displayName={displayName}
