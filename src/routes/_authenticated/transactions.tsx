@@ -132,17 +132,37 @@ function TxnsPage() {
     if (idx < 0) return;
     const targetIdx = direction === "up" ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= items.length) return;
-    // Swap
+
+    // Swap items
     [items[idx], items[targetIdx]] = [items[targetIdx], items[idx]];
-    // Assign timestamps so db ordering matches display (newest first = top item)
+
+    // Assign timestamps so DB/display ordering matches (newest first = top item)
     const baseNow = Date.now();
+    const updatesMap = new Map<string, string>();
     for (let i = 0; i < items.length; i++) {
       const newTs = new Date(baseNow + (items.length - 1 - i) * 10).toISOString();
-      const { error } = await supabase.from("transactions").update({ created_at: newTs }).eq("id", items[i].id);
-      if (error) { toast.error(error.message); return; }
+      updatesMap.set(items[i].id, newTs);
     }
+
+    // 1. Optimistically update TanStack Query cache for INSTANT UI re-render on 1st click
+    qc.setQueryData<Transaction[]>(["transactions"], (old = []) => {
+      return old.map(t => {
+        const newTs = updatesMap.get(t.id);
+        return newTs ? { ...t, created_at: newTs } : t;
+      });
+    });
+
     toast.success(`Record moved ${direction}`);
-    refresh();
+
+    // 2. Persist order changes to Supabase in the background
+    for (const [id, newTs] of updatesMap.entries()) {
+      const { error } = await supabase.from("transactions").update({ created_at: newTs }).eq("id", id);
+      if (error) {
+        toast.error(`Reorder sync error: ${error.message}`);
+        refresh();
+        return;
+      }
+    }
   }
 
   async function degroupRecord(txn: Transaction) {
@@ -994,26 +1014,40 @@ function TxnsPage() {
                             </TableCell>
                             <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                               {isManaging && (
-                                <div className="flex items-center justify-end gap-1 animate-in fade-in duration-150">
+                                <div className="flex items-center justify-end gap-1 animate-in fade-in duration-150"
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <button title="Move Up" disabled={tIdx === 0}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
                                     className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
                                   ><ChevronUp className="h-3.5 w-3.5" /></button>
                                   <button title="Move Down" disabled={tIdx === grp.items.length - 1}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
                                     className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
                                   ><ChevronDown className="h-3.5 w-3.5" /></button>
                                   <button title="Degroup (remove from event)"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); degroupRecord(t); }}
                                     className="h-6 w-6 flex items-center justify-center rounded bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 cursor-pointer"
                                   ><Ungroup className="h-3.5 w-3.5" /></button>
                                   {allEventGroups.filter(eg => { const p = parseEventNote(t.note); return eg.id !== p?.eventId; }).length > 0 && (
                                     <button title="Shift to another event"
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onTouchStart={(e) => e.stopPropagation()}
                                       onClick={(e) => { e.stopPropagation(); setShiftingTxn(t); }}
                                       className="h-6 w-6 flex items-center justify-center rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 cursor-pointer"
                                     ><MoveRight className="h-3.5 w-3.5" /></button>
                                   )}
                                   <button title="Edit record"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); setEditingTxn(t); }}
                                     className="h-6 w-6 flex items-center justify-center rounded bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                                   ><Pencil className="h-3 w-3" /></button>
@@ -1353,31 +1387,45 @@ function TxnsPage() {
 
                             {/* Action bar — visible when manage mode active for this event */}
                             {isManaging && (
-                              <div className="mt-2 flex items-center flex-wrap gap-1 p-1.5 bg-accent/10 rounded-lg border border-accent/20 animate-in fade-in duration-150" onClick={(e) => e.stopPropagation()}>
+                              <div className="mt-2 flex items-center flex-wrap gap-1 p-1.5 bg-accent/10 rounded-lg border border-accent/20 animate-in fade-in duration-150"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <button
                                   title="Move Up" disabled={tIdx === 0}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
                                   className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
                                 ><ChevronUp className="h-3 w-3" /> Up</button>
                                 <button
                                   title="Move Down" disabled={tIdx === grp.items.length - 1}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
                                   className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
                                 ><ChevronDown className="h-3 w-3" /> Down</button>
                                 <button
                                   title="Degroup"
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => { e.stopPropagation(); degroupRecord(t); }}
                                   className="h-7 px-2 flex items-center gap-1 rounded bg-orange-500/10 text-orange-600 text-[10px] font-bold cursor-pointer"
                                 ><Ungroup className="h-3 w-3" /> Degroup</button>
                                 {allEventGroups.filter(eg => { const p = parseEventNote(t.note); return eg.id !== p?.eventId; }).length > 0 && (
                                   <button
                                     title="Shift to event"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); setShiftingTxn(t); }}
                                     className="h-7 px-2 flex items-center gap-1 rounded bg-blue-500/10 text-blue-600 text-[10px] font-bold cursor-pointer"
                                   ><MoveRight className="h-3 w-3" /> Shift</button>
                                 )}
                                 <button
                                   title="Edit"
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => { e.stopPropagation(); setEditingTxn(t); }}
                                   className="h-7 px-2 flex items-center gap-1 rounded bg-muted text-muted-foreground text-[10px] font-bold cursor-pointer"
                                 ><Pencil className="h-3 w-3" /> Edit</button>
