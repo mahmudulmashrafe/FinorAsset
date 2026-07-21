@@ -101,18 +101,30 @@ function TxnsPage() {
     }
   });
 
-  // Per-event "Manage Records" mode (replaces per-record long-press)
+  // Per-event "Manage Records" mode — activated by 1-sec long-press on any record
   const [managingEventId, setManagingEventId] = useState<string | null>(null);
+  const eventItemPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isEventItemLongPressActive = useRef(false);
+
+  function startEventItemPress(eventId: string) {
+    isEventItemLongPressActive.current = false;
+    if (eventItemPressTimerRef.current) clearTimeout(eventItemPressTimerRef.current);
+    eventItemPressTimerRef.current = setTimeout(() => {
+      isEventItemLongPressActive.current = true;
+      setManagingEventId(prev => prev === eventId ? null : eventId);
+      if (typeof navigator !== "undefined" && navigator.vibrate) { try { navigator.vibrate(80); } catch {} }
+      toast.success(managingEventId === eventId ? "Manage mode off" : "Manage mode on — tap Up/Down/Degroup/Shift");
+    }, 1000);
+  }
+
+  function cancelEventItemPress() {
+    if (eventItemPressTimerRef.current) { clearTimeout(eventItemPressTimerRef.current); eventItemPressTimerRef.current = null; }
+  }
 
   // Shift-to-event state
   const [shiftingTxn, setShiftingTxn] = useState<Transaction | null>(null);
   const [shiftTargetEventId, setShiftTargetEventId] = useState("");
   const [shiftLoading, setShiftLoading] = useState(false);
-
-  function toggleManageEvent(eventId: string) {
-    setManagingEventId(prev => prev === eventId ? null : eventId);
-    if (typeof navigator !== "undefined" && navigator.vibrate) { try { navigator.vibrate(50); } catch {} }
-  }
 
   async function reorderEventItem(grp: EventGroup, txnId: string, direction: "up" | "down") {
     const items = [...grp.items];
@@ -290,6 +302,15 @@ function TxnsPage() {
         if (t.kind === "income") grp.totalAmount += amt;
         else if (t.kind === "expense") grp.totalAmount -= amt;
       }
+    }
+
+    // Sort each event's items by created_at DESC so Up/Down indices match visual (top = newest created_at)
+    for (const grp of eventMap.values()) {
+      grp.items.sort((a, b) => {
+        const ca = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const cb = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return cb - ca;
+      });
     }
 
     for (const t of filtered) {
@@ -842,19 +863,6 @@ function TxnsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => { toggleManageEvent(grp.eventId); if (!expandedEventIds.has(grp.eventId)) toggleExpandEvent(grp.eventId); }}
-                              className={`h-8 w-8 cursor-pointer rounded-full transition-colors ${
-                                managingEventId === grp.eventId
-                                  ? 'bg-accent text-accent-foreground'
-                                  : 'text-muted-foreground hover:text-foreground'
-                              }`}
-                              title={managingEventId === grp.eventId ? "Exit manage mode" : "Manage records"}
-                            >
-                              <MoreVertical className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
                               onClick={() => setEditingEventGroup(grp)}
                               className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer rounded-full"
                               title="Edit Event"
@@ -872,26 +880,18 @@ function TxnsPage() {
                             </Button>
                             {reorderDate === rStr && (
                               <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
+                                <Button variant="secondary" size="sm"
                                   onClick={() => moveSameDateRow(rowIdx, "up")}
                                   disabled={!isSameDateUp}
                                   className="h-7 w-7 p-0 flex items-center justify-center bg-accent/20 text-foreground hover:bg-accent/30 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                   title="Move Up"
-                                >
-                                  <ChevronUp className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
+                                ><ChevronUp className="h-4 w-4" /></Button>
+                                <Button variant="secondary" size="sm"
                                   onClick={() => moveSameDateRow(rowIdx, "down")}
                                   disabled={!isSameDateDown}
                                   className="h-7 w-7 p-0 flex items-center justify-center bg-accent/20 text-foreground hover:bg-accent/30 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                   title="Move Down"
-                                >
-                                  <ChevronDown className="h-4 w-4" />
-                                </Button>
+                                ><ChevronDown className="h-4 w-4" /></Button>
                               </div>
                             )}
                           </div>
@@ -914,7 +914,16 @@ function TxnsPage() {
                         return (
                           <TableRow
                             key={t.id}
-                            onClick={() => setEditingTxn(t)}
+                            onMouseDown={(e) => { e.stopPropagation(); startEventItemPress(grp.eventId); }}
+                            onMouseUp={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
+                            onMouseLeave={cancelEventItemPress}
+                            onTouchStart={(e) => { e.stopPropagation(); startEventItemPress(grp.eventId); }}
+                            onTouchEnd={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
+                            onTouchMove={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
+                            onClick={(e) => {
+                              if (isEventItemLongPressActive.current) { isEventItemLongPressActive.current = false; return; }
+                              setEditingTxn(t);
+                            }}
                             className={`group bg-amber-500/[0.03] dark:bg-amber-500/[0.08] hover:bg-amber-500/10 transition-colors border-l-4 cursor-pointer ${
                               isManaging ? 'border-accent' : 'border-amber-500/60'
                             } ${isSelected ? 'bg-accent/15' : ''}`}
@@ -1255,17 +1264,6 @@ function TxnsPage() {
                       })()}
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleManageEvent(grp.eventId); if (!expandedEventIds.has(grp.eventId)) toggleExpandEvent(grp.eventId); }}
-                          className={`h-6 w-6 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
-                            managingEventId === grp.eventId
-                              ? 'bg-accent text-accent-foreground'
-                              : 'bg-accent/10 text-muted-foreground hover:text-foreground'
-                          }`}
-                          title={managingEventId === grp.eventId ? "Exit manage mode" : "Manage records"}
-                        >
-                          <MoreVertical className="h-3 w-3" />
-                        </button>
-                        <button
                           onClick={(e) => { e.stopPropagation(); setEditingEventGroup(grp); }}
                           className="h-6 w-6 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
                           title="Edit Event"
@@ -1281,20 +1279,12 @@ function TxnsPage() {
                         </button>
                         {reorderDate === rStr && (
                           <div className="flex items-center gap-1 animate-in fade-in duration-200">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "up"); }}
-                              disabled={!isSameDateUp}
+                            <button onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "up"); }} disabled={!isSameDateUp}
                               className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer"
-                            >
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "down"); }}
-                              disabled={!isSameDateDown}
+                            ><ChevronUp className="h-3.5 w-3.5" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); moveSameDateRow(rowIdx, "down"); }} disabled={!isSameDateDown}
                               className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer"
-                            >
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            </button>
+                            ><ChevronDown className="h-3.5 w-3.5" /></button>
                           </div>
                         )}
                       </div>
@@ -1319,7 +1309,16 @@ function TxnsPage() {
                         return (
                           <div
                             key={t.id}
-                            onClick={() => setEditingTxn(t)}
+                            onMouseDown={(e) => { e.stopPropagation(); startEventItemPress(grp.eventId); }}
+                            onMouseUp={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
+                            onMouseLeave={cancelEventItemPress}
+                            onTouchStart={(e) => { e.stopPropagation(); startEventItemPress(grp.eventId); }}
+                            onTouchEnd={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
+                            onTouchMove={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
+                            onClick={() => {
+                              if (isEventItemLongPressActive.current) { isEventItemLongPressActive.current = false; return; }
+                              setEditingTxn(t);
+                            }}
                             className={`py-2 px-2.5 rounded-lg border-l-4 bg-amber-500/[0.04] cursor-pointer transition-all ${
                               isManaging ? 'border-accent' : 'border-amber-500/60'
                             } ${isSelected ? 'bg-accent/15' : ''}`}
