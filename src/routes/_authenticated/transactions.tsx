@@ -141,7 +141,6 @@ function TxnsPage() {
       const { error } = await supabase.from("transactions").update({ created_at: newTs }).eq("id", items[i].id);
       if (error) { toast.error(error.message); return; }
     }
-    setEventItemReorderActive(items[targetIdx].id);
     toast.success(`Record moved ${direction}`);
     refresh();
   }
