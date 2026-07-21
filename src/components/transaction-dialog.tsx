@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, ElementRef, ComponentPropsWithoutRef } from "react";
+import { useState, useEffect, useRef, forwardRef, ElementRef, ComponentPropsWithoutRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogPortal } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
