@@ -266,7 +266,13 @@ export function TransactionDialog({
       setTxnMode("event");
       setEventTitle(editingEvent.eventTitle);
       setEventDate(editingEvent.date);
-      const mapped = editingEvent.items.map(t => {
+      // Sort items by created_at ASC so form shows items in creation order (a1, a2, a3)
+      const sortedItems = [...editingEvent.items].sort((a, b) => {
+        const ca = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const cb = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return ca - cb;
+      });
+      const mapped = sortedItems.map(t => {
         let itemNoteStr = t.note ?? "";
         if (itemNoteStr.startsWith("[Event: ")) {
           const match = itemNoteStr.match(/^\[Event:\s*(.*?)\|id:(.*?)\]\s*(.*)$/);
@@ -410,7 +416,7 @@ export function TransactionDialog({
     const insertPayloads = eventItems.map((item, idx) => {
       const cleanNote = item.note.trim();
       const formattedNote = `[Event: ${eventTitle.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`;
-      const itemTimestamp = new Date(baseNow + (eventItems.length - 1 - idx) * 10).toISOString();
+      const itemTimestamp = new Date(baseNow + idx * 10).toISOString();
       return {
         user_id: u.user.id,
         account_id: item.accountId,
