@@ -133,6 +133,14 @@ function TxnsPage() {
     const targetIdx = direction === "up" ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= items.length) return;
 
+    // Restrict reordering to items with the same date
+    const currentDateStr = safeDateStr(items[idx].occurred_on);
+    const targetDateStr = safeDateStr(items[targetIdx].occurred_on);
+    if (currentDateStr !== targetDateStr) {
+      toast.error("Can only reorder records with the same date");
+      return;
+    }
+
     // Swap items
     [items[idx], items[targetIdx]] = [items[targetIdx], items[idx]];
 
@@ -323,9 +331,14 @@ function TxnsPage() {
       }
     }
 
-    // Sort each event's items by created_at DESC so Up/Down indices match visual (top = newest created_at)
+    // Sort each event's items by occurred_on DESC primary, created_at DESC secondary
     for (const grp of eventMap.values()) {
       grp.items.sort((a, b) => {
+        const dateA = a.occurred_on ? new Date(a.occurred_on).getTime() : 0;
+        const dateB = b.occurred_on ? new Date(b.occurred_on).getTime() : 0;
+        const dateDiff = dateB - dateA;
+        if (dateDiff !== 0) return dateDiff;
+
         const ca = a.created_at ? new Date(a.created_at).getTime() : 0;
         const cb = b.created_at ? new Date(b.created_at).getTime() : 0;
         return cb - ca;
@@ -930,6 +943,13 @@ function TxnsPage() {
                           : "";
                         const isSelected = selectedIds.includes(t.id);
                         const isManaging = managingEventId === grp.eventId;
+
+                        const itemDateStr = safeDateStr(t.occurred_on);
+                        const prevItemDateStr = tIdx > 0 ? safeDateStr(grp.items[tIdx - 1].occurred_on) : null;
+                        const nextItemDateStr = tIdx < grp.items.length - 1 ? safeDateStr(grp.items[tIdx + 1].occurred_on) : null;
+                        const canMoveUp = tIdx > 0 && itemDateStr === prevItemDateStr;
+                        const canMoveDown = tIdx < grp.items.length - 1 && itemDateStr === nextItemDateStr;
+
                         return (
                           <TableRow
                             key={t.id}
@@ -1019,17 +1039,17 @@ function TxnsPage() {
                                   onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <button title="Move Up" disabled={tIdx === 0}
+                                  <button title="Move Up" disabled={!canMoveUp}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
-                                    className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
+                                    className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40 disabled:cursor-not-allowed"
                                   ><ChevronUp className="h-3.5 w-3.5" /></button>
-                                  <button title="Move Down" disabled={tIdx === grp.items.length - 1}
+                                  <button title="Move Down" disabled={!canMoveDown}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onTouchStart={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
-                                    className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
+                                    className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40 disabled:cursor-not-allowed"
                                   ><ChevronDown className="h-3.5 w-3.5" /></button>
                                   <button title="Degroup (remove from event)"
                                     onMouseDown={(e) => e.stopPropagation()}
@@ -1339,6 +1359,13 @@ function TxnsPage() {
                           : "";
                         const isSelected = selectedIds.includes(t.id);
                         const isManaging = managingEventId === grp.eventId;
+
+                        const itemDateStr = safeDateStr(t.occurred_on);
+                        const prevItemDateStr = tIdx > 0 ? safeDateStr(grp.items[tIdx - 1].occurred_on) : null;
+                        const nextItemDateStr = tIdx < grp.items.length - 1 ? safeDateStr(grp.items[tIdx + 1].occurred_on) : null;
+                        const canMoveUp = tIdx > 0 && itemDateStr === prevItemDateStr;
+                        const canMoveDown = tIdx < grp.items.length - 1 && itemDateStr === nextItemDateStr;
+
                         return (
                           <div
                             key={t.id}
@@ -1393,18 +1420,18 @@ function TxnsPage() {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
-                                  title="Move Up" disabled={tIdx === 0}
+                                  title="Move Up" disabled={!canMoveUp}
                                   onMouseDown={(e) => e.stopPropagation()}
                                   onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
-                                  className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
+                                  className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer disabled:cursor-not-allowed"
                                 ><ChevronUp className="h-3 w-3" /> Up</button>
                                 <button
-                                  title="Move Down" disabled={tIdx === grp.items.length - 1}
+                                  title="Move Down" disabled={!canMoveDown}
                                   onMouseDown={(e) => e.stopPropagation()}
                                   onTouchStart={(e) => e.stopPropagation()}
                                   onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
-                                  className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
+                                  className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer disabled:cursor-not-allowed"
                                 ><ChevronDown className="h-3 w-3" /> Down</button>
                                 <button
                                   title="Degroup"
