@@ -2,41 +2,49 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export function usePushNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>("default");
-  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [permission, setPermission] = useState<string>("default");
+  const [swRegistration, setSwRegistration] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Check if running on iOS
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const iosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(iosDevice);
+    if (typeof window === "undefined") return;
 
-    // Check if running as installed PWA (Standalone mode)
-    const standaloneMode = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
-    setIsStandalone(standaloneMode);
+    try {
+      // Check if running on iOS
+      const userAgent = (navigator.userAgent || "").toLowerCase();
+      const iosDevice = /iphone|ipad|ipod/.test(userAgent);
+      setIsIOS(iosDevice);
 
-    // Register Service Worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          setSwRegistration(reg);
-        })
-        .catch((err) => {
-          console.error("Service Worker registration failed:", err);
-        });
-    }
+      // Check if running as installed PWA (Standalone mode)
+      const standaloneMode =
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+        (navigator as any).standalone === true;
+      setIsStandalone(standaloneMode);
 
-    // Check notification permission
-    if ("Notification" in window) {
-      setPermission(Notification.permission);
+      // Register Service Worker
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => {
+            setSwRegistration(reg);
+          })
+          .catch((err) => {
+            console.error("Service Worker registration failed:", err);
+          });
+      }
+
+      // Check notification permission
+      if ("Notification" in window) {
+        setPermission(Notification.permission);
+      }
+    } catch (err) {
+      console.error("Error initializing push notifications hook:", err);
     }
   }, []);
 
   async function requestPermission() {
-    if (!("Notification" in window)) {
+    if (typeof window === "undefined" || !("Notification" in window)) {
       toast.error("Notifications are not supported in this browser.");
       return false;
     }
@@ -61,7 +69,12 @@ export function usePushNotifications() {
     return false;
   }
 
-  async function sendTestNotification(title = "FinorAsset Test Notification", body = "Push notifications are working perfectly on your device! 🎉") {
+  async function sendTestNotification(
+    title = "FinorAsset Test Notification",
+    body = "Push notifications are working perfectly on your device! 🎉"
+  ) {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+
     if (permission !== "granted") {
       const granted = await requestPermission();
       if (!granted) return;
@@ -75,7 +88,7 @@ export function usePushNotifications() {
           badge: "/icon.svg",
           vibrate: [100, 50, 100],
           data: { url: "/" },
-        } as any);
+        });
         toast.success("Test push notification sent!");
       } else if ("Notification" in window && Notification.permission === "granted") {
         new Notification(title, {
