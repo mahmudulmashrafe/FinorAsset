@@ -179,13 +179,17 @@ function TxnsPage() {
     return true;
   }).sort((a, b) => {
     // Primary: occurred_on descending
-    const dateDiff = new Date(b.occurred_on).getTime() - new Date(a.occurred_on).getTime();
+    const dateA = a.occurred_on ? new Date(a.occurred_on).getTime() : 0;
+    const dateB = b.occurred_on ? new Date(b.occurred_on).getTime() : 0;
+    const dateDiff = dateB - dateA;
     if (dateDiff !== 0) return dateDiff;
     // Secondary: created_at descending (newest added first within same date)
-    const createdDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    const createdDiff = createdB - createdA;
     if (createdDiff !== 0) return createdDiff;
     // Tertiary: stable tiebreaker by id
-    return b.id.localeCompare(a.id);
+    return (b.id || "").localeCompare(a.id || "");
   }), [txns, kind, account, monthFilter, q, catMap, accMap]);
 
   const displayRows = useMemo<DisplayRowItem[]>(() => {
