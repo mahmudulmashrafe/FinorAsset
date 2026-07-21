@@ -222,7 +222,7 @@ export function TransactionDialog({
     amount: string;
     note: string;
     date: string;
-  }>([
+  }[]>([
     { id: "1", kind: "expense", categoryId: "", accountId: "", amount: "", note: "", date: new Date().toISOString().slice(0, 10) },
     { id: "2", kind: "expense", categoryId: "", accountId: "", amount: "", note: "", date: new Date().toISOString().slice(0, 10) },
   ]);
@@ -725,7 +725,7 @@ export function TransactionDialog({
                           <div className="flex items-center gap-2">
                             <Button
                               type="button"
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               disabled={idx === 0}
                               onClick={(e) => { e.stopPropagation(); moveEventItem(item.id, "up"); }}
@@ -735,7 +735,7 @@ export function TransactionDialog({
                             </Button>
                             <Button
                               type="button"
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               disabled={idx === eventItems.length - 1}
                               onClick={(e) => { e.stopPropagation(); moveEventItem(item.id, "down"); }}
