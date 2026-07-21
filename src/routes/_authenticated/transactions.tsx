@@ -101,30 +101,18 @@ function TxnsPage() {
     }
   });
 
-  // Expanded-event-item reorder state
-  const [eventItemReorderActive, setEventItemReorderActive] = useState<string | null>(null);
-  const eventItemPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isEventItemLongPressActive = useRef(false);
+  // Per-event "Manage Records" mode (replaces per-record long-press)
+  const [managingEventId, setManagingEventId] = useState<string | null>(null);
 
   // Shift-to-event state
   const [shiftingTxn, setShiftingTxn] = useState<Transaction | null>(null);
   const [shiftTargetEventId, setShiftTargetEventId] = useState("");
   const [shiftLoading, setShiftLoading] = useState(false);
 
-  const startEventItemPress = (txnId: string, idx: number) => {
-    isEventItemLongPressActive.current = false;
-    if (eventItemPressTimerRef.current) clearTimeout(eventItemPressTimerRef.current);
-    eventItemPressTimerRef.current = setTimeout(() => {
-      isEventItemLongPressActive.current = true;
-      setEventItemReorderActive(prev => prev === txnId ? null : txnId);
-      if (typeof navigator !== "undefined" && navigator.vibrate) { try { navigator.vibrate(80); } catch {} }
-      toast.success(`Reorder mode active for record #${idx + 1}`);
-    }, 1000);
-  };
-
-  const cancelEventItemPress = () => {
-    if (eventItemPressTimerRef.current) { clearTimeout(eventItemPressTimerRef.current); eventItemPressTimerRef.current = null; }
-  };
+  function toggleManageEvent(eventId: string) {
+    setManagingEventId(prev => prev === eventId ? null : eventId);
+    if (typeof navigator !== "undefined" && navigator.vibrate) { try { navigator.vibrate(50); } catch {} }
+  }
 
   async function reorderEventItem(grp: EventGroup, txnId: string, direction: "up" | "down") {
     const items = [...grp.items];
@@ -453,24 +441,32 @@ function TxnsPage() {
     setBatchEventLoading(true);
     try {
       const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const txnsToGroup = txns.filter(t => selectedIds.includes(t.id));
-      
-      for (const t of txnsToGroup) {
+      // Sort by current display order so the event keeps the same sequence
+      const displayOrder = displayRows.flatMap(r => r.type === "event" ? r.group.items.map(i => i.id) : [r.txn.id]);
+      const txnsToGroup = txns
+        .filter(t => selectedIds.includes(t.id))
+        .sort((a, b) => {
+          const ai = displayOrder.indexOf(a.id);
+          const bi = displayOrder.indexOf(b.id);
+          return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+        });
+
+      const baseNow = Date.now();
+      for (let i = 0; i < txnsToGroup.length; i++) {
+        const t = txnsToGroup[i];
         let cleanNote = t.note ?? "";
         if (cleanNote.startsWith("[Event: ")) {
           const parsed = parseEventNote(cleanNote);
-          if (parsed) {
-            cleanNote = parsed.itemNote;
-          }
+          if (parsed) cleanNote = parsed.itemNote;
         }
         const newNote = `[Event: ${batchEventTitle.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`.trim();
-        
+        // Assign timestamps: first item in display order gets the HIGHEST timestamp (shows at top when sorted newest-first)
+        const newTs = new Date(baseNow + (txnsToGroup.length - 1 - i) * 10).toISOString();
         const { error } = await supabase
           .from("transactions")
-          .update({ note: newNote })
+          .update({ note: newNote, created_at: newTs })
           .eq("id", t.id);
         if (error) throw error;
-        
         await syncTransactionToLoan("update", { ...t, note: newNote });
       }
 
@@ -846,6 +842,19 @@ function TxnsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => { toggleManageEvent(grp.eventId); if (!expandedEventIds.has(grp.eventId)) toggleExpandEvent(grp.eventId); }}
+                              className={`h-8 w-8 cursor-pointer rounded-full transition-colors ${
+                                managingEventId === grp.eventId
+                                  ? 'bg-accent text-accent-foreground'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                              title={managingEventId === grp.eventId ? "Exit manage mode" : "Manage records"}
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => setEditingEventGroup(grp)}
                               className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer rounded-full"
                               title="Edit Event"
@@ -901,21 +910,13 @@ function TxnsPage() {
                           ? "text-[color:var(--destructive)]"
                           : "";
                         const isSelected = selectedIds.includes(t.id);
-                        const isReordering = eventItemReorderActive === t.id;
+                        const isManaging = managingEventId === grp.eventId;
                         return (
                           <TableRow
                             key={t.id}
-                            onMouseDown={(e) => { e.stopPropagation(); startEventItemPress(t.id, tIdx); }}
-                            onMouseUp={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
-                            onMouseLeave={cancelEventItemPress}
-                            onTouchStart={(e) => { e.stopPropagation(); startEventItemPress(t.id, tIdx); }}
-                            onTouchEnd={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
-                            onClick={(e) => {
-                              if (isEventItemLongPressActive.current) { isEventItemLongPressActive.current = false; return; }
-                              setEditingTxn(t);
-                            }}
+                            onClick={() => setEditingTxn(t)}
                             className={`group bg-amber-500/[0.03] dark:bg-amber-500/[0.08] hover:bg-amber-500/10 transition-colors border-l-4 cursor-pointer ${
-                              isReordering ? 'border-accent bg-accent/10 shadow-inner' : 'border-amber-500/60'
+                              isManaging ? 'border-accent' : 'border-amber-500/60'
                             } ${isSelected ? 'bg-accent/15' : ''}`}
                           >
                             <TableCell className="w-12 py-3 px-4 text-center pl-6" onClick={(e) => e.stopPropagation()}>
@@ -984,47 +985,32 @@ function TxnsPage() {
                               {sign}{fmtMoney(Number(t.amount), currency)}
                             </TableCell>
                             <TableCell className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1">
-                                {isReordering ? (
-                                  <div className="flex items-center gap-1 animate-in fade-in duration-150">
-                                    <button
-                                      title="Move Up"
-                                      disabled={tIdx === 0}
-                                      onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
-                                      className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
-                                    ><ChevronUp className="h-3.5 w-3.5" /></button>
-                                    <button
-                                      title="Move Down"
-                                      disabled={tIdx === grp.items.length - 1}
-                                      onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
-                                      className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
-                                    ><ChevronDown className="h-3.5 w-3.5" /></button>
-                                    <button
-                                      title="Degroup (remove from event)"
-                                      onClick={(e) => { e.stopPropagation(); degroupRecord(t); setEventItemReorderActive(null); }}
-                                      className="h-6 w-6 flex items-center justify-center rounded bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 cursor-pointer"
-                                    ><Ungroup className="h-3.5 w-3.5" /></button>
-                                    {allEventGroups.filter(eg => { const p = parseEventNote(t.note); return eg.id !== p?.eventId; }).length > 0 && (
-                                      <button
-                                        title="Shift to another event"
-                                        onClick={(e) => { e.stopPropagation(); setShiftingTxn(t); setEventItemReorderActive(null); }}
-                                        className="h-6 w-6 flex items-center justify-center rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 cursor-pointer"
-                                      ><MoveRight className="h-3.5 w-3.5" /></button>
-                                    )}
-                                    <button
-                                      title="Exit reorder mode"
-                                      onClick={(e) => { e.stopPropagation(); setEventItemReorderActive(null); }}
-                                      className="h-6 w-6 flex items-center justify-center rounded bg-muted text-muted-foreground hover:text-foreground cursor-pointer text-[9px] font-bold"
-                                    >✕</button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    title="Hold 1s to reorder / degroup / shift"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                                  ><MoreVertical className="h-3.5 w-3.5" /></button>
-                                )}
-                              </div>
+                              {isManaging && (
+                                <div className="flex items-center justify-end gap-1 animate-in fade-in duration-150">
+                                  <button title="Move Up" disabled={tIdx === 0}
+                                    onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
+                                    className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
+                                  ><ChevronUp className="h-3.5 w-3.5" /></button>
+                                  <button title="Move Down" disabled={tIdx === grp.items.length - 1}
+                                    onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
+                                    className="h-6 w-6 flex items-center justify-center rounded bg-accent/20 text-foreground disabled:opacity-20 cursor-pointer hover:bg-accent/40"
+                                  ><ChevronDown className="h-3.5 w-3.5" /></button>
+                                  <button title="Degroup (remove from event)"
+                                    onClick={(e) => { e.stopPropagation(); degroupRecord(t); }}
+                                    className="h-6 w-6 flex items-center justify-center rounded bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 cursor-pointer"
+                                  ><Ungroup className="h-3.5 w-3.5" /></button>
+                                  {allEventGroups.filter(eg => { const p = parseEventNote(t.note); return eg.id !== p?.eventId; }).length > 0 && (
+                                    <button title="Shift to another event"
+                                      onClick={(e) => { e.stopPropagation(); setShiftingTxn(t); }}
+                                      className="h-6 w-6 flex items-center justify-center rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 cursor-pointer"
+                                    ><MoveRight className="h-3.5 w-3.5" /></button>
+                                  )}
+                                  <button title="Edit record"
+                                    onClick={(e) => { e.stopPropagation(); setEditingTxn(t); }}
+                                    className="h-6 w-6 flex items-center justify-center rounded bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                                  ><Pencil className="h-3 w-3" /></button>
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -1269,6 +1255,17 @@ function TxnsPage() {
                       })()}
                       <div className="flex items-center gap-1">
                         <button
+                          onClick={(e) => { e.stopPropagation(); toggleManageEvent(grp.eventId); if (!expandedEventIds.has(grp.eventId)) toggleExpandEvent(grp.eventId); }}
+                          className={`h-6 w-6 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
+                            managingEventId === grp.eventId
+                              ? 'bg-accent text-accent-foreground'
+                              : 'bg-accent/10 text-muted-foreground hover:text-foreground'
+                          }`}
+                          title={managingEventId === grp.eventId ? "Exit manage mode" : "Manage records"}
+                        >
+                          <MoreVertical className="h-3 w-3" />
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); setEditingEventGroup(grp); }}
                           className="h-6 w-6 flex items-center justify-center rounded-full bg-accent/10 text-muted-foreground hover:text-foreground cursor-pointer"
                           title="Edit Event"
@@ -1318,21 +1315,13 @@ function TxnsPage() {
                           ? "text-[color:var(--destructive)]"
                           : "";
                         const isSelected = selectedIds.includes(t.id);
-                        const isReordering = eventItemReorderActive === t.id;
+                        const isManaging = managingEventId === grp.eventId;
                         return (
                           <div
                             key={t.id}
-                            onMouseDown={(e) => { e.stopPropagation(); startEventItemPress(t.id, tIdx); }}
-                            onMouseUp={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
-                            onMouseLeave={cancelEventItemPress}
-                            onTouchStart={(e) => { e.stopPropagation(); startEventItemPress(t.id, tIdx); }}
-                            onTouchEnd={(e) => { e.stopPropagation(); cancelEventItemPress(); }}
-                            onClick={() => {
-                              if (isEventItemLongPressActive.current) { isEventItemLongPressActive.current = false; return; }
-                              setEditingTxn(t);
-                            }}
+                            onClick={() => setEditingTxn(t)}
                             className={`py-2 px-2.5 rounded-lg border-l-4 bg-amber-500/[0.04] cursor-pointer transition-all ${
-                              isReordering ? 'border-accent bg-accent/10 ring-1 ring-accent/40' : 'border-amber-500/60'
+                              isManaging ? 'border-accent' : 'border-amber-500/60'
                             } ${isSelected ? 'bg-accent/15' : ''}`}
                           >
                             <div className="flex items-center justify-between gap-3">
@@ -1350,7 +1339,6 @@ function TxnsPage() {
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="text-xs font-serif font-bold truncate">{cat?.name ?? (t.kind === "transfer" ? "Transfer Category" : "Uncategorized")}</span>
                                     <Badge variant="outline" className="capitalize text-[8px] px-1 py-0 leading-none">{t.kind}</Badge>
-                                    {isReordering && <span className="text-[8px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-semibold animate-pulse">Reordering</span>}
                                   </div>
                                   <div className="text-[10px] text-muted-foreground truncate">
                                     {acc?.name} · {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -1365,40 +1353,36 @@ function TxnsPage() {
                               <span className={`num font-serif text-xs font-bold flex-shrink-0 ${amtColor}`}>{sign}{fmtMoney(Number(t.amount), currency)}</span>
                             </div>
 
-                            {/* Reorder action bar (shows when long-press activated) */}
-                            {isReordering && (
-                              <div className="mt-2 flex items-center justify-between gap-2 p-1.5 bg-accent/10 rounded-lg border border-accent/20 animate-in fade-in duration-150" onClick={(e) => e.stopPropagation()}>
-                                <span className="text-[9px] font-semibold text-muted-foreground">Record #{tIdx + 1}</span>
-                                <div className="flex items-center gap-1">
+                            {/* Action bar — visible when manage mode active for this event */}
+                            {isManaging && (
+                              <div className="mt-2 flex items-center flex-wrap gap-1 p-1.5 bg-accent/10 rounded-lg border border-accent/20 animate-in fade-in duration-150" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  title="Move Up" disabled={tIdx === 0}
+                                  onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
+                                  className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
+                                ><ChevronUp className="h-3 w-3" /> Up</button>
+                                <button
+                                  title="Move Down" disabled={tIdx === grp.items.length - 1}
+                                  onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
+                                  className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
+                                ><ChevronDown className="h-3 w-3" /> Down</button>
+                                <button
+                                  title="Degroup"
+                                  onClick={(e) => { e.stopPropagation(); degroupRecord(t); }}
+                                  className="h-7 px-2 flex items-center gap-1 rounded bg-orange-500/10 text-orange-600 text-[10px] font-bold cursor-pointer"
+                                ><Ungroup className="h-3 w-3" /> Degroup</button>
+                                {allEventGroups.filter(eg => { const p = parseEventNote(t.note); return eg.id !== p?.eventId; }).length > 0 && (
                                   <button
-                                    title="Move Up"
-                                    disabled={tIdx === 0}
-                                    onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "up"); }}
-                                    className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
-                                  ><ChevronUp className="h-3 w-3" /> Up</button>
-                                  <button
-                                    title="Move Down"
-                                    disabled={tIdx === grp.items.length - 1}
-                                    onClick={(e) => { e.stopPropagation(); reorderEventItem(grp, t.id, "down"); }}
-                                    className="h-7 px-2 flex items-center gap-1 rounded bg-accent/20 text-foreground disabled:opacity-20 text-[10px] font-bold cursor-pointer"
-                                  ><ChevronDown className="h-3 w-3" /> Down</button>
-                                  <button
-                                    title="Degroup"
-                                    onClick={(e) => { e.stopPropagation(); degroupRecord(t); setEventItemReorderActive(null); }}
-                                    className="h-7 px-2 flex items-center gap-1 rounded bg-orange-500/10 text-orange-600 text-[10px] font-bold cursor-pointer"
-                                  ><Ungroup className="h-3 w-3" /> Degroup</button>
-                                  {allEventGroups.filter(eg => { const p = parseEventNote(t.note); return eg.id !== p?.eventId; }).length > 0 && (
-                                    <button
-                                      title="Shift to event"
-                                      onClick={(e) => { e.stopPropagation(); setShiftingTxn(t); setEventItemReorderActive(null); }}
-                                      className="h-7 px-2 flex items-center gap-1 rounded bg-blue-500/10 text-blue-600 text-[10px] font-bold cursor-pointer"
-                                    ><MoveRight className="h-3 w-3" /> Shift</button>
-                                  )}
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setEventItemReorderActive(null); }}
-                                    className="h-7 w-7 flex items-center justify-center rounded bg-muted text-muted-foreground text-[10px] font-bold cursor-pointer"
-                                  >✕</button>
-                                </div>
+                                    title="Shift to event"
+                                    onClick={(e) => { e.stopPropagation(); setShiftingTxn(t); }}
+                                    className="h-7 px-2 flex items-center gap-1 rounded bg-blue-500/10 text-blue-600 text-[10px] font-bold cursor-pointer"
+                                  ><MoveRight className="h-3 w-3" /> Shift</button>
+                                )}
+                                <button
+                                  title="Edit"
+                                  onClick={(e) => { e.stopPropagation(); setEditingTxn(t); }}
+                                  className="h-7 px-2 flex items-center gap-1 rounded bg-muted text-muted-foreground text-[10px] font-bold cursor-pointer"
+                                ><Pencil className="h-3 w-3" /> Edit</button>
                               </div>
                             )}
                           </div>
