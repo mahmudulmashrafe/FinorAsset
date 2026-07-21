@@ -4,10 +4,6 @@ We cleaned up all Lovable dependencies, standardized the build configuration for
 
 ## Changes Made
 
-1. **Lovable Clean-up**:
-   - Uninstalled `@lovable.dev/vite-tanstack-config` and purged all transitive dependencies (HMR gate plugins, dev-server bridge plugins, and component taggers).
-   - Deleted the Lovable guidelines file (`AGENTS.md`).
-
 2. **Standardized Vite & Nitro Configurations**:
    - Updated `vite.config.ts` to use standard, native plugins: `@vitejs/plugin-react`, `@tanstack/react-start/plugin/vite`, `vite-tsconfig-paths`, `@tailwindcss/vite`, and `nitro/vite`.
    - Enabled Nitro build generation targeting Vercel (`preset: 'vercel'`).
