@@ -222,7 +222,32 @@ export function TransactionDialog({
     amount: string;
     note: string;
     date: string;
-  }[]>([]);
+  }>([
+    { id: "1", kind: "expense", categoryId: "", accountId: "", amount: "", note: "", date: new Date().toISOString().slice(0, 10) },
+    { id: "2", kind: "expense", categoryId: "", accountId: "", amount: "", note: "", date: new Date().toISOString().slice(0, 10) },
+  ]);
+
+  // 1-second long press reorder state for Event records
+  const [activeReorderId, setActiveReorderId] = useState<string | null>(null);
+  const itemPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleItemPressStart = (itemId: string, itemIndex: number) => {
+    if (itemPressTimerRef.current) clearTimeout(itemPressTimerRef.current);
+    itemPressTimerRef.current = setTimeout(() => {
+      setActiveReorderId((prev) => (prev === itemId ? null : itemId));
+      if (typeof window !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate(100); } catch {}
+      }
+      toast.success(`Reorder mode active for Item #${itemIndex + 1}`);
+    }, 1000);
+  };
+
+  const handleItemPressEnd = () => {
+    if (itemPressTimerRef.current) {
+      clearTimeout(itemPressTimerRef.current);
+      itemPressTimerRef.current = null;
+    }
+  };
 
   // Splits states
   const [isSplit, setIsSplit] = useState(false);
@@ -381,9 +406,11 @@ export function TransactionDialog({
       await supabase.from("transactions").delete().in("id", oldIds);
     }
 
-    const insertPayloads = eventItems.map(item => {
+    const baseNow = Date.now();
+    const insertPayloads = eventItems.map((item, idx) => {
       const cleanNote = item.note.trim();
       const formattedNote = `[Event: ${eventTitle.trim()}|id:${eventId}]${cleanNote ? ` ${cleanNote}` : ""}`;
+      const itemTimestamp = new Date(baseNow + (eventItems.length - 1 - idx) * 10).toISOString();
       return {
         user_id: u.user.id,
         account_id: item.accountId,
@@ -393,6 +420,7 @@ export function TransactionDialog({
         amount: Number(item.amount),
         note: formattedNote,
         occurred_on: item.date || eventDate,
+        created_at: itemTimestamp,
       };
     });
 
@@ -634,117 +662,167 @@ export function TransactionDialog({
               </div>
 
               <div className="space-y-3">
-                {eventItems.map((item, idx) => (
-        <div key={item.id} className="p-3 rounded-xl border bg-card/60 space-y-2.5 relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-serif font-bold text-muted-foreground">Item #{idx + 1}</span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={idx === 0}
-                onClick={() => moveEventItem(item.id, "up")}
-                className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                title="Move item up"
-              >
-                <ChevronUp className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                disabled={idx === eventItems.length - 1}
-                onClick={() => moveEventItem(item.id, "down")}
-                className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                title="Move item down"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
-              {eventItems.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeEventItem(item.id)}
-                  className="text-muted-foreground hover:text-destructive p-1 rounded cursor-pointer ml-1"
-                  title="Remove item"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-[10px]">Type</Label>
-                        <Select value={item.kind} onValueChange={(v) => updateEventItem(item.id, "kind", v)}>
-                          <SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
-                          <SelectContent className="z-[150]">
-                            <SelectItem value="expense">Expense</SelectItem>
-                            <SelectItem value="income">Income</SelectItem>
-                          </SelectContent>
-                        </Select>
+                {eventItems.map((item, idx) => {
+                  const isReordering = activeReorderId === item.id;
+                  return (
+                    <div 
+                      key={item.id} 
+                      onMouseDown={() => handleItemPressStart(item.id, idx)}
+                      onMouseUp={handleItemPressEnd}
+                      onMouseLeave={handleItemPressEnd}
+                      onTouchStart={() => handleItemPressStart(item.id, idx)}
+                      onTouchEnd={handleItemPressEnd}
+                      className={cn(
+                        "p-3 rounded-xl border bg-card/60 space-y-2.5 relative transition-all duration-200",
+                        isReordering && "ring-2 ring-accent border-accent bg-accent/5 shadow-md"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-serif font-bold text-muted-foreground flex items-center gap-1.5">
+                          Item #{idx + 1}
+                          {isReordering && (
+                            <span className="text-[9px] font-sans bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-semibold animate-pulse">
+                              Reordering Active
+                            </span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={(e) => { e.stopPropagation(); moveEventItem(item.id, "up"); }}
+                            className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                            title="Move item up"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === eventItems.length - 1}
+                            onClick={(e) => { e.stopPropagation(); moveEventItem(item.id, "down"); }}
+                            className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                            title="Move item down"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          {eventItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removeEventItem(item.id); }}
+                              className="text-muted-foreground hover:text-destructive p-1 rounded cursor-pointer ml-1"
+                              title="Remove item"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div>
-                        <Label className="text-[10px]">Date</Label>
-                        <Input
-                          type="date"
-                          value={item.date || eventDate}
-                          onChange={(e) => updateEventItem(item.id, "date", e.target.value)}
-                          className="h-8 text-xs bg-background"
-                        />
-                      </div>
+                      {/* Prominent Up/Down buttons when reordering */}
+                      {isReordering && (
+                        <div className="flex items-center justify-between p-2 bg-accent/10 rounded-lg border border-accent/20 my-1 animate-in fade-in duration-150">
+                          <span className="text-[10px] font-semibold text-accent-foreground">Reorder Item #{idx + 1}:</span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="xs"
+                              variant="outline"
+                              disabled={idx === 0}
+                              onClick={(e) => { e.stopPropagation(); moveEventItem(item.id, "up"); }}
+                              className="h-7 text-[10px] gap-1 cursor-pointer font-bold border-accent/40"
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" /> Move Up
+                            </Button>
+                            <Button
+                              type="button"
+                              size="xs"
+                              variant="outline"
+                              disabled={idx === eventItems.length - 1}
+                              onClick={(e) => { e.stopPropagation(); moveEventItem(item.id, "down"); }}
+                              className="h-7 text-[10px] gap-1 cursor-pointer font-bold border-accent/40"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" /> Move Down
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
-                      <div>
-                        <Label className="text-[10px]">Amount</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={item.amount}
-                          onChange={(e) => updateEventItem(item.id, "amount", e.target.value)}
-                          className="h-8 text-xs bg-background"
-                        />
-                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px]">Type</Label>
+                          <Select value={item.kind} onValueChange={(v) => updateEventItem(item.id, "kind", v)}>
+                            <SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
+                            <SelectContent className="z-[150]">
+                              <SelectItem value="expense">Expense</SelectItem>
+                              <SelectItem value="income">Income</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                      <div>
-                        <Label className="text-[10px]">Category</Label>
-                        <SearchableSelect
-                          options={categories.filter(c => c.kind === item.kind).map(c => ({
-                            value: c.id,
-                            label: c.name,
-                            imageUrl: c.image_url || undefined,
-                            icon: c.image_url ? undefined : <span>{c.icon}</span>
-                          }))}
-                          value={item.categoryId}
-                          onValueChange={(v) => updateEventItem(item.id, "categoryId", v)}
-                          placeholder="Category"
-                          searchPlaceholder="Search Category..."
-                          triggerClassName="h-8 text-xs bg-background"
-                        />
-                      </div>
+                        <div>
+                          <Label className="text-[10px]">Date</Label>
+                          <Input
+                            type="date"
+                            value={item.date || eventDate}
+                            onChange={(e) => updateEventItem(item.id, "date", e.target.value)}
+                            className="h-8 text-xs bg-background"
+                          />
+                        </div>
 
-                      <div>
-                        <Label className="text-[10px]">Account</Label>
-                        <SearchableSelect
-                          options={accountOptions}
-                          value={item.accountId}
-                          onValueChange={(v) => updateEventItem(item.id, "accountId", v)}
-                          placeholder="Account"
-                          searchPlaceholder="Search Account..."
-                          triggerClassName="h-8 text-xs bg-background"
-                        />
-                      </div>
+                        <div>
+                          <Label className="text-[10px]">Amount</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={item.amount}
+                            onChange={(e) => updateEventItem(item.id, "amount", e.target.value)}
+                            className="h-8 text-xs bg-background"
+                          />
+                        </div>
 
-                      <div className="col-span-2">
-                        <Label className="text-[10px]">Item Note</Label>
-                        <Input
-                          placeholder="e.g., Bus Ticket, Hotel Room, Dinner"
-                          value={item.note}
-                          onChange={(e) => updateEventItem(item.id, "note", e.target.value)}
-                          className="h-8 text-xs bg-background"
-                        />
+                        <div>
+                          <Label className="text-[10px]">Category</Label>
+                          <SearchableSelect
+                            options={categories.filter(c => c.kind === item.kind).map(c => ({
+                              value: c.id,
+                              label: c.name,
+                              imageUrl: c.image_url || undefined,
+                              icon: c.image_url ? undefined : <span>{c.icon}</span>
+                            }))}
+                            value={item.categoryId}
+                            onValueChange={(v) => updateEventItem(item.id, "categoryId", v)}
+                            placeholder="Category"
+                            searchPlaceholder="Search Category..."
+                            triggerClassName="h-8 text-xs bg-background"
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-[10px]">Account</Label>
+                          <SearchableSelect
+                            options={accountOptions}
+                            value={item.accountId}
+                            onValueChange={(v) => updateEventItem(item.id, "accountId", v)}
+                            placeholder="Account"
+                            searchPlaceholder="Search Account..."
+                            triggerClassName="h-8 text-xs bg-background"
+                          />
+                        </div>
+
+                        <div className="col-span-2">
+                          <Label className="text-[10px]">Item Note</Label>
+                          <Input
+                            placeholder="e.g., Bus Ticket, Hotel Room, Dinner"
+                            value={item.note}
+                            onChange={(e) => updateEventItem(item.id, "note", e.target.value)}
+                            className="h-8 text-xs bg-background"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

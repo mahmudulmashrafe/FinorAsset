@@ -518,7 +518,16 @@ function AutomationPage() {
     try {
       const eventId = `evt_macro_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const inserts: any[] = [];
-      for (const act of rule.actions) {
+      const baseNow = Date.now();
+      // Reverse actions so Transaction 1 is at the bottom/last and Last Transaction is at the top
+      const actionsInReverse = [...rule.actions].reverse();
+      const totalActs = actionsInReverse.length;
+
+      for (let idx = 0; idx < totalActs; idx++) {
+        const act = actionsInReverse[idx];
+        // Highest timestamp goes to the last action of the macro (first in actionsInReverse)
+        const actionTimestamp = new Date(baseNow + (totalActs - 1 - idx) * 10).toISOString();
+
         if (act.isSplit) {
           const splits = act.splits || [];
           for (const split of splits) {
@@ -533,6 +542,7 @@ function AutomationPage() {
               amount: Number(split.amount),
               note: formattedNote,
               occurred_on: new Date().toISOString().split("T")[0],
+              created_at: actionTimestamp,
             });
           }
         } else {
@@ -547,6 +557,7 @@ function AutomationPage() {
             amount: Number(act.amount),
             note: formattedNote,
             occurred_on: new Date().toISOString().split("T")[0],
+            created_at: actionTimestamp,
           });
         }
       }
