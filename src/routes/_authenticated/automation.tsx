@@ -484,7 +484,7 @@ function AutomationPage() {
       return toast.error("User session expired. Please sign in again.");
     }
 
-    // Balance check validation
+    // Balance check validation (calculates net outflow per account)
     const accountMap = new Map(accounts.map((a) => [a.id, a]));
     const deductions = new Map<string, number>();
 
@@ -495,17 +495,27 @@ function AutomationPage() {
           const amount = Number(split.amount);
           if (act.kind === "expense") {
             deductions.set(split.accountId, (deductions.get(split.accountId) ?? 0) + amount);
+          } else if (act.kind === "income") {
+            deductions.set(split.accountId, (deductions.get(split.accountId) ?? 0) - amount);
           }
         }
       } else {
         const amount = Number(act.amount);
-        if (act.kind === "expense" || act.kind === "transfer") {
+        if (act.kind === "expense") {
           deductions.set(act.account_id, (deductions.get(act.account_id) ?? 0) + amount);
+        } else if (act.kind === "income") {
+          deductions.set(act.account_id, (deductions.get(act.account_id) ?? 0) - amount);
+        } else if (act.kind === "transfer") {
+          deductions.set(act.account_id, (deductions.get(act.account_id) ?? 0) + amount);
+          if (act.to_account_id) {
+            deductions.set(act.to_account_id, (deductions.get(act.to_account_id) ?? 0) - amount);
+          }
         }
       }
     }
 
     for (const [accountId, totalDeduction] of deductions.entries()) {
+      if (totalDeduction <= 0) continue; // Net positive or zero change on this account: no balance check needed!
       const balance = balances.get(accountId) ?? 0;
       if (balance < totalDeduction) {
         const accName = accountMap.get(accountId)?.name || "selected account";
@@ -1035,7 +1045,10 @@ function AutomationPage() {
                         <div className="space-y-1">
                           <Label className="text-[10px] font-semibold">Category</Label>
                           <SearchableSelect
-                            options={categoryOptions}
+                            options={categoryOptions.filter(c => {
+                              const cat = cats.find(x => x.id === c.value);
+                              return !cat || cat.kind === act.kind;
+                            })}
                             value={act.category_id || ""}
                             onValueChange={(v) => updateActionField(idx, "category_id", v)}
                             placeholder="Select Category"
@@ -1076,7 +1089,10 @@ function AutomationPage() {
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold">Category</Label>
                             <SearchableSelect
-                              options={categoryOptions}
+                              options={categoryOptions.filter(c => {
+                              const cat = cats.find(x => x.id === c.value);
+                              return !cat || cat.kind === act.kind;
+                            })}
                               value={act.category_id || ""}
                               onValueChange={(v) => updateActionField(idx, "category_id", v)}
                               placeholder="Select Category"
