@@ -59,6 +59,107 @@ function safeDateStr(d: any): string {
   }
 }
 
+export const EVENT_COLOR_THEMES = [
+  {
+    // Amber / Gold
+    headerBg: "bg-amber-500/10 dark:bg-amber-500/15",
+    headerHover: "hover:bg-amber-500/15 dark:hover:bg-amber-500/20",
+    badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    iconBg: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+    subBorder: "border-amber-500/70 dark:border-amber-400/70",
+    subBg: "bg-amber-500/[0.04] dark:bg-amber-500/[0.08]",
+    subHover: "hover:bg-amber-500/[0.08] dark:hover:bg-amber-500/[0.12]",
+    mobileCardBorder: "border-amber-500/30 dark:border-amber-500/40",
+  },
+  {
+    // Indigo / Violet Blue
+    headerBg: "bg-indigo-500/10 dark:bg-indigo-500/15",
+    headerHover: "hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20",
+    badge: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+    iconBg: "bg-indigo-500/20 text-indigo-700 dark:text-indigo-300",
+    subBorder: "border-indigo-500/70 dark:border-indigo-400/70",
+    subBg: "bg-indigo-500/[0.04] dark:bg-indigo-500/[0.08]",
+    subHover: "hover:bg-indigo-500/[0.08] dark:hover:bg-indigo-500/[0.12]",
+    mobileCardBorder: "border-indigo-500/30 dark:border-indigo-500/40",
+  },
+  {
+    // Emerald / Teal Green
+    headerBg: "bg-emerald-500/10 dark:bg-emerald-500/15",
+    headerHover: "hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20",
+    badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    iconBg: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+    subBorder: "border-emerald-500/70 dark:border-emerald-400/70",
+    subBg: "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]",
+    subHover: "hover:bg-emerald-500/[0.08] dark:hover:bg-emerald-500/[0.12]",
+    mobileCardBorder: "border-emerald-500/30 dark:border-emerald-500/40",
+  },
+  {
+    // Violet / Purple
+    headerBg: "bg-violet-500/10 dark:bg-violet-500/15",
+    headerHover: "hover:bg-violet-500/15 dark:hover:bg-violet-500/20",
+    badge: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30",
+    iconBg: "bg-violet-500/20 text-violet-700 dark:text-violet-300",
+    subBorder: "border-violet-500/70 dark:border-violet-400/70",
+    subBg: "bg-violet-500/[0.04] dark:bg-violet-500/[0.08]",
+    subHover: "hover:bg-violet-500/[0.08] dark:hover:bg-violet-500/[0.12]",
+    mobileCardBorder: "border-violet-500/30 dark:border-violet-500/40",
+  },
+  {
+    // Rose / Crimson
+    headerBg: "bg-rose-500/10 dark:bg-rose-500/15",
+    headerHover: "hover:bg-rose-500/15 dark:hover:bg-rose-500/20",
+    badge: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
+    iconBg: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
+    subBorder: "border-rose-500/70 dark:border-rose-400/70",
+    subBg: "bg-rose-500/[0.04] dark:bg-rose-500/[0.08]",
+    subHover: "hover:bg-rose-500/[0.08] dark:hover:bg-rose-500/[0.12]",
+    mobileCardBorder: "border-rose-500/30 dark:border-rose-500/40",
+  },
+  {
+    // Cyan / Sky
+    headerBg: "bg-cyan-500/10 dark:bg-cyan-500/15",
+    headerHover: "hover:bg-cyan-500/15 dark:hover:bg-cyan-500/20",
+    badge: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
+    iconBg: "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300",
+    subBorder: "border-cyan-500/70 dark:border-cyan-400/70",
+    subBg: "bg-cyan-500/[0.04] dark:bg-cyan-500/[0.08]",
+    subHover: "hover:bg-cyan-500/[0.08] dark:hover:bg-cyan-500/[0.12]",
+    mobileCardBorder: "border-cyan-500/30 dark:border-cyan-500/40",
+  },
+  {
+    // Fuchsia / Pink
+    headerBg: "bg-fuchsia-500/10 dark:bg-fuchsia-500/15",
+    headerHover: "hover:bg-fuchsia-500/15 dark:hover:bg-fuchsia-500/20",
+    badge: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/30",
+    iconBg: "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300",
+    subBorder: "border-fuchsia-500/70 dark:border-fuchsia-400/70",
+    subBg: "bg-fuchsia-500/[0.04] dark:bg-fuchsia-500/[0.08]",
+    subHover: "hover:bg-fuchsia-500/[0.08] dark:hover:bg-fuchsia-500/[0.12]",
+    mobileCardBorder: "border-fuchsia-500/30 dark:border-fuchsia-500/40",
+  },
+  {
+    // Orange / Warm Coral
+    headerBg: "bg-orange-500/10 dark:bg-orange-500/15",
+    headerHover: "hover:bg-orange-500/15 dark:hover:bg-orange-500/20",
+    badge: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30",
+    iconBg: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
+    subBorder: "border-orange-500/70 dark:border-orange-400/70",
+    subBg: "bg-orange-500/[0.04] dark:bg-orange-500/[0.08]",
+    subHover: "hover:bg-orange-500/[0.08] dark:hover:bg-orange-500/[0.12]",
+    mobileCardBorder: "border-orange-500/30 dark:border-orange-500/40",
+  },
+];
+
+export function getEventTheme(eventId: string) {
+  let hash = 0;
+  for (let i = 0; i < eventId.length; i++) {
+    hash = (hash << 5) - hash + eventId.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % EVENT_COLOR_THEMES.length;
+  return EVENT_COLOR_THEMES[idx];
+}
+
 export const Route = createFileRoute("/_authenticated/transactions")({
   component: TxnsPage,
   head: () => ({ meta: [{ title: "Transactions — FinorAsset" }] }),
@@ -822,6 +923,7 @@ function TxnsPage() {
 
                 if (row.type === "event") {
                   const grp = row.group;
+                  const theme = getEventTheme(grp.eventId);
                   const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
                   const isExpanded = expandedEventIds.has(grp.eventId);
                   return (
@@ -840,7 +942,7 @@ function TxnsPage() {
                           }
                           toggleExpandEvent(grp.eventId);
                         }}
-                        className={`group bg-amber-500/5 hover:bg-amber-500/10 transition-colors cursor-pointer ${isAllSel ? 'bg-accent/10' : ''} ${rStr === reorderDate ? 'border-y border-dashed border-primary/50 bg-primary/[0.03]' : ''}`}
+                        className={`group ${theme.headerBg} ${theme.headerHover} transition-colors cursor-pointer ${isAllSel ? 'bg-accent/10' : ''} ${rStr === reorderDate ? 'border-y border-dashed border-primary/50 bg-primary/[0.03]' : ''}`}
                       >
                         <TableCell className="w-12 py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <input
@@ -858,13 +960,13 @@ function TxnsPage() {
                           {new Date(grp.date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="py-3 px-4">
-                          <Badge variant="secondary" className="gap-1 font-semibold text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                          <Badge variant="secondary" className={`gap-1 font-semibold text-[10px] ${theme.badge}`}>
                             <Layers className="h-3 w-3" /> Event
                           </Badge>
                         </TableCell>
                         <TableCell className="py-3 px-4 text-xs font-semibold text-foreground/95">
                           <div className="flex items-center gap-2">
-                            <span className="p-0.5 rounded text-amber-600 dark:text-amber-400 shrink-0">
+                            <span className={`p-0.5 rounded shrink-0 ${theme.iconBg}`}>
                               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             </span>
                             <span>🗓️ {grp.eventTitle}</span>
@@ -963,8 +1065,8 @@ function TxnsPage() {
                               if (isEventItemLongPressActive.current) { isEventItemLongPressActive.current = false; return; }
                               setEditingTxn(t);
                             }}
-                            className={`group bg-amber-500/[0.03] dark:bg-amber-500/[0.08] hover:bg-amber-500/10 transition-colors border-l-4 cursor-pointer ${
-                              isManaging ? 'border-accent' : 'border-amber-500/60'
+                            className={`group ${theme.subBg} ${theme.subHover} transition-colors border-l-4 cursor-pointer ${
+                              isManaging ? 'border-accent' : theme.subBorder
                             } ${isSelected ? 'bg-accent/15' : ''}`}
                           >
                             <TableCell className="w-12 py-3 px-4 text-center pl-6" onClick={(e) => e.stopPropagation()}>
@@ -1253,6 +1355,7 @@ function TxnsPage() {
 
             if (row.type === "event") {
               const grp = row.group;
+              const theme = getEventTheme(grp.eventId);
               const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
               const isExpanded = expandedEventIds.has(grp.eventId);
               return (
@@ -1264,7 +1367,7 @@ function TxnsPage() {
                   onTouchStart={() => startPress(rStr)}
                   onTouchEnd={cancelPress}
                   onTouchMove={cancelPress}
-                  className={`py-2.5 px-2 rounded-xl border bg-card/80 my-1 space-y-2 transition-all ${rStr === reorderDate ? 'border-dashed border-primary/50 bg-primary/[0.02]' : ''}`}
+                  className={`py-2.5 px-2 rounded-xl border ${theme.headerBg} ${theme.mobileCardBorder} my-1 space-y-2 transition-all ${rStr === reorderDate ? 'border-dashed border-primary/50 bg-primary/[0.02]' : ''}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -1288,13 +1391,13 @@ function TxnsPage() {
                         }}
                         className="flex items-center gap-2.5 text-left min-w-0 flex-1 cursor-pointer"
                       >
-                        <span className="text-lg h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                        <span className={`text-lg h-9 w-9 rounded-lg ${theme.iconBg} flex items-center justify-center flex-shrink-0`}>
                           🗓️
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-xs font-semibold truncate">{grp.eventTitle}</span>
-                            <Badge variant="secondary" className="text-[8px] px-1 py-0 leading-none bg-amber-500/10 text-amber-600 border-amber-500/20">
+                            <Badge variant="secondary" className={`text-[8px] px-1 py-0 leading-none ${theme.badge}`}>
                               {grp.items.length} records
                             </Badge>
                           </div>
@@ -1379,8 +1482,8 @@ function TxnsPage() {
                               if (isEventItemLongPressActive.current) { isEventItemLongPressActive.current = false; return; }
                               setEditingTxn(t);
                             }}
-                            className={`py-2 px-2.5 rounded-lg border-l-4 bg-amber-500/[0.04] cursor-pointer transition-all ${
-                              isManaging ? 'border-accent' : 'border-amber-500/60'
+                            className={`py-2 px-2.5 rounded-lg border-l-4 ${theme.subBg} cursor-pointer transition-all ${
+                              isManaging ? 'border-accent' : theme.subBorder
                             } ${isSelected ? 'bg-accent/15' : ''}`}
                           >
                             <div className="flex items-center justify-between gap-3">
