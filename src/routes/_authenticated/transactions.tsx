@@ -106,7 +106,10 @@ export const EVENT_COLOR_THEMES = [
   },
 ];
 
-export function getEventTheme(eventId: string) {
+export function getEventTheme(eventId: string, themeMap?: Map<string, typeof EVENT_COLOR_THEMES[number]>) {
+  if (themeMap && themeMap.has(eventId)) {
+    return themeMap.get(eventId)!;
+  }
   let hash = 0;
   for (let i = 0; i < eventId.length; i++) {
     hash = (hash << 5) - hash + eventId.charCodeAt(i);
@@ -436,6 +439,18 @@ function TxnsPage() {
       return cTimeB - cTimeA;
     });
   }, [filtered, sameDateRanks]);
+
+  const eventThemeMap = useMemo(() => {
+    const map = new Map<string, typeof EVENT_COLOR_THEMES[number]>();
+    let count = 0;
+    for (const item of displayRows) {
+      if (item.type === "event" && !map.has(item.group.eventId)) {
+        map.set(item.group.eventId, EVENT_COLOR_THEMES[count % EVENT_COLOR_THEMES.length]);
+        count++;
+      }
+    }
+    return map;
+  }, [displayRows]);
 
   function moveSameDateRow(index: number, direction: "up" | "down") {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
@@ -879,7 +894,7 @@ function TxnsPage() {
 
                 if (row.type === "event") {
                   const grp = row.group;
-                  const theme = getEventTheme(grp.eventId);
+                  const theme = getEventTheme(grp.eventId, eventThemeMap);
                   const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
                   const isExpanded = expandedEventIds.has(grp.eventId);
                   return (
@@ -1311,7 +1326,7 @@ function TxnsPage() {
 
             if (row.type === "event") {
               const grp = row.group;
-              const theme = getEventTheme(grp.eventId);
+              const theme = getEventTheme(grp.eventId, eventThemeMap);
               const isAllSel = grp.items.length > 0 && grp.items.every(i => selectedIds.includes(i.id));
               const isExpanded = expandedEventIds.has(grp.eventId);
               return (
