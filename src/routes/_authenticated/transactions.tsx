@@ -61,7 +61,7 @@ function safeDateStr(d: any): string {
 
 export const EVENT_COLOR_THEMES = [
   {
-    // Amber / Gold
+    // 1: Amber / Gold
     headerBg: "bg-amber-500/10 dark:bg-amber-500/15",
     headerHover: "hover:bg-amber-500/15 dark:hover:bg-amber-500/20",
     badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
@@ -72,7 +72,7 @@ export const EVENT_COLOR_THEMES = [
     mobileCardBorder: "border-amber-500/30 dark:border-amber-500/40",
   },
   {
-    // Indigo / Violet Blue
+    // 2: Indigo / Blue
     headerBg: "bg-indigo-500/10 dark:bg-indigo-500/15",
     headerHover: "hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20",
     badge: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
@@ -83,7 +83,7 @@ export const EVENT_COLOR_THEMES = [
     mobileCardBorder: "border-indigo-500/30 dark:border-indigo-500/40",
   },
   {
-    // Emerald / Teal Green
+    // 3: Emerald / Green
     headerBg: "bg-emerald-500/10 dark:bg-emerald-500/15",
     headerHover: "hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20",
     badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
@@ -94,7 +94,7 @@ export const EVENT_COLOR_THEMES = [
     mobileCardBorder: "border-emerald-500/30 dark:border-emerald-500/40",
   },
   {
-    // Violet / Purple
+    // 4: Violet / Purple
     headerBg: "bg-violet-500/10 dark:bg-violet-500/15",
     headerHover: "hover:bg-violet-500/15 dark:hover:bg-violet-500/20",
     badge: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30",
@@ -103,50 +103,6 @@ export const EVENT_COLOR_THEMES = [
     subBg: "bg-violet-500/[0.04] dark:bg-violet-500/[0.08]",
     subHover: "hover:bg-violet-500/[0.08] dark:hover:bg-violet-500/[0.12]",
     mobileCardBorder: "border-violet-500/30 dark:border-violet-500/40",
-  },
-  {
-    // Rose / Crimson
-    headerBg: "bg-rose-500/10 dark:bg-rose-500/15",
-    headerHover: "hover:bg-rose-500/15 dark:hover:bg-rose-500/20",
-    badge: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
-    iconBg: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
-    subBorder: "border-rose-500/70 dark:border-rose-400/70",
-    subBg: "bg-rose-500/[0.04] dark:bg-rose-500/[0.08]",
-    subHover: "hover:bg-rose-500/[0.08] dark:hover:bg-rose-500/[0.12]",
-    mobileCardBorder: "border-rose-500/30 dark:border-rose-500/40",
-  },
-  {
-    // Cyan / Sky
-    headerBg: "bg-cyan-500/10 dark:bg-cyan-500/15",
-    headerHover: "hover:bg-cyan-500/15 dark:hover:bg-cyan-500/20",
-    badge: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
-    iconBg: "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300",
-    subBorder: "border-cyan-500/70 dark:border-cyan-400/70",
-    subBg: "bg-cyan-500/[0.04] dark:bg-cyan-500/[0.08]",
-    subHover: "hover:bg-cyan-500/[0.08] dark:hover:bg-cyan-500/[0.12]",
-    mobileCardBorder: "border-cyan-500/30 dark:border-cyan-500/40",
-  },
-  {
-    // Fuchsia / Pink
-    headerBg: "bg-fuchsia-500/10 dark:bg-fuchsia-500/15",
-    headerHover: "hover:bg-fuchsia-500/15 dark:hover:bg-fuchsia-500/20",
-    badge: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/30",
-    iconBg: "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300",
-    subBorder: "border-fuchsia-500/70 dark:border-fuchsia-400/70",
-    subBg: "bg-fuchsia-500/[0.04] dark:bg-fuchsia-500/[0.08]",
-    subHover: "hover:bg-fuchsia-500/[0.08] dark:hover:bg-fuchsia-500/[0.12]",
-    mobileCardBorder: "border-fuchsia-500/30 dark:border-fuchsia-500/40",
-  },
-  {
-    // Orange / Warm Coral
-    headerBg: "bg-orange-500/10 dark:bg-orange-500/15",
-    headerHover: "hover:bg-orange-500/15 dark:hover:bg-orange-500/20",
-    badge: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30",
-    iconBg: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
-    subBorder: "border-orange-500/70 dark:border-orange-400/70",
-    subBg: "bg-orange-500/[0.04] dark:bg-orange-500/[0.08]",
-    subHover: "hover:bg-orange-500/[0.08] dark:hover:bg-orange-500/[0.12]",
-    mobileCardBorder: "border-orange-500/30 dark:border-orange-500/40",
   },
 ];
 
