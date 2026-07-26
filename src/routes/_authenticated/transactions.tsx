@@ -141,6 +141,10 @@ function TxnsPage() {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
+  function formatDateStr(y: number, m: number, d: number) {
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+
   function handleYearMonthChange(yr: string, mn: string) {
     setSelectedYear(yr);
     setSelectedMonth(mn);
@@ -156,10 +160,9 @@ function TxnsPage() {
     
     if (mn !== "all") {
       const mnNum = Number(mn);
-      const start = new Date(targetYr, mnNum - 1, 1);
-      const end = new Date(targetYr, mnNum, 0);
-      setStartDate(start.toISOString().slice(0, 10));
-      setEndDate(end.toISOString().slice(0, 10));
+      const lastDay = new Date(targetYr, mnNum, 0).getDate();
+      setStartDate(formatDateStr(targetYr, mnNum, 1));
+      setEndDate(formatDateStr(targetYr, mnNum, lastDay));
     } else {
       setStartDate(`${targetYr}-01-01`);
       setEndDate(`${targetYr}-12-31`);
@@ -175,11 +178,11 @@ function TxnsPage() {
       setStartDate("");
       setEndDate("");
     } else if (preset === "today") {
-      const iso = now.toISOString().slice(0, 10);
+      const todayStr = formatDateStr(now.getFullYear(), now.getMonth() + 1, now.getDate());
       setSelectedYear(String(now.getFullYear()));
       setSelectedMonth(String(now.getMonth() + 1).padStart(2, "0"));
-      setStartDate(iso);
-      setEndDate(iso);
+      setStartDate(todayStr);
+      setEndDate(todayStr);
     } else if (preset === "this_month") {
       handleYearMonthChange(String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, "0"));
     } else if (preset === "last_month") {
