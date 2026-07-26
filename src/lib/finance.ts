@@ -71,6 +71,34 @@ export function setAccountNetWorthInclusion(accountId: string, include: boolean)
   } catch {}
 }
 
+export function isTransactionIncomeForNetWorth(t: Transaction, netWorthAccountIds: Set<string>): boolean {
+  if (t.kind === "income") {
+    // Income into Net Worth account counts as Income
+    return netWorthAccountIds.has(t.account_id);
+  }
+  if (t.kind === "transfer" && t.to_account_id) {
+    // Money transferred from a Non-Net Worth account into a Net Worth account is Income!
+    const fromIsNetWorth = netWorthAccountIds.has(t.account_id);
+    const toIsNetWorth = netWorthAccountIds.has(t.to_account_id);
+    return !fromIsNetWorth && toIsNetWorth;
+  }
+  return false;
+}
+
+export function isTransactionExpenseForNetWorth(t: Transaction, netWorthAccountIds: Set<string>): boolean {
+  if (t.kind === "expense") {
+    // Expense paid from Net Worth account counts as Expense
+    return netWorthAccountIds.has(t.account_id);
+  }
+  if (t.kind === "transfer" && t.to_account_id) {
+    // Money transferred from Net Worth account out to Non-Net Worth account is Expense/Outflow!
+    const fromIsNetWorth = netWorthAccountIds.has(t.account_id);
+    const toIsNetWorth = netWorthAccountIds.has(t.to_account_id);
+    return fromIsNetWorth && !toIsNetWorth;
+  }
+  return false;
+}
+
 export const api = {
   async listAccounts() {
     const { data, error } = await supabase.from("accounts").select("*").order("created_at");

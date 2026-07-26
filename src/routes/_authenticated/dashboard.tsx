@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { api, computeAccountBalances, fmtMoney, monthKey, isAccountIncludedInNetWorth } from "@/lib/finance";
+import { api, computeAccountBalances, fmtMoney, monthKey, isAccountIncludedInNetWorth, isTransactionIncomeForNetWorth, isTransactionExpenseForNetWorth } from "@/lib/finance";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Zap, Target } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -37,11 +37,11 @@ function Dashboard() {
   });
 
   const income = monthTxns
-    .filter(t => t.kind === "income" && netWorthAccountIds.has(t.account_id))
+    .filter(t => isTransactionIncomeForNetWorth(t, netWorthAccountIds))
     .reduce((s, t) => s + Number(t.amount), 0);
 
   const expense = monthTxns
-    .filter(t => t.kind === "expense" && netWorthAccountIds.has(t.account_id))
+    .filter(t => isTransactionExpenseForNetWorth(t, netWorthAccountIds))
     .reduce((s, t) => s + Number(t.amount), 0);
 
   const savingsRate = income > 0 ? Math.max(0, Math.round(((income - expense) / income) * 100)) : 0;
@@ -53,10 +53,10 @@ function Dashboard() {
     const iso = d.toISOString().slice(0, 10);
     const dayTxns = txns.filter((t) => t.occurred_on === iso);
     const inc = dayTxns
-      .filter(t => t.kind === "income" && netWorthAccountIds.has(t.account_id))
+      .filter(t => isTransactionIncomeForNetWorth(t, netWorthAccountIds))
       .reduce((s, t) => s + Number(t.amount), 0);
     const exp = dayTxns
-      .filter(t => t.kind === "expense" && netWorthAccountIds.has(t.account_id))
+      .filter(t => isTransactionExpenseForNetWorth(t, netWorthAccountIds))
       .reduce((s, t) => s + Number(t.amount), 0);
     series.push({ day: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }), net: inc - exp });
   }

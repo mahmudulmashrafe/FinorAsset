@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { api, fmtMoney, isAccountIncludedInNetWorth } from "@/lib/finance";
+import { api, fmtMoney, isAccountIncludedInNetWorth, isTransactionIncomeForNetWorth, isTransactionExpenseForNetWorth } from "@/lib/finance";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
 import { useMemo, useState } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -62,15 +62,30 @@ function Stats() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       map.set(key, { month: d.toLocaleDateString(undefined, { month: "short" }), income: 0, expense: 0 });
     }
-    for (const t of filteredTxns) {
+    for (const t of txns) {
       const d = new Date(t.occurred_on);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const row = map.get(key); if (!row) continue;
-      if (t.kind === "income") row.income += Number(t.amount);
-      else if (t.kind === "expense") row.expense += Number(t.amount);
+
+      if (accountFilter === "all") {
+        if (isTransactionIncomeForNetWorth(t, netWorthAccountIds)) {
+          row.income += Number(t.amount);
+        } else if (isTransactionExpenseForNetWorth(t, netWorthAccountIds)) {
+          row.expense += Number(t.amount);
+        }
+      } else {
+        if (t.account_id === accountFilter && t.kind === "income") {
+          row.income += Number(t.amount);
+        } else if (t.account_id === accountFilter && t.kind === "expense") {
+          row.expense += Number(t.amount);
+        } else if (t.kind === "transfer") {
+          if (t.to_account_id === accountFilter) row.income += Number(t.amount);
+          if (t.account_id === accountFilter) row.expense += Number(t.amount);
+        }
+      }
     }
     return Array.from(map.values());
-  }, [filteredTxns, monthFilter]);
+  }, [txns, monthFilter, accountFilter, netWorthAccountIds]);
 
   const byCat = useMemo(() => {
     const m = new Map<string, number>();
