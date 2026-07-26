@@ -12,7 +12,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, X, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Eye, Calendar, ChevronDown } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import type { Account, Transaction, Category } from "@/lib/finance";
 import { TransactionDialog } from "@/components/transaction-dialog";
