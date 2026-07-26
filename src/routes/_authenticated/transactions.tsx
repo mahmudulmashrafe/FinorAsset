@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, fmtMoney, type Transaction, syncTransactionToLoan } from "@/lib/finance";
+import { api, fmtMoney, type Transaction, syncTransactionToLoan, isAccountIncludedInNetWorth } from "@/lib/finance";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState, Fragment, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye, ChevronDown, ChevronRight, ChevronUp, Ungroup, MoveRight, MoreVertical } from "lucide-react";
+import { Trash2, Pencil, SlidersHorizontal, Plus, Calendar, Layers, Eye, ChevronDown, ChevronRight, ChevronUp, Ungroup, MoveRight, MoreVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +135,8 @@ function TxnsPage() {
   const [kind, setKind] = useState<string>("all");
   const [account, setAccount] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -335,14 +337,35 @@ function TxnsPage() {
     return list;
   }, []);
 
+  const netWorthAccountIds = useMemo(() => {
+    return new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
+  }, [accounts]);
+
   const filtered = useMemo(() => txns.filter(t => {
     if (kind !== "all" && t.kind !== kind) return false;
-    if (account !== "all" && t.account_id !== account) return false;
-    if (monthFilter !== "all") {
+    
+    // Account sub-filter (All, Net Worth, Non Net Worth, Specific Account)
+    if (account === "net_worth") {
+      if (!netWorthAccountIds.has(t.account_id)) return false;
+    } else if (account === "non_net_worth") {
+      if (netWorthAccountIds.has(t.account_id)) return false;
+    } else if (account !== "all" && t.account_id !== account) {
+      return false;
+    }
+
+    // Date Range (From -> To) or Month preset filter
+    if (startDate) {
+      if (t.occurred_on < startDate) return false;
+    }
+    if (endDate) {
+      if (t.occurred_on > endDate) return false;
+    }
+    if (!startDate && !endDate && monthFilter !== "all") {
       const tDate = new Date(t.occurred_on);
       const tKey = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2, "0")}`;
       if (tKey !== monthFilter) return false;
     }
+
     if (q) {
       const hay = `${t.note ?? ""} ${catMap.get(t.category_id ?? "")?.name ?? ""} ${accMap.get(t.account_id)?.name ?? ""}`.toLowerCase();
       if (!hay.includes(q.toLowerCase())) return false;
@@ -361,7 +384,7 @@ function TxnsPage() {
     if (createdDiff !== 0) return createdDiff;
     // Tertiary: stable tiebreaker by id
     return (b.id || "").localeCompare(a.id || "");
-  }), [txns, kind, account, monthFilter, q, catMap, accMap]);
+  }), [txns, kind, account, monthFilter, startDate, endDate, q, catMap, accMap, netWorthAccountIds]);
 
   const displayRows = useMemo<DisplayRowItem[]>(() => {
     const result: DisplayRowItem[] = [];
@@ -725,20 +748,56 @@ function TxnsPage() {
         </Select>
 
         <Select value={account} onValueChange={setAccount}>
-          <SelectTrigger className="w-48 bg-background"><SelectValue /></SelectTrigger>
-          <SelectContent>
+          <SelectTrigger className="w-52 bg-background"><SelectValue /></SelectTrigger>
+          <SelectContent className="z-[100]">
             <SelectItem value="all">All accounts</SelectItem>
-            {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            <SelectItem value="net_worth">🌐 Net Worth Accounts</SelectItem>
+            <SelectItem value="non_net_worth">🚫 Non Net Worth</SelectItem>
+            <div className="my-1 border-t" />
+            {accounts.map(a => (
+              <SelectItem key={a.id} value={a.id}>
+                {isAccountIncludedInNetWorth(a) ? "🌐" : "🚫"} {a.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        <Select value={monthFilter} onValueChange={setMonthFilter}>
-          <SelectTrigger className="w-48 bg-background"><SelectValue /></SelectTrigger>
-          <SelectContent>
+        <Select value={monthFilter} onValueChange={(val) => { setMonthFilter(val); if (val !== "all") { setStartDate(""); setEndDate(""); } }}>
+          <SelectTrigger className="w-44 bg-background"><SelectValue placeholder="Month preset" /></SelectTrigger>
+          <SelectContent className="z-[100]">
             <SelectItem value="all">All months</SelectItem>
             {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
+
+        {/* Custom Date Range Picker (From -> To) */}
+        <div className="flex items-center gap-1.5 border rounded-lg px-2 py-1 bg-background text-xs">
+          <span className="text-[10px] text-muted-foreground font-semibold">From:</span>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => { setStartDate(e.target.value); setMonthFilter("all"); }}
+            className="h-7 text-xs w-28 border-0 bg-transparent p-0 focus-visible:ring-0 cursor-pointer"
+          />
+          <span className="text-[10px] text-muted-foreground font-semibold">To:</span>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => { setEndDate(e.target.value); setMonthFilter("all"); }}
+            className="h-7 text-xs w-28 border-0 bg-transparent p-0 focus-visible:ring-0 cursor-pointer"
+          />
+          {(startDate || endDate) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { setStartDate(""); setEndDate(""); }}
+              className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+              title="Clear Date Range"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
 
         <span className="ml-auto self-center text-sm text-muted-foreground font-serif">
           {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
@@ -753,7 +812,7 @@ function TxnsPage() {
               <Button variant="outline" className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer bg-card border">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 <span>Filters</span>
-                {(kind !== "all" || account !== "all" || monthFilter !== "all" || q) && (
+                {(kind !== "all" || account !== "all" || monthFilter !== "all" || startDate || endDate || q) && (
                   <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
                 )}
               </Button>
@@ -787,25 +846,57 @@ function TxnsPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Account</label>
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Account Filter</label>
                   <Select value={account} onValueChange={setAccount}>
                     <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
                     <SelectContent className="z-[100]">
                       <SelectItem value="all">All accounts</SelectItem>
-                      {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                      <SelectItem value="net_worth">🌐 Net Worth Accounts</SelectItem>
+                      <SelectItem value="non_net_worth">🚫 Non Net Worth</SelectItem>
+                      <div className="my-1 border-t" />
+                      {accounts.map(a => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {isAccountIncludedInNetWorth(a) ? "🌐" : "🚫"} {a.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Month</label>
-                  <Select value={monthFilter} onValueChange={setMonthFilter}>
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Month Preset</label>
+                  <Select value={monthFilter} onValueChange={(val) => { setMonthFilter(val); if (val !== "all") { setStartDate(""); setEndDate(""); } }}>
                     <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
                     <SelectContent className="z-[100]">
                       <SelectItem value="all">All months</SelectItem>
                       {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Custom Date Range Picker (From -> To) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Custom Date Range (From - To)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground">From Date</span>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => { setStartDate(e.target.value); setMonthFilter("all"); }}
+                        className="w-full bg-background text-xs h-9 cursor-pointer"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground">To Date</span>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => { setEndDate(e.target.value); setMonthFilter("all"); }}
+                        className="w-full bg-background text-xs h-9 cursor-pointer"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">
@@ -816,6 +907,8 @@ function TxnsPage() {
                     setKind("all");
                     setAccount("all");
                     setMonthFilter("all");
+                    setStartDate("");
+                    setEndDate("");
                     setFiltersOpen(false);
                   }}
                   className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
@@ -823,7 +916,7 @@ function TxnsPage() {
                   Clear all
                 </Button>
                 <Button onClick={() => setFiltersOpen(false)} className="text-xs font-bold cursor-pointer">
-                  Apply Filters
+                  Done
                 </Button>
               </div>
             </DialogContent>

@@ -673,6 +673,7 @@ function AccountsPage() {
 
   const balances = computeAccountBalances(accounts, txns);
 
+  const [accountView, setAccountView] = useState<"net_worth" | "non_net_worth" | "all">("net_worth");
   const [newOpen, setNewOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<{ id: string; name: string } | null>(null);
@@ -691,25 +692,99 @@ function AccountsPage() {
     toast.success("Account deleted");
   }
 
-  const netWorthTotal = useMemo(() => {
-    return accounts
-      .filter(a => isAccountIncludedInNetWorth(a))
-      .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
-  }, [accounts, balances]);
+  const filteredAccounts = useMemo(() => {
+    if (accountView === "net_worth") {
+      return accounts.filter(a => isAccountIncludedInNetWorth(a));
+    }
+    if (accountView === "non_net_worth") {
+      return accounts.filter(a => !isAccountIncludedInNetWorth(a));
+    }
+    return accounts;
+  }, [accounts, accountView]);
+
+  const viewTotalWorth = useMemo(() => {
+    return filteredAccounts.reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
+  }, [filteredAccounts, balances]);
+
+  const viewAccountIds = useMemo(() => new Set(filteredAccounts.map(a => a.id)), [filteredAccounts]);
+
+  const now = new Date();
+  const currentMonthTxns = useMemo(() => {
+    return txns.filter(t => {
+      const d = new Date(t.occurred_on);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+  }, [txns]);
+
+  const viewIncome = useMemo(() => {
+    return currentMonthTxns
+      .filter(t => t.kind === "income" && viewAccountIds.has(t.account_id))
+      .reduce((s, t) => s + Number(t.amount), 0);
+  }, [currentMonthTxns, viewAccountIds]);
+
+  const viewExpense = useMemo(() => {
+    return currentMonthTxns
+      .filter(t => t.kind === "expense" && viewAccountIds.has(t.account_id))
+      .reduce((s, t) => s + Number(t.amount), 0);
+  }, [currentMonthTxns, viewAccountIds]);
 
   return (
     <div className="space-y-6 w-full">
-      {/* ── Top Bar Header & Net Worth summary ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+      {/* ── Top Bar Header & Net Worth / Non Net Worth View Toggle ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="font-serif text-2xl font-bold">Accounts</h1>
           <p className="text-xs text-muted-foreground">Manage cash, bank accounts, cards, and wallets</p>
+          
+          {/* Toggle Option Buttons */}
+          <div className="flex items-center gap-1 mt-3 p-1 bg-muted/40 border rounded-xl w-fit flex-wrap">
+            <Button
+              variant={accountView === "net_worth" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAccountView("net_worth")}
+              className="text-xs h-7 rounded-lg cursor-pointer"
+            >
+              🌐 Net Worth Accounts
+            </Button>
+            <Button
+              variant={accountView === "non_net_worth" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAccountView("non_net_worth")}
+              className="text-xs h-7 rounded-lg cursor-pointer"
+            >
+              🚫 Non Net Worth
+            </Button>
+            <Button
+              variant={accountView === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAccountView("all")}
+              className="text-xs h-7 rounded-lg cursor-pointer"
+            >
+              All Accounts ({accounts.length})
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-card px-3.5 py-2 rounded-xl border">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Total Net Worth</span>
-            <span className="font-serif num text-lg font-bold text-foreground">
-              {fmtMoney(netWorthTotal, profileCurrency)}
+
+        {/* Dynamic Summary Cards for Active View */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="bg-card px-3.5 py-2 rounded-xl border flex-1 min-w-[120px]">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">
+              {accountView === "net_worth" ? "Net Worth Total" : accountView === "non_net_worth" ? "Non NW Total" : "All Accounts Worth"}
+            </span>
+            <span className="font-serif num text-base sm:text-lg font-bold text-foreground">
+              {fmtMoney(viewTotalWorth, profileCurrency)}
+            </span>
+          </div>
+          <div className="bg-card px-3.5 py-2 rounded-xl border flex-1 min-w-[120px]">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">This Month Income</span>
+            <span className="font-serif num text-base sm:text-lg font-bold text-[color:var(--success)]">
+              +{fmtMoney(viewIncome, profileCurrency)}
+            </span>
+          </div>
+          <div className="bg-card px-3.5 py-2 rounded-xl border flex-1 min-w-[120px]">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">This Month Expense</span>
+            <span className="font-serif num text-base sm:text-lg font-bold text-[color:var(--destructive)]">
+              −{fmtMoney(viewExpense, profileCurrency)}
             </span>
           </div>
         </div>
@@ -751,9 +826,9 @@ function AccountsPage() {
         editingTransaction={editingTxn}
       />
 
-      {/* ── Account cards ── */}
+      {/* ── Account cards grid ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {accounts.map((a) => (
+        {filteredAccounts.map((a) => (
           <div
             key={a.id}
             onClick={() => setEditAccount(a)}
