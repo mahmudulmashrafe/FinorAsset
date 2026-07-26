@@ -726,6 +726,12 @@ function AccountsPage() {
         .filter(t => isTransactionIncomeForNetWorth(t, netWorthAccountIds))
         .reduce((s, t) => s + Number(t.amount), 0);
     }
+    if (accountView === "all") {
+      return currentMonthTxns
+        .filter(t => t.kind === "income")
+        .reduce((s, t) => s + Number(t.amount), 0);
+    }
+    // Non Net Worth view
     return currentMonthTxns
       .filter(t => {
         if (t.kind === "income") return viewAccountIds.has(t.account_id);
@@ -741,6 +747,12 @@ function AccountsPage() {
         .filter(t => isTransactionExpenseForNetWorth(t, netWorthAccountIds))
         .reduce((s, t) => s + Number(t.amount), 0);
     }
+    if (accountView === "all") {
+      return currentMonthTxns
+        .filter(t => t.kind === "expense")
+        .reduce((s, t) => s + Number(t.amount), 0);
+    }
+    // Non Net Worth view
     return currentMonthTxns
       .filter(t => {
         if (t.kind === "expense") return viewAccountIds.has(t.account_id);
