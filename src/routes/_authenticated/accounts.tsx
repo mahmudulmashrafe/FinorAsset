@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, computeAccountBalances, fmtMoney } from "@/lib/finance";
+import { api, computeAccountBalances, fmtMoney, isAccountIncludedInNetWorth, setAccountNetWorthInclusion } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,7 +134,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         setStart(String(editingAccount.starting_balance));
         setCurrencyInput(editingAccount.currency ?? defaultCurrency);
         setColor(editingAccount.color ?? COLORS[0]);
-        setIncludeInNetWorth((editingAccount as any).include_in_net_worth !== false);
+        setIncludeInNetWorth(isAccountIncludedInNetWorth(editingAccount));
         setImageUrl((editingAccount as any).image_url ?? "");
         setImageFile(null);
       } else {
@@ -216,30 +216,37 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
             currency: currencyInput,
             starting_balance: Number(start),
             image_url: finalImageUrl || null,
-            include_in_net_worth: includeInNetWorth,
           } as any)
           .eq("id", editingAccount!.id);
 
         setSaving(false);
         setUploadingImage(false);
         if (error) return toast.error(error.message);
+        setAccountNetWorthInclusion(editingAccount!.id, includeInNetWorth);
         toast.success("Account updated!");
       } else {
         const { data: u } = await supabase.auth.getUser();
         if (!u.user) { setSaving(false); setUploadingImage(false); return; }
-        const { error } = await supabase.from("accounts").insert({
-          user_id: u.user.id,
-          name: name.trim(),
-          type,
-          starting_balance: Number(start),
-          color,
-          currency: currencyInput,
-          image_url: finalImageUrl || null,
-          include_in_net_worth: includeInNetWorth,
-        } as any);
+        const { data: newAcc, error } = await supabase
+          .from("accounts")
+          .insert({
+            user_id: u.user.id,
+            name: name.trim(),
+            type,
+            starting_balance: Number(start),
+            color,
+            currency: currencyInput,
+            image_url: finalImageUrl || null,
+          } as any)
+          .select()
+          .single();
+
         setSaving(false);
         setUploadingImage(false);
         if (error) return toast.error(error.message);
+        if (newAcc) {
+          setAccountNetWorthInclusion(newAcc.id, includeInNetWorth);
+        }
         toast.success("Account added!");
       }
     } catch (err: any) {
@@ -686,7 +693,7 @@ function AccountsPage() {
 
   const netWorthTotal = useMemo(() => {
     return accounts
-      .filter(a => (a as any).include_in_net_worth !== false)
+      .filter(a => isAccountIncludedInNetWorth(a))
       .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
   }, [accounts, balances]);
 
@@ -787,7 +794,7 @@ function AccountsPage() {
               {/* Name & Excluded Badge */}
               <div className="mt-2 flex items-center justify-between gap-2">
                 <h3 className="font-serif text-base font-bold truncate">{a.name}</h3>
-                {(a as any).include_in_net_worth === false && (
+                {!isAccountIncludedInNetWorth(a) && (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground/80 bg-muted/30 border-border/50 shrink-0" title="Excluded from Net Worth">
                     Excluded NW
                   </Badge>

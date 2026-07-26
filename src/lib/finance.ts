@@ -38,6 +38,39 @@ export function monthKey(d: Date | string) {
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+const NET_WORTH_EXCLUDED_KEY = "finor_net_worth_excluded_accounts";
+
+export function getExcludedAccountIds(): string[] {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(NET_WORTH_EXCLUDED_KEY) : null;
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isAccountIncludedInNetWorth(account: Account | null | undefined): boolean {
+  if (!account || !account.id) return true;
+  if ((account as any).include_in_net_worth === false) return false;
+  const excluded = getExcludedAccountIds();
+  return !excluded.includes(account.id);
+}
+
+export function setAccountNetWorthInclusion(accountId: string, include: boolean) {
+  try {
+    if (typeof window === "undefined" || !accountId) return;
+    const excluded = getExcludedAccountIds();
+    if (include) {
+      const next = excluded.filter(id => id !== accountId);
+      localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify(next));
+    } else {
+      if (!excluded.includes(accountId)) {
+        localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify([...excluded, accountId]));
+      }
+    }
+  } catch {}
+}
+
 export const api = {
   async listAccounts() {
     const { data, error } = await supabase.from("accounts").select("*").order("created_at");

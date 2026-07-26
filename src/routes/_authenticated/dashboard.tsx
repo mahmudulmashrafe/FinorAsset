@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { api, computeAccountBalances, fmtMoney, monthKey } from "@/lib/finance";
+import { api, computeAccountBalances, fmtMoney, monthKey, isAccountIncludedInNetWorth } from "@/lib/finance";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Zap, Target } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -25,7 +25,7 @@ function Dashboard() {
 
   const balances = computeAccountBalances(accounts, txns);
   const net = accounts
-    .filter(a => (a as any).include_in_net_worth !== false)
+    .filter(a => isAccountIncludedInNetWorth(a))
     .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
 
   const now = new Date();
