@@ -311,8 +311,8 @@ function Layout() {
   const displayName = profile?.display_name || authUser?.email?.split("@")[0] || "there";
   const isTxnsPage = path === "/transactions";
 
-  // Show loader overlay when navigation is pending OR during initial queries fetching
-  const showLoader = isPending || (isFetching > 0 && (!qc.getQueryData(["transactions"]) || !qc.getQueryData(["accounts"])));
+  // Show loader overlay when router navigation is pending
+  const showLoader = isPending;
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
