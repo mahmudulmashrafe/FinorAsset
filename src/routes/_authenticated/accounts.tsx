@@ -768,15 +768,14 @@ function AccountsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="font-serif text-2xl font-bold">Accounts</h1>
-          <p className="text-xs text-muted-foreground">Manage cash, bank accounts, cards, and wallets</p>
           
           {/* Toggle Option Buttons */}
-          <div className="flex items-center gap-1 mt-3 p-1 bg-muted/40 border rounded-xl w-fit flex-wrap">
+          <div className="flex items-center gap-1 mt-2 p-1 bg-muted/40 border rounded-xl w-fit flex-wrap">
             <Button
               variant={accountView === "net_worth" ? "default" : "ghost"}
               size="sm"
               onClick={() => setAccountView("net_worth")}
-              className="text-xs h-7 rounded-lg cursor-pointer"
+              className="text-xs h-7 rounded-lg cursor-pointer font-medium"
             >
               🌐 Net Worth Accounts
             </Button>
@@ -784,7 +783,7 @@ function AccountsPage() {
               variant={accountView === "non_net_worth" ? "default" : "ghost"}
               size="sm"
               onClick={() => setAccountView("non_net_worth")}
-              className="text-xs h-7 rounded-lg cursor-pointer"
+              className="text-xs h-7 rounded-lg cursor-pointer font-medium"
             >
               🚫 Non Net Worth
             </Button>
@@ -792,32 +791,32 @@ function AccountsPage() {
               variant={accountView === "all" ? "default" : "ghost"}
               size="sm"
               onClick={() => setAccountView("all")}
-              className="text-xs h-7 rounded-lg cursor-pointer"
+              className="text-xs h-7 rounded-lg cursor-pointer font-medium"
             >
               All Accounts ({accounts.length})
             </Button>
           </div>
         </div>
 
-        {/* Dynamic Summary Cards for Active View */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="bg-card px-3.5 py-2 rounded-xl border flex-1 min-w-[120px]">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">
+        {/* Dynamic Summary Cards for Active View — Wider & More Spacious */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+          <div className="bg-card px-5 py-3 rounded-2xl border min-w-[170px] sm:min-w-[200px] flex-1 shadow-sm flex flex-col justify-center">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold mb-1">
               {accountView === "net_worth" ? "Net Worth Total" : accountView === "non_net_worth" ? "Non NW Total" : "All Accounts Worth"}
             </span>
-            <span className="font-serif num text-base sm:text-lg font-bold text-foreground">
+            <span className="font-serif num text-lg sm:text-xl font-bold text-foreground">
               {fmtMoney(viewTotalWorth, profileCurrency)}
             </span>
           </div>
-          <div className="bg-card px-3.5 py-2 rounded-xl border flex-1 min-w-[120px]">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">This Month Income</span>
-            <span className="font-serif num text-base sm:text-lg font-bold text-[color:var(--success)]">
+          <div className="bg-card px-5 py-3 rounded-2xl border min-w-[170px] sm:min-w-[200px] flex-1 shadow-sm flex flex-col justify-center">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold mb-1">This Month Income</span>
+            <span className="font-serif num text-lg sm:text-xl font-bold text-[color:var(--success)]">
               +{fmtMoney(viewIncome, profileCurrency)}
             </span>
           </div>
-          <div className="bg-card px-3.5 py-2 rounded-xl border flex-1 min-w-[120px]">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">This Month Expense</span>
-            <span className="font-serif num text-base sm:text-lg font-bold text-[color:var(--destructive)]">
+          <div className="bg-card px-5 py-3 rounded-2xl border min-w-[170px] sm:min-w-[200px] flex-1 shadow-sm flex flex-col justify-center">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-bold mb-1">This Month Expense</span>
+            <span className="font-serif num text-lg sm:text-xl font-bold text-[color:var(--destructive)]">
               −{fmtMoney(viewExpense, profileCurrency)}
             </span>
           </div>
