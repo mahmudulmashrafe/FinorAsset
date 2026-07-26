@@ -585,7 +585,7 @@ function TxnsPage() {
   async function confirmDelete(id: string) {
     const txnToDelete = txns.find(t => t.id === id);
     // Delete linked warranty if any
-    await supabase.from("warranties").delete().eq("transaction_id", id);
+    await supabase.from("warranties" as any).delete().eq("transaction_id", id);
 
     const { error } = await supabase.from("transactions").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -603,7 +603,7 @@ function TxnsPage() {
     try {
       const txnsToDelete = txns.filter(t => selectedIds.includes(t.id));
       // Delete linked warranties in batch
-      await supabase.from("warranties").delete().in("transaction_id", selectedIds);
+      await supabase.from("warranties" as any).delete().in("transaction_id", selectedIds);
 
       const { error } = await supabase.from("transactions").delete().in("id", selectedIds);
       if (error) throw error;
@@ -705,7 +705,7 @@ function TxnsPage() {
     if (ids.length === 0) return;
 
     // Delete linked warranties
-    await supabase.from("warranties").delete().in("transaction_id", ids);
+    await supabase.from("warranties" as any).delete().in("transaction_id", ids);
 
     const { error } = await supabase.from("transactions").delete().in("id", ids);
     if (error) return toast.error(error.message);

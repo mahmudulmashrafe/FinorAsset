@@ -350,7 +350,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
                     />
                     <Button 
                       variant="destructive" 
-                      size="xs" 
+                      size="sm" 
                       type="button"
                       className="absolute top-0 right-0 h-4 w-4 p-0 rounded-full cursor-pointer z-10"
                       onClick={() => { setImageUrl(""); setImageFile(null); }}
@@ -726,11 +726,6 @@ function AccountsPage() {
         .filter(t => isTransactionIncomeForNetWorth(t, netWorthAccountIds))
         .reduce((s, t) => s + Number(t.amount), 0);
     }
-    if (accountView === "all") {
-      return currentMonthTxns
-        .filter(t => t.kind === "income")
-        .reduce((s, t) => s + Number(t.amount), 0);
-    }
     // Non Net Worth view
     return currentMonthTxns
       .filter(t => {
@@ -745,11 +740,6 @@ function AccountsPage() {
     if (accountView === "net_worth") {
       return currentMonthTxns
         .filter(t => isTransactionExpenseForNetWorth(t, netWorthAccountIds))
-        .reduce((s, t) => s + Number(t.amount), 0);
-    }
-    if (accountView === "all") {
-      return currentMonthTxns
-        .filter(t => t.kind === "expense")
         .reduce((s, t) => s + Number(t.amount), 0);
     }
     // Non Net Worth view

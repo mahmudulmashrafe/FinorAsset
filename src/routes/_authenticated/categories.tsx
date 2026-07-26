@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, X } from "lucide-react";
@@ -284,7 +284,7 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved, onDe
                   />
                   <Button 
                     variant="destructive" 
-                    size="xs" 
+                    size="sm" 
                     type="button"
                     className="absolute top-0 right-0 h-4 w-4 p-0 rounded-full cursor-pointer"
                     onClick={() => { setImageUrl(""); setImageFile(null); }}
@@ -377,9 +377,11 @@ function CategoryFormDialog({ open, onOpenChange, editingCategory, onSaved, onDe
 function CategoryCard({
   cat,
   onEdit,
+  onDelete,
 }: {
   cat: Category;
   onEdit: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <div 

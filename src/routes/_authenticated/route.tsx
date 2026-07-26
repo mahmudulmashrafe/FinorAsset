@@ -563,7 +563,7 @@ function Layout() {
 
     async function insertAlerts() {
       try {
-        const existingIdentifiers = new Set(dbNotifications.map(n => n.identifier));
+        const existingIdentifiers = new Set(dbNotifications.map(n => (n as any).identifier || n.id));
         const alertsToInsert = newAlerts.filter(alert => !existingIdentifiers.has(alert.identifier));
 
         if (alertsToInsert.length === 0) return;

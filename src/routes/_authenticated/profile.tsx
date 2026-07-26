@@ -249,7 +249,7 @@ function ProfilePage() {
             <Button 
               type="button" 
               variant="outline" 
-              size="xs"
+              size="sm"
               onClick={() => avatarInputRef.current?.click()}
               disabled={uploadingAvatar}
               className="text-[10px] h-7 px-2.5 cursor-pointer font-semibold"
