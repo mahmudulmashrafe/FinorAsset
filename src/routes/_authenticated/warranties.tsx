@@ -77,7 +77,7 @@ function WarrantiesPage() {
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
-  const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: api.listTransactions });
+  const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
 
   const balances = computeAccountBalances(accounts, txns);
   const catMap = new Map(cats.map(c => [c.id, c]));
@@ -308,7 +308,7 @@ function WarrantiesPage() {
 
         // Update Warranty
         const { error } = await supabase
-          .from("warranties")
+          .from("warranties" as any)
           .update({
             title: title.trim(),
             purchase_date: purchaseDate,
@@ -347,7 +347,7 @@ function WarrantiesPage() {
         }
 
         // Insert Warranty
-        const { error } = await supabase.from("warranties").insert({
+        const { error } = await supabase.from("warranties" as any).insert({
           user_id: authUser.id,
           title: title.trim(),
           purchase_date: purchaseDate,
@@ -395,7 +395,7 @@ function WarrantiesPage() {
 
       // 2. Delete warranty
       const { error } = await supabase
-        .from("warranties")
+        .from("warranties" as any)
         .delete()
         .eq("id", id);
 
@@ -822,7 +822,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                       {w.product_image_url && (
                         <Button 
                           variant="outline" 
-                          size="xs" 
+                          size="sm" 
                           className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1 text-emerald-600 hover:text-emerald-700 bg-emerald-500/[0.03]"
                           onClick={() => setPreviewImage(w.product_image_url)}
                         >
@@ -832,7 +832,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                       {w.image_url && (
                         <Button 
                           variant="outline" 
-                          size="xs" 
+                          size="sm" 
                           className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1"
                           onClick={() => setPreviewImage(w.image_url)}
                         >
@@ -956,7 +956,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                     <img src={imageUrl} alt="Receipt Preview" className="h-full object-contain" />
                     <Button 
                       variant="destructive" 
-                      size="xs" 
+                      size="sm" 
                       className="absolute top-1.5 right-1.5 h-5 w-5 p-0 rounded-full cursor-pointer"
                       onClick={() => setImageUrl("")}
                       disabled={saving}
@@ -996,7 +996,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                     <img src={productImageUrl} alt="Product Preview" className="h-full object-contain" />
                     <Button 
                       variant="destructive" 
-                      size="xs" 
+                      size="sm" 
                       className="absolute top-1.5 right-1.5 h-5 w-5 p-0 rounded-full cursor-pointer"
                       onClick={() => setProductImageUrl("")}
                       disabled={saving}
