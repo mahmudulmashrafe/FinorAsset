@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney, type Transaction, syncTransactionToLoan, isAccountIncludedInNetWorth } from "@/lib/finance";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState, Fragment, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -409,6 +410,29 @@ function TxnsPage() {
   const netWorthAccountIds = useMemo(() => {
     return new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
   }, [accounts]);
+
+  const accountOptions = useMemo(() => [
+    { value: "all", label: "All accounts" },
+    { value: "net_worth", label: "All Net Worth Accounts", icon: <span className="text-sm">🌐</span> },
+    { value: "non_net_worth", label: "All Non Net Worth", icon: <span className="text-sm">🚫</span> },
+    ...accounts.map(a => {
+      const isNW = isAccountIncludedInNetWorth(a);
+      return {
+        value: a.id,
+        label: a.name,
+        icon: (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs">{isNW ? "🌐" : "🚫"}</span>
+            {(a as any).image_url ? (
+              <img src={(a as any).image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0 border border-border/40" />
+            ) : (
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: a.color }} />
+            )}
+          </div>
+        )
+      };
+    })
+  ], [accounts]);
 
   const filtered = useMemo(() => txns.filter(t => {
     if (kind !== "all" && t.kind !== kind) return false;
@@ -914,20 +938,14 @@ function TxnsPage() {
           </SelectContent>
         </Select>
 
-        <Select value={account} onValueChange={setAccount}>
-          <SelectTrigger className="w-52 bg-background"><SelectValue /></SelectTrigger>
-          <SelectContent className="z-[100]">
-            <SelectItem value="all">All accounts</SelectItem>
-            <SelectItem value="net_worth">🌐 Net Worth Accounts</SelectItem>
-            <SelectItem value="non_net_worth">🚫 Non Net Worth</SelectItem>
-            <div className="my-1 border-t" />
-            {accounts.map(a => (
-              <SelectItem key={a.id} value={a.id}>
-                {isAccountIncludedInNetWorth(a) ? "🌐" : "🚫"} {a.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          options={accountOptions}
+          value={account}
+          onValueChange={setAccount}
+          placeholder="Filter by account…"
+          searchPlaceholder="Search account…"
+          className="w-56"
+        />
 
         {/* Date Pop-Up Filter Trigger */}
         <Button
@@ -990,20 +1008,14 @@ function TxnsPage() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Account Filter</label>
-                  <Select value={account} onValueChange={setAccount}>
-                    <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      <SelectItem value="all">All accounts</SelectItem>
-                      <SelectItem value="net_worth">🌐 Net Worth Accounts</SelectItem>
-                      <SelectItem value="non_net_worth">🚫 Non Net Worth</SelectItem>
-                      <div className="my-1 border-t" />
-                      {accounts.map(a => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {isAccountIncludedInNetWorth(a) ? "🌐" : "🚫"} {a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={accountOptions}
+                    value={account}
+                    onValueChange={setAccount}
+                    placeholder="Filter by account…"
+                    searchPlaceholder="Search account…"
+                    className="w-full"
+                  />
                 </div>
 
                 {/* Mobile Date Pop-Up Trigger */}

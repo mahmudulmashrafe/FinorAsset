@@ -459,6 +459,11 @@ function AccountTransactionsDialog({
   const [kindFilter, setKindFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [dateFilterOpen, setDateFilterOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   const catMap = useMemo(() => new Map(cats.map(c => [c.id, c])), [cats]);
 
@@ -486,24 +491,100 @@ function AccountTransactionsDialog({
     });
   }, [accountTxns]);
 
+  function formatDateStr(y: number, m: number, d: number) {
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+
+  function handleYearMonthChange(yr: string, mn: string) {
+    setSelectedYear(yr);
+    setSelectedMonth(mn);
+    setPeriodFilter("all");
+    
+    if (yr === "all" && mn === "all") {
+      setStartDate("");
+      setEndDate("");
+      return;
+    }
+    
+    const targetYr = yr === "all" ? new Date().getFullYear() : Number(yr);
+    
+    if (mn !== "all") {
+      const mnNum = Number(mn);
+      const lastDay = new Date(targetYr, mnNum, 0).getDate();
+      setStartDate(formatDateStr(targetYr, mnNum, 1));
+      setEndDate(formatDateStr(targetYr, mnNum, lastDay));
+    } else {
+      setStartDate(`${targetYr}-01-01`);
+      setEndDate(`${targetYr}-12-31`);
+    }
+  }
+
+  function applyPreset(preset: "today" | "this_month" | "last_month" | "this_year" | "all") {
+    const now = new Date();
+    setPeriodFilter("all");
+    if (preset === "all") {
+      setSelectedYear("all");
+      setSelectedMonth("all");
+      setStartDate("");
+      setEndDate("");
+    } else if (preset === "today") {
+      const todayStr = formatDateStr(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      setSelectedYear(String(now.getFullYear()));
+      setSelectedMonth(String(now.getMonth() + 1).padStart(2, "0"));
+      setStartDate(todayStr);
+      setEndDate(todayStr);
+    } else if (preset === "this_month") {
+      handleYearMonthChange(String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, "0"));
+    } else if (preset === "last_month") {
+      const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      handleYearMonthChange(String(lastM.getFullYear()), String(lastM.getMonth() + 1).padStart(2, "0"));
+    } else if (preset === "this_year") {
+      handleYearMonthChange(String(now.getFullYear()), "all");
+    }
+  }
+
+  const dateLabel = useMemo(() => {
+    if (startDate && endDate) {
+      if (startDate === endDate) return `Date: ${startDate}`;
+      return `${startDate} → ${endDate}`;
+    }
+    if (startDate) return `From: ${startDate}`;
+    if (endDate) return `Until: ${endDate}`;
+    if (periodFilter !== "all") {
+      if (periodFilter === "this_month") return "This Month";
+      if (periodFilter === "last_month") return "Last Month";
+      const m = monthOptions.find(o => o.value === periodFilter);
+      return m ? m.label : periodFilter;
+    }
+    return "All Dates";
+  }, [startDate, endDate, periodFilter, monthOptions]);
+
   // Filtered transactions
   const filtered = useMemo(() => {
     return accountTxns.filter(t => {
       // Kind filter
       if (kindFilter !== "all" && t.kind !== kindFilter) return false;
 
-      // Period filter
-      if (periodFilter === "this_month") {
-        const now = new Date();
-        const d = new Date(t.occurred_on);
-        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
-      } else if (periodFilter === "last_month") {
-        const d = new Date(t.occurred_on);
-        const lm = new Date();
-        lm.setMonth(lm.getMonth() - 1);
-        if (d.getMonth() !== lm.getMonth() || d.getFullYear() !== lm.getFullYear()) return false;
-      } else if (periodFilter !== "all") {
-        if (!t.occurred_on || !t.occurred_on.startsWith(periodFilter)) return false;
+      // Date range or period filter
+      if (startDate) {
+        if (t.occurred_on < startDate) return false;
+      }
+      if (endDate) {
+        if (t.occurred_on > endDate) return false;
+      }
+      if (!startDate && !endDate && periodFilter !== "all") {
+        if (periodFilter === "this_month") {
+          const now = new Date();
+          const d = new Date(t.occurred_on);
+          if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
+        } else if (periodFilter === "last_month") {
+          const d = new Date(t.occurred_on);
+          const lm = new Date();
+          lm.setMonth(lm.getMonth() - 1);
+          if (d.getMonth() !== lm.getMonth() || d.getFullYear() !== lm.getFullYear()) return false;
+        } else {
+          if (!t.occurred_on || !t.occurred_on.startsWith(periodFilter)) return false;
+        }
       }
 
       // Search query
@@ -517,7 +598,7 @@ function AccountTransactionsDialog({
 
       return true;
     });
-  }, [accountTxns, kindFilter, periodFilter, search, catMap]);
+  }, [accountTxns, kindFilter, periodFilter, startDate, endDate, search, catMap]);
 
   // Calculate filtered stats for this account
   const filteredIncome = useMemo(() => {
@@ -535,6 +616,104 @@ function AccountTransactionsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl flex flex-col max-h-[85vh] sm:max-h-[700px] p-0 z-[100] overflow-hidden">
+        {/* ── Pop-Up Date Filter Modal for Account Transactions ── */}
+        <Dialog open={dateFilterOpen} onOpenChange={setDateFilterOpen}>
+          <DialogContent className="max-w-md rounded-2xl z-[150]">
+            <DialogHeader>
+              <DialogTitle className="font-serif flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-accent" /> Filter by Date & Period
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {/* Year & Month Selectors */}
+              <div className="grid grid-cols-2 gap-3 bg-muted/40 p-3 rounded-xl border">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Year</label>
+                  <Select value={selectedYear} onValueChange={(yr) => handleYearMonthChange(yr, selectedMonth)}>
+                    <SelectTrigger className="w-full bg-background text-xs h-9">
+                      <SelectValue placeholder="All Years" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[160]">
+                      <SelectItem value="all">All Years</SelectItem>
+                      {[2028, 2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020].map(y => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Month</label>
+                  <Select value={selectedMonth} onValueChange={(mn) => handleYearMonthChange(selectedYear, mn)}>
+                    <SelectTrigger className="w-full bg-background text-xs h-9">
+                      <SelectValue placeholder="All Months" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[160]">
+                      <SelectItem value="all">All Months</SelectItem>
+                      {[
+                        { v: "01", l: "January" }, { v: "02", l: "February" }, { v: "03", l: "March" },
+                        { v: "04", l: "April" }, { v: "05", l: "May" }, { v: "06", l: "June" },
+                        { v: "07", l: "July" }, { v: "08", l: "August" }, { v: "09", l: "September" },
+                        { v: "10", l: "October" }, { v: "11", l: "November" }, { v: "12", l: "December" },
+                      ].map(m => (
+                        <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* From Date & To Date Calendar Pickers */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">From Date</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setStartDate(e.target.value); setPeriodFilter("all"); }}
+                    className="w-full bg-background text-xs h-9 cursor-pointer"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">To Date</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setEndDate(e.target.value); setPeriodFilter("all"); }}
+                    className="w-full bg-background text-xs h-9 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Quick Presets</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button variant="outline" size="sm" onClick={() => applyPreset("today")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">Today</Button>
+                  <Button variant="outline" size="sm" onClick={() => applyPreset("this_month")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">This Month</Button>
+                  <Button variant="outline" size="sm" onClick={() => applyPreset("last_month")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">Last Month</Button>
+                  <Button variant="outline" size="sm" onClick={() => applyPreset("this_year")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">This Year</Button>
+                  <Button variant="outline" size="sm" onClick={() => applyPreset("all")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">All Time</Button>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:justify-between pt-2">
+              <Button
+                variant="ghost"
+                onClick={() => applyPreset("all")}
+                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                Clear Filter
+              </Button>
+              <Button onClick={() => setDateFilterOpen(false)} className="text-xs font-bold cursor-pointer">
+                Apply Filter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <DialogHeader className="p-4 border-b flex flex-row items-center justify-between gap-3 space-y-0 bg-card">
           <div className="flex items-center gap-3 min-w-0">
             {(account as any).image_url ? (
@@ -584,19 +763,18 @@ function AccountTransactionsDialog({
                 <SelectItem value="transfer">Transfers</SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Period filter */}
-            <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Period" /></SelectTrigger>
-              <SelectContent className="z-[110]">
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="this_month">This Month</SelectItem>
-                <SelectItem value="last_month">Last Month</SelectItem>
-                {monthOptions.map(m => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Date Pop-Up Filter Trigger */}
+            <Button
+              variant="outline"
+              onClick={() => setDateFilterOpen(true)}
+              className="h-8 text-xs bg-background flex items-center justify-between gap-1.5 px-2.5 rounded-md cursor-pointer border"
+            >
+              <span className="flex items-center gap-1.5 truncate font-medium">
+                <Calendar className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="truncate">{dateLabel}</span>
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            </Button>
 
             {/* Search Input */}
             <Input
