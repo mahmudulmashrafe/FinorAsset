@@ -110,9 +110,8 @@ function AutomationPage() {
   }
 
   const { data: rules = [] } = useQuery({
-    queryKey: ["macros", authUser?.id],
+    queryKey: ["macros"],
     enabled: !!authUser,
-    initialData: loadLocalRules,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("macros")
@@ -124,7 +123,15 @@ function AutomationPage() {
         if (error.code === "42P01") return loadLocalRules();
         throw error;
       }
-      return (data as unknown) as AutomationRule[];
+
+      const dbMacros = (data as unknown) as AutomationRule[];
+      if (Array.isArray(dbMacros) && dbMacros.length > 0) {
+        try {
+          localStorage.setItem("finorasset_automations", JSON.stringify(dbMacros));
+        } catch {}
+        return dbMacros;
+      }
+      return loadLocalRules();
     }
   });
 
@@ -466,12 +473,16 @@ function AutomationPage() {
       return toast.error(error.message);
     }
 
-    if (error && error.code === "42P01") {
-      // Fallback to local storage
-      const stored = localStorage.getItem("finorasset_automations");
-      const parsed = stored ? JSON.parse(stored) : [];
-      const next = parsed.filter((r: any) => r.id !== id);
-      localStorage.setItem("finorasset_automations", JSON.stringify(next));
+    // Always clean local storage cache
+    const stored = localStorage.getItem("finorasset_automations");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const next = parsed.filter((r: any) => r.id !== id);
+          localStorage.setItem("finorasset_automations", JSON.stringify(next));
+        }
+      } catch {}
     }
 
     toast.success("Automation template deleted.");
