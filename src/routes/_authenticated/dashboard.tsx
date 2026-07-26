@@ -28,29 +28,41 @@ function Dashboard() {
     .filter(a => isAccountIncludedInNetWorth(a))
     .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
 
+  const netWorthAccountIds = new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
+
   const now = new Date();
   const monthTxns = txns.filter((t) => {
     const d = new Date(t.occurred_on);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const income = monthTxns.filter(t => t.kind === "income").reduce((s, t) => s + Number(t.amount), 0);
-  const expense = monthTxns.filter(t => t.kind === "expense").reduce((s, t) => s + Number(t.amount), 0);
+  const income = monthTxns
+    .filter(t => t.kind === "income" && netWorthAccountIds.has(t.account_id))
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const expense = monthTxns
+    .filter(t => t.kind === "expense" && netWorthAccountIds.has(t.account_id))
+    .reduce((s, t) => s + Number(t.amount), 0);
+
   const savingsRate = income > 0 ? Math.max(0, Math.round(((income - expense) / income) * 100)) : 0;
 
-  // Last 30 days cashflow
+  // Last 30 days cashflow (Net Worth accounts only)
   const series: { day: string; net: number }[] = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(); d.setDate(now.getDate() - i);
     const iso = d.toISOString().slice(0, 10);
     const dayTxns = txns.filter((t) => t.occurred_on === iso);
-    const inc = dayTxns.filter(t => t.kind === "income").reduce((s, t) => s + Number(t.amount), 0);
-    const exp = dayTxns.filter(t => t.kind === "expense").reduce((s, t) => s + Number(t.amount), 0);
+    const inc = dayTxns
+      .filter(t => t.kind === "income" && netWorthAccountIds.has(t.account_id))
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const exp = dayTxns
+      .filter(t => t.kind === "expense" && netWorthAccountIds.has(t.account_id))
+      .reduce((s, t) => s + Number(t.amount), 0);
     series.push({ day: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }), net: inc - exp });
   }
 
-  // Top spending categories this month
-  const expenseTxns = monthTxns.filter(t => t.kind === "expense");
+  // Top spending categories this month (Net Worth accounts only)
+  const expenseTxns = monthTxns.filter(t => t.kind === "expense" && netWorthAccountIds.has(t.account_id));
   const catSpend = new Map<string, number>();
   for (const t of expenseTxns) {
     if (!t.category_id) continue;
@@ -67,7 +79,7 @@ function Dashboard() {
   // Budget health
   const budgetItems = budgets.map(b => {
     const spent = monthTxns
-      .filter(t => t.kind === "expense" && t.category_id === b.category_id)
+      .filter(t => t.kind === "expense" && t.category_id === b.category_id && netWorthAccountIds.has(t.account_id))
       .reduce((s, t) => s + Number(t.amount), 0);
     const pct = Math.min(100, income > 0 ? (spent / Number(b.amount)) * 100 : 0);
     const over = spent > Number(b.amount);

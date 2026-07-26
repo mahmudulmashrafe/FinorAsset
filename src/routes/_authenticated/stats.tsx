@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { api, fmtMoney } from "@/lib/finance";
+import { api, fmtMoney, isAccountIncludedInNetWorth } from "@/lib/finance";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
 import { useMemo, useState } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -28,6 +28,10 @@ function Stats() {
 
   const catMap = new Map(cats.map(c => [c.id, c]));
 
+  const netWorthAccountIds = useMemo(() => {
+    return new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
+  }, [accounts]);
+
   const monthOptions = useMemo(() => {
     const list = [];
     const now = new Date();
@@ -42,10 +46,12 @@ function Stats() {
 
   const filteredTxns = useMemo(() => {
     return txns.filter(t => {
-      if (accountFilter !== "all" && t.account_id !== accountFilter) return false;
-      return true;
+      if (accountFilter !== "all") {
+        return t.account_id === accountFilter;
+      }
+      return netWorthAccountIds.has(t.account_id);
     });
-  }, [txns, accountFilter]);
+  }, [txns, accountFilter, netWorthAccountIds]);
 
   const monthly = useMemo(() => {
     const map = new Map<string, { month: string; income: number; expense: number }>();
