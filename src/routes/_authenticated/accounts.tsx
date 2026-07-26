@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, computeAccountBalances, fmtMoney, isAccountIncludedInNetWorth, setAccountNetWorthInclusion } from "@/lib/finance";
+import { api, computeAccountBalances, fmtMoney, isAccountIncludedInNetWorth, setAccountNetWorthInclusion, isTransactionIncomeForNetWorth, isTransactionExpenseForNetWorth } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -716,17 +716,39 @@ function AccountsPage() {
     });
   }, [txns]);
 
+  const netWorthAccountIds = useMemo(() => {
+    return new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
+  }, [accounts]);
+
   const viewIncome = useMemo(() => {
+    if (accountView === "net_worth") {
+      return currentMonthTxns
+        .filter(t => isTransactionIncomeForNetWorth(t, netWorthAccountIds))
+        .reduce((s, t) => s + Number(t.amount), 0);
+    }
     return currentMonthTxns
-      .filter(t => t.kind === "income" && viewAccountIds.has(t.account_id))
+      .filter(t => {
+        if (t.kind === "income") return viewAccountIds.has(t.account_id);
+        if (t.kind === "transfer" && t.to_account_id) return viewAccountIds.has(t.to_account_id) && !viewAccountIds.has(t.account_id);
+        return false;
+      })
       .reduce((s, t) => s + Number(t.amount), 0);
-  }, [currentMonthTxns, viewAccountIds]);
+  }, [currentMonthTxns, viewAccountIds, accountView, netWorthAccountIds]);
 
   const viewExpense = useMemo(() => {
+    if (accountView === "net_worth") {
+      return currentMonthTxns
+        .filter(t => isTransactionExpenseForNetWorth(t, netWorthAccountIds))
+        .reduce((s, t) => s + Number(t.amount), 0);
+    }
     return currentMonthTxns
-      .filter(t => t.kind === "expense" && viewAccountIds.has(t.account_id))
+      .filter(t => {
+        if (t.kind === "expense") return viewAccountIds.has(t.account_id);
+        if (t.kind === "transfer" && t.to_account_id) return viewAccountIds.has(t.account_id) && !viewAccountIds.has(t.to_account_id);
+        return false;
+      })
       .reduce((s, t) => s + Number(t.amount), 0);
-  }, [currentMonthTxns, viewAccountIds]);
+  }, [currentMonthTxns, viewAccountIds, accountView, netWorthAccountIds]);
 
   return (
     <div className="space-y-6 w-full">
