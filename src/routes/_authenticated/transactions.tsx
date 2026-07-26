@@ -917,19 +917,19 @@ function TxnsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Desktop Filters (inline) */}
-      <div className="hidden md:flex flex-shrink-0 flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
-        <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+      {/* Desktop Filters (single inline row) */}
+      <div className="hidden md:flex flex-nowrap items-center gap-2 rounded-xl border bg-card p-3 overflow-x-auto">
+        <div className="flex-1 min-w-[140px] max-w-[260px]">
           <Input
             placeholder="Search notes, category, account…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="w-full bg-background"
+            className="w-full bg-background h-9 text-xs"
           />
         </div>
         
         <Select value={kind} onValueChange={setKind}>
-          <SelectTrigger className="w-40 bg-background"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-32 h-9 text-xs bg-background shrink-0"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             <SelectItem value="income">Income</SelectItem>
@@ -944,23 +944,24 @@ function TxnsPage() {
           onValueChange={setAccount}
           placeholder="Filter by account…"
           searchPlaceholder="Search account…"
-          className="w-56"
+          className="w-40 shrink-0"
+          triggerClassName="h-9 text-xs bg-background"
         />
 
         {/* Date Pop-Up Filter Trigger */}
         <Button
           variant="outline"
           onClick={() => setDateFilterOpen(true)}
-          className="bg-background text-xs h-10 px-3 flex items-center gap-2 rounded-lg cursor-pointer border"
+          className="bg-background text-xs h-9 px-2.5 flex items-center gap-1.5 rounded-lg cursor-pointer border shrink-0"
         >
-          <Calendar className="h-4 w-4 text-accent" />
-          <span className="font-medium">{dateLabel}</span>
+          <Calendar className="h-3.5 w-3.5 text-accent shrink-0" />
+          <span className="font-medium truncate max-w-[140px]">{dateLabel}</span>
           {(startDate || endDate || monthFilter !== "all") && (
-            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-accent animate-pulse shrink-0" />
           )}
         </Button>
 
-        <span className="ml-auto self-center text-sm text-muted-foreground font-serif">
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground font-serif whitespace-nowrap pl-1">
           {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
