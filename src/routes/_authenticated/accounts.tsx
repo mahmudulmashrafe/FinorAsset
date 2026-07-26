@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Eye } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
-import type { Account } from "@/lib/finance";
+import type { Account, Transaction, Category } from "@/lib/finance";
+import { TransactionDialog } from "@/components/transaction-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,6 +117,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
   const [start, setStart] = useState("0");
   const [currencyInput, setCurrencyInput] = useState(defaultCurrency);
   const [color, setColor] = useState(COLORS[0]);
+  const [includeInNetWorth, setIncludeInNetWorth] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageUrl, setImageUrl] = useState("");
@@ -130,6 +134,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         setStart(String(editingAccount.starting_balance));
         setCurrencyInput(editingAccount.currency ?? defaultCurrency);
         setColor(editingAccount.color ?? COLORS[0]);
+        setIncludeInNetWorth((editingAccount as any).include_in_net_worth !== false);
         setImageUrl((editingAccount as any).image_url ?? "");
         setImageFile(null);
       } else {
@@ -138,6 +143,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         setStart("0");
         setCurrencyInput(defaultCurrency);
         setColor(COLORS[0]);
+        setIncludeInNetWorth(true);
         setImageUrl("");
         setImageFile(null);
       }
@@ -210,6 +216,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
             currency: currencyInput,
             starting_balance: Number(start),
             image_url: finalImageUrl || null,
+            include_in_net_worth: includeInNetWorth,
           } as any)
           .eq("id", editingAccount!.id);
 
@@ -228,6 +235,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
           color,
           currency: currencyInput,
           image_url: finalImageUrl || null,
+          include_in_net_worth: includeInNetWorth,
         } as any);
         setSaving(false);
         setUploadingImage(false);
@@ -301,6 +309,21 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Include in Net Worth Option */}
+          <div className="flex items-center justify-between border rounded-lg p-3 bg-muted/20 my-1">
+            <div className="space-y-0.5">
+              <Label className="text-xs font-semibold cursor-pointer" htmlFor="networth-toggle">Include in Net Worth</Label>
+              <p className="text-[10px] text-muted-foreground">
+                Calculate balance in total Net Worth on Dashboard
+              </p>
+            </div>
+            <Switch
+              id="networth-toggle"
+              checked={includeInNetWorth}
+              onCheckedChange={setIncludeInNetWorth}
+            />
           </div>
 
           {/* Color picker */}
@@ -403,12 +426,242 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
   );
 }
 
+// ─── Account Transactions Filter Popup Dialog ─────────────────────────────────
+
+interface AccountTransactionsDialogProps {
+  account: Account | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  txns: Transaction[];
+  cats: Category[];
+  profileCurrency: string;
+  onEditTxn: (txn: Transaction) => void;
+}
+
+function AccountTransactionsDialog({
+  account,
+  open,
+  onOpenChange,
+  txns,
+  cats,
+  profileCurrency,
+  onEditTxn,
+}: AccountTransactionsDialogProps) {
+  if (!account) return null;
+
+  const [kindFilter, setKindFilter] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
+
+  const catMap = useMemo(() => new Map(cats.map(c => [c.id, c])), [cats]);
+
+  // All transactions for this account (source or destination of transfer)
+  const accountTxns = useMemo(() => {
+    return txns.filter(t => t.account_id === account.id || t.to_account_id === account.id);
+  }, [txns, account.id]);
+
+  // Unique months present in this account's transactions
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of accountTxns) {
+      if (t.occurred_on) {
+        set.add(t.occurred_on.slice(0, 7)); // "YYYY-MM"
+      }
+    }
+    const arr = Array.from(set).sort().reverse();
+    return arr.map(m => {
+      const [yr, mn] = m.split("-").map(Number);
+      const d = new Date(yr, mn - 1, 1);
+      return {
+        value: m,
+        label: d.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+      };
+    });
+  }, [accountTxns]);
+
+  // Filtered transactions
+  const filtered = useMemo(() => {
+    return accountTxns.filter(t => {
+      // Kind filter
+      if (kindFilter !== "all" && t.kind !== kindFilter) return false;
+
+      // Period filter
+      if (periodFilter === "this_month") {
+        const now = new Date();
+        const d = new Date(t.occurred_on);
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
+      } else if (periodFilter === "last_month") {
+        const d = new Date(t.occurred_on);
+        const lm = new Date();
+        lm.setMonth(lm.getMonth() - 1);
+        if (d.getMonth() !== lm.getMonth() || d.getFullYear() !== lm.getFullYear()) return false;
+      } else if (periodFilter !== "all") {
+        if (!t.occurred_on || !t.occurred_on.startsWith(periodFilter)) return false;
+      }
+
+      // Search query
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const catName = t.category_id ? catMap.get(t.category_id)?.name?.toLowerCase() || "" : "";
+        const noteStr = t.note ? t.note.toLowerCase() : "";
+        const amtStr = String(t.amount);
+        if (!catName.includes(q) && !noteStr.includes(q) && !amtStr.includes(q)) return false;
+      }
+
+      return true;
+    });
+  }, [accountTxns, kindFilter, periodFilter, search, catMap]);
+
+  // Calculate filtered stats for this account
+  const filteredIncome = useMemo(() => {
+    return filtered
+      .filter(t => t.kind === "income" || (t.kind === "transfer" && t.to_account_id === account.id))
+      .reduce((s, t) => s + Number(t.amount), 0);
+  }, [filtered, account.id]);
+
+  const filteredExpense = useMemo(() => {
+    return filtered
+      .filter(t => t.kind === "expense" || (t.kind === "transfer" && t.account_id === account.id))
+      .reduce((s, t) => s + Number(t.amount), 0);
+  }, [filtered, account.id]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl flex flex-col max-h-[85vh] sm:max-h-[700px] p-0 z-[100] overflow-hidden">
+        <DialogHeader className="p-4 border-b flex flex-row items-center justify-between gap-3 space-y-0 bg-card">
+          <div className="flex items-center gap-3 min-w-0">
+            {(account as any).image_url ? (
+              <img src={(account as any).image_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0 border border-border/40" />
+            ) : (
+              <span className="h-4 w-4 rounded-full shrink-0" style={{ background: account.color }} />
+            )}
+            <div className="min-w-0">
+              <DialogTitle className="font-serif text-lg font-bold truncate flex items-center gap-2">
+                <span>{account.name}</span>
+                <Badge variant="outline" className="text-[10px] font-normal uppercase tracking-wider">
+                  {TYPE_LABELS[account.type] ?? account.type}
+                </Badge>
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground">Account Transactions & Filtering</p>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {/* Filter Controls & Summary Strip */}
+        <div className="p-4 bg-muted/20 border-b space-y-3 shrink-0">
+          {/* Summary Badges */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-card p-2.5 rounded-xl border text-left">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider block font-bold">Filtered Income</span>
+              <span className="font-serif num text-xs sm:text-sm font-bold text-[color:var(--success)]">+{fmtMoney(filteredIncome, profileCurrency)}</span>
+            </div>
+            <div className="bg-card p-2.5 rounded-xl border text-left">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider block font-semibold">Filtered Outflow</span>
+              <span className="font-serif num text-xs sm:text-sm font-bold text-[color:var(--destructive)]">−{fmtMoney(filteredExpense, profileCurrency)}</span>
+            </div>
+            <div className="bg-card p-2.5 rounded-xl border text-left">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider block font-semibold">Total Records</span>
+              <span className="font-serif num text-xs sm:text-sm font-bold">{filtered.length} items</span>
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+            {/* Kind filter */}
+            <Select value={kindFilter} onValueChange={setKindFilter}>
+              <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="All Types" /></SelectTrigger>
+              <SelectContent className="z-[110]">
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="income">Income Only</SelectItem>
+                <SelectItem value="expense">Expense Only</SelectItem>
+                <SelectItem value="transfer">Transfers</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Period filter */}
+            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+              <SelectTrigger className="h-8 text-xs bg-background"><SelectValue placeholder="Period" /></SelectTrigger>
+              <SelectContent className="z-[110]">
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="last_month">Last Month</SelectItem>
+                {monthOptions.map(m => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Search Input */}
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search notes/category..."
+              className="h-8 text-xs bg-background"
+            />
+          </div>
+        </div>
+
+        {/* Transactions List */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 thin-scroll">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-xs text-muted-foreground">
+              No transactions found for this account matching active filters.
+            </div>
+          ) : (
+            filtered.map((t) => {
+              const cat = t.category_id ? catMap.get(t.category_id) : null;
+              const isIncome = t.kind === "income" || (t.kind === "transfer" && t.to_account_id === account.id);
+              const sign = isIncome ? "+" : "−";
+              const amtColor = isIncome ? "text-[color:var(--success)]" : "text-[color:var(--destructive)]";
+
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => {
+                    onOpenChange(false);
+                    onEditTxn(t);
+                  }}
+                  className="flex items-center justify-between p-3 rounded-xl border bg-card hover:bg-accent/5 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-base h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      {cat?.icon ?? (t.kind === "transfer" ? "🔄" : "💵")}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-serif font-bold truncate">
+                          {cat?.name ?? (t.kind === "transfer" ? "Transfer" : "Uncategorized")}
+                        </span>
+                        <Badge variant="outline" className="capitalize text-[8px] px-1 py-0 leading-none">
+                          {t.kind}
+                        </Badge>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                        {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                        {t.note ? ` · "${t.note}"` : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`font-serif num font-bold text-xs sm:text-sm shrink-0 ml-2 ${amtColor}`}>
+                    {sign}{fmtMoney(Number(t.amount), profileCurrency)}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function AccountsPage() {
   const qc = useQueryClient();
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
+  const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { currency: profileCurrency } = useUserProfile();
 
   const balances = computeAccountBalances(accounts, txns);
@@ -416,6 +669,8 @@ function AccountsPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<{ id: string; name: string } | null>(null);
+  const [viewingTxnAccount, setViewingTxnAccount] = useState<Account | null>(null);
+  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ["accounts"] });
@@ -429,8 +684,29 @@ function AccountsPage() {
     toast.success("Account deleted");
   }
 
+  const netWorthTotal = useMemo(() => {
+    return accounts
+      .filter(a => (a as any).include_in_net_worth !== false)
+      .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
+  }, [accounts, balances]);
+
   return (
     <div className="space-y-6 w-full">
+      {/* ── Top Bar Header & Net Worth summary ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="font-serif text-2xl font-bold">Accounts</h1>
+          <p className="text-xs text-muted-foreground">Manage cash, bank accounts, cards, and wallets</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-card px-3.5 py-2 rounded-xl border">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Total Net Worth</span>
+            <span className="font-serif num text-lg font-bold text-foreground">
+              {fmtMoney(netWorthTotal, profileCurrency)}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* ── New account dialog ── */}
       <AccountFormDialog
@@ -450,6 +726,24 @@ function AccountsPage() {
         onDelete={confirmDelete}
       />
 
+      {/* ── Account Transactions Filter Popup Dialog ── */}
+      <AccountTransactionsDialog
+        account={viewingTxnAccount}
+        open={!!viewingTxnAccount}
+        onOpenChange={(v) => !v && setViewingTxnAccount(null)}
+        txns={txns}
+        cats={cats}
+        profileCurrency={profileCurrency}
+        onEditTxn={(t) => setEditingTxn(t)}
+      />
+
+      {/* ── Edit Transaction Dialog ── */}
+      <TransactionDialog
+        open={!!editingTxn}
+        onOpenChange={(v) => !v && setEditingTxn(null)}
+        editingTransaction={editingTxn}
+      />
+
       {/* ── Account cards ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {accounts.map((a) => (
@@ -459,20 +753,48 @@ function AccountsPage() {
             className="rounded-xl border bg-card p-4 relative group transition-all hover:shadow-md hover:border-accent/40 cursor-pointer flex flex-col justify-between"
           >
             <div>
-              {/* Color dot or Account Image + name */}
-              <div className="flex items-center gap-2">
-                {(a as any).image_url ? (
-                  <img 
-                    src={(a as any).image_url} 
-                    alt={a.name} 
-                    className="h-5 w-5 rounded-full object-cover flex-shrink-0 border border-border/40" 
-                  />
-                ) : (
-                  <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
-                )}
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{TYPE_LABELS[a.type] ?? a.type}</span>
+              {/* Card Top Header: Type Label + Eye Button */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {(a as any).image_url ? (
+                    <img 
+                      src={(a as any).image_url} 
+                      alt={a.name} 
+                      className="h-5 w-5 rounded-full object-cover flex-shrink-0 border border-border/40" 
+                    />
+                  ) : (
+                    <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                  )}
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">{TYPE_LABELS[a.type] ?? a.type}</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingTxnAccount(a);
+                    }}
+                    className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
+                    title="View Account Transactions"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <h3 className="mt-1.5 font-serif text-base font-bold">{a.name}</h3>
+
+              {/* Name & Excluded Badge */}
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <h3 className="font-serif text-base font-bold truncate">{a.name}</h3>
+                {(a as any).include_in_net_worth === false && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground/80 bg-muted/30 border-border/50 shrink-0" title="Excluded from Net Worth">
+                    Excluded NW
+                  </Badge>
+                )}
+              </div>
+
+              {/* Balance */}
               <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
             </div>
           </div>

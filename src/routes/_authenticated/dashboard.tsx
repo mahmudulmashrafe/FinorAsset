@@ -24,7 +24,9 @@ function Dashboard() {
   const catMap = new Map(cats.map(c => [c.id, c]));
 
   const balances = computeAccountBalances(accounts, txns);
-  const net = Array.from(balances.values()).reduce((s, n) => s + n, 0);
+  const net = accounts
+    .filter(a => (a as any).include_in_net_worth !== false)
+    .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
 
   const now = new Date();
   const monthTxns = txns.filter((t) => {
