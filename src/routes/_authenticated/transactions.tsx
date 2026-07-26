@@ -137,6 +137,58 @@ function TxnsPage() {
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [dateFilterOpen, setDateFilterOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  function handleYearMonthChange(yr: string, mn: string) {
+    setSelectedYear(yr);
+    setSelectedMonth(mn);
+    setMonthFilter("all");
+    
+    if (yr === "all" && mn === "all") {
+      setStartDate("");
+      setEndDate("");
+      return;
+    }
+    
+    const targetYr = yr === "all" ? new Date().getFullYear() : Number(yr);
+    
+    if (mn !== "all") {
+      const mnNum = Number(mn);
+      const start = new Date(targetYr, mnNum - 1, 1);
+      const end = new Date(targetYr, mnNum, 0);
+      setStartDate(start.toISOString().slice(0, 10));
+      setEndDate(end.toISOString().slice(0, 10));
+    } else {
+      setStartDate(`${targetYr}-01-01`);
+      setEndDate(`${targetYr}-12-31`);
+    }
+  }
+
+  function applyPreset(preset: "today" | "this_month" | "last_month" | "this_year" | "all") {
+    const now = new Date();
+    setMonthFilter("all");
+    if (preset === "all") {
+      setSelectedYear("all");
+      setSelectedMonth("all");
+      setStartDate("");
+      setEndDate("");
+    } else if (preset === "today") {
+      const iso = now.toISOString().slice(0, 10);
+      setSelectedYear(String(now.getFullYear()));
+      setSelectedMonth(String(now.getMonth() + 1).padStart(2, "0"));
+      setStartDate(iso);
+      setEndDate(iso);
+    } else if (preset === "this_month") {
+      handleYearMonthChange(String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, "0"));
+    } else if (preset === "last_month") {
+      const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      handleYearMonthChange(String(lastM.getFullYear()), String(lastM.getMonth() + 1).padStart(2, "0"));
+    } else if (preset === "this_year") {
+      handleYearMonthChange(String(now.getFullYear()), "all");
+    }
+  }
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -336,6 +388,20 @@ function TxnsPage() {
     }
     return list;
   }, []);
+
+  const dateLabel = useMemo(() => {
+    if (startDate && endDate) {
+      if (startDate === endDate) return `Date: ${startDate}`;
+      return `${startDate} → ${endDate}`;
+    }
+    if (startDate) return `From: ${startDate}`;
+    if (endDate) return `Until: ${endDate}`;
+    if (monthFilter !== "all") {
+      const m = monthOptions.find(o => o.value === monthFilter);
+      return m ? m.label : monthFilter;
+    }
+    return "All Dates";
+  }, [startDate, endDate, monthFilter, monthOptions]);
 
   const netWorthAccountIds = useMemo(() => {
     return new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
@@ -726,8 +792,106 @@ function TxnsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Pop-Up Date & Period Filter Dialog ── */}
+      <Dialog open={dateFilterOpen} onOpenChange={setDateFilterOpen}>
+        <DialogContent className="max-w-md rounded-2xl z-[150]">
+          <DialogHeader>
+            <DialogTitle className="font-serif flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-accent" /> Filter by Date & Period
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* ── Year & Month Dropdowns ── */}
+            <div className="grid grid-cols-2 gap-3 bg-muted/40 p-3 rounded-xl border">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Year</label>
+                <Select value={selectedYear} onValueChange={(yr) => handleYearMonthChange(yr, selectedMonth)}>
+                  <SelectTrigger className="w-full bg-background text-xs h-9">
+                    <SelectValue placeholder="All Years" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    <SelectItem value="all">All Years</SelectItem>
+                    {[2028, 2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020].map(y => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Month</label>
+                <Select value={selectedMonth} onValueChange={(mn) => handleYearMonthChange(selectedYear, mn)}>
+                  <SelectTrigger className="w-full bg-background text-xs h-9">
+                    <SelectValue placeholder="All Months" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    <SelectItem value="all">All Months</SelectItem>
+                    {[
+                      { v: "01", l: "January" }, { v: "02", l: "February" }, { v: "03", l: "March" },
+                      { v: "04", l: "April" }, { v: "05", l: "May" }, { v: "06", l: "June" },
+                      { v: "07", l: "July" }, { v: "08", l: "August" }, { v: "09", l: "September" },
+                      { v: "10", l: "October" }, { v: "11", l: "November" }, { v: "12", l: "December" },
+                    ].map(m => (
+                      <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* ── From Date & To Date Calendar Pickers ── */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">From Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setMonthFilter("all"); }}
+                  className="w-full bg-background text-xs h-9 cursor-pointer"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">To Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setMonthFilter("all"); }}
+                  className="w-full bg-background text-xs h-9 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* ── Quick Presets ── */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Quick Presets</label>
+              <div className="flex flex-wrap gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => applyPreset("today")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">Today</Button>
+                <Button variant="outline" size="sm" onClick={() => applyPreset("this_month")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">This Month</Button>
+                <Button variant="outline" size="sm" onClick={() => applyPreset("last_month")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">Last Month</Button>
+                <Button variant="outline" size="sm" onClick={() => applyPreset("this_year")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">This Year</Button>
+                <Button variant="outline" size="sm" onClick={() => applyPreset("all")} className="text-[11px] h-7 px-2.5 rounded-lg cursor-pointer">All Time</Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-between pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => applyPreset("all")}
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Clear Filter
+            </Button>
+            <Button onClick={() => setDateFilterOpen(false)} className="text-xs font-bold cursor-pointer">
+              Apply Filter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Desktop Filters (inline) */}
-      <div className="hidden md:flex flex-shrink-0 flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
+      <div className="hidden md:flex flex-shrink-0 flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
         <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
           <Input
             placeholder="Search notes, category, account…"
@@ -762,42 +926,18 @@ function TxnsPage() {
           </SelectContent>
         </Select>
 
-        <Select value={monthFilter} onValueChange={(val) => { setMonthFilter(val); if (val !== "all") { setStartDate(""); setEndDate(""); } }}>
-          <SelectTrigger className="w-44 bg-background"><SelectValue placeholder="Month preset" /></SelectTrigger>
-          <SelectContent className="z-[100]">
-            <SelectItem value="all">All months</SelectItem>
-            {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        {/* Custom Date Range Picker (From -> To) */}
-        <div className="flex items-center gap-1.5 border rounded-lg px-2 py-1 bg-background text-xs">
-          <span className="text-[10px] text-muted-foreground font-semibold">From:</span>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => { setStartDate(e.target.value); setMonthFilter("all"); }}
-            className="h-7 text-xs w-28 border-0 bg-transparent p-0 focus-visible:ring-0 cursor-pointer"
-          />
-          <span className="text-[10px] text-muted-foreground font-semibold">To:</span>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => { setEndDate(e.target.value); setMonthFilter("all"); }}
-            className="h-7 text-xs w-28 border-0 bg-transparent p-0 focus-visible:ring-0 cursor-pointer"
-          />
-          {(startDate || endDate) && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => { setStartDate(""); setEndDate(""); }}
-              className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-              title="Clear Date Range"
-            >
-              <X className="h-3 w-3" />
-            </Button>
+        {/* Date Pop-Up Filter Trigger */}
+        <Button
+          variant="outline"
+          onClick={() => setDateFilterOpen(true)}
+          className="bg-background text-xs h-10 px-3 flex items-center gap-2 rounded-lg cursor-pointer border"
+        >
+          <Calendar className="h-4 w-4 text-accent" />
+          <span className="font-medium">{dateLabel}</span>
+          {(startDate || endDate || monthFilter !== "all") && (
+            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
           )}
-        </div>
+        </Button>
 
         <span className="ml-auto self-center text-sm text-muted-foreground font-serif">
           {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
@@ -863,40 +1003,20 @@ function TxnsPage() {
                   </Select>
                 </div>
 
+                {/* Mobile Date Pop-Up Trigger */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Month Preset</label>
-                  <Select value={monthFilter} onValueChange={(val) => { setMonthFilter(val); if (val !== "all") { setStartDate(""); setEndDate(""); } }}>
-                    <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      <SelectItem value="all">All months</SelectItem>
-                      {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Custom Date Range Picker (From -> To) */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Custom Date Range (From - To)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground">From Date</span>
-                      <Input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => { setStartDate(e.target.value); setMonthFilter("all"); }}
-                        className="w-full bg-background text-xs h-9 cursor-pointer"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground">To Date</span>
-                      <Input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => { setEndDate(e.target.value); setMonthFilter("all"); }}
-                        className="w-full bg-background text-xs h-9 cursor-pointer"
-                      />
-                    </div>
-                  </div>
+                  <label className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">Date Period</label>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDateFilterOpen(true)}
+                    className="w-full bg-background text-xs h-10 px-3 flex items-center justify-between rounded-lg cursor-pointer border"
+                  >
+                    <span className="flex items-center gap-2 font-medium">
+                      <Calendar className="h-4 w-4 text-accent" />
+                      {dateLabel}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">
@@ -906,9 +1026,7 @@ function TxnsPage() {
                     setQ("");
                     setKind("all");
                     setAccount("all");
-                    setMonthFilter("all");
-                    setStartDate("");
-                    setEndDate("");
+                    applyPreset("all");
                     setFiltersOpen(false);
                   }}
                   className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"

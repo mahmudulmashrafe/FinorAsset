@@ -673,7 +673,7 @@ function AccountsPage() {
 
   const balances = computeAccountBalances(accounts, txns);
 
-  const [accountView, setAccountView] = useState<"net_worth" | "non_net_worth" | "all">("net_worth");
+  const [accountView, setAccountView] = useState<"net_worth" | "non_net_worth">("net_worth");
   const [newOpen, setNewOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [deleteAccount, setDeleteAccount] = useState<{ id: string; name: string } | null>(null);
@@ -786,14 +786,6 @@ function AccountsPage() {
               className="text-xs h-7 rounded-lg cursor-pointer font-medium"
             >
               🚫 Non Net Worth
-            </Button>
-            <Button
-              variant={accountView === "all" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setAccountView("all")}
-              className="text-xs h-7 rounded-lg cursor-pointer font-medium"
-            >
-              All Accounts ({accounts.length})
             </Button>
           </div>
         </div>
