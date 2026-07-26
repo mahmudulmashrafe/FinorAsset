@@ -135,7 +135,7 @@ export const api = {
     return data as Subscription[];
   },
   async listWarranties() {
-    const { data, error } = await supabase.from("warranties").select("*").order("expiry_date", { ascending: true });
+    const { data, error } = await supabase.from("warranties" as any).select("*").order("expiry_date", { ascending: true });
     if (error) throw error;
     return data as any as Warranty[];
   },

@@ -307,7 +307,7 @@ function CategoryFormDialog({
                   />
                   <Button 
                     variant="destructive" 
-                    size="xs" 
+                    size="sm" 
                     type="button"
                     className="absolute top-0 right-0 h-4 w-4 p-0 rounded-full cursor-pointer"
                     onClick={() => { setImageUrl(""); setImageFile(null); }}
@@ -398,9 +398,11 @@ function CategoryFormDialog({
 function CategoryCard({
   cat,
   onEdit,
+  onDelete,
 }: {
   cat: Category;
   onEdit: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <div 
