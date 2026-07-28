@@ -938,20 +938,30 @@ function AccountsPage() {
           <h1 className="font-serif text-xl sm:text-2xl font-bold">Accounts</h1>
           
           {/* Toggle Option Buttons */}
-          <div className="flex items-center gap-1 mt-2 p-1 bg-muted/40 border rounded-xl w-fit">
+          <div className="flex items-center gap-1 mt-2 p-1 bg-muted/50 border rounded-xl w-fit relative z-30 touch-manipulation">
             <Button
+              type="button"
               variant={accountView === "net_worth" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setAccountView("net_worth")}
-              className="text-xs sm:text-sm h-8 px-2.5 sm:px-3 rounded-lg cursor-pointer font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setAccountView("net_worth");
+              }}
+              className="text-xs sm:text-sm h-8 px-2.5 sm:px-3 rounded-lg cursor-pointer font-medium touch-manipulation active:scale-95 transition-transform"
             >
               🌐 Net Worth Accounts
             </Button>
             <Button
+              type="button"
               variant={accountView === "non_net_worth" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setAccountView("non_net_worth")}
-              className="text-xs sm:text-sm h-8 px-2.5 sm:px-3 rounded-lg cursor-pointer font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setAccountView("non_net_worth");
+              }}
+              className="text-xs sm:text-sm h-8 px-2.5 sm:px-3 rounded-lg cursor-pointer font-medium touch-manipulation active:scale-95 transition-transform"
             >
               🚫 Non Net Worth
             </Button>

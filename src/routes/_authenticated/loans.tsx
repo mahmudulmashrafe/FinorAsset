@@ -111,9 +111,8 @@ function LoansPage() {
   }
 
   const { data: loans = [] } = useQuery({
-    queryKey: ["loans", authUser?.id],
+    queryKey: ["loans"],
     enabled: !!authUser,
-    initialData: loadLocalLoans,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("loans")
@@ -124,10 +123,20 @@ function LoansPage() {
         if (error.code === "42P01") return loadLocalLoans();
         throw error;
       }
-      return (data as any[]).map(l => ({
+
+      const dbLoans = (data as any[]).map(l => ({
         ...l,
         amount: Number(l.amount),
       })) as Loan[];
+
+      if (Array.isArray(dbLoans) && dbLoans.length > 0) {
+        try {
+          localStorage.setItem("finorasset_loans", JSON.stringify(dbLoans));
+        } catch {}
+        return dbLoans;
+      }
+
+      return loadLocalLoans();
     }
   });
 
