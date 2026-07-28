@@ -404,14 +404,13 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         </div>
 
         <DialogFooter className="p-4 border-t gap-2 flex-row justify-between sm:justify-between items-center shrink-0">
-          {isEdit && onDelete ? (
+          {isEdit && onDelete && editingAccount ? (
             <Button
+              type="button"
               variant="destructive"
               onClick={() => {
-                if (confirm(`Are you sure you want to delete "${editingAccount?.name}"?`)) {
-                  onDelete(editingAccount.id);
-                  onOpenChange(false);
-                }
+                onOpenChange(false);
+                onDelete(editingAccount.id);
               }}
               disabled={saving}
               className="cursor-pointer"
@@ -1062,7 +1061,12 @@ function AccountsPage() {
         defaultCurrency={profileCurrency}
         editingAccount={editAccount}
         onSaved={refresh}
-        onDelete={confirmDelete}
+        onDelete={() => {
+          if (editAccount) {
+            setDeleteAccount({ id: editAccount.id, name: editAccount.name });
+            setEditAccount(null);
+          }
+        }}
       />
 
       {/* ── Account Transactions Filter Popup Dialog ── */}
