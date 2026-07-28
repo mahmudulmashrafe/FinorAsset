@@ -181,8 +181,8 @@ export async function convertAllUserFinancialRecords(
 
     // 5. Convert Warranties
     const { data: wrns } = await supabase.from("warranties" as any).select("id, amount").eq("user_id", userId);
-    if (wrns && wrns.length > 0) {
-      for (const w of wrns) {
+    if (wrns && (wrns as any[]).length > 0) {
+      for (const w of (wrns as any[])) {
         await supabase
           .from("warranties" as any)
           .update({
