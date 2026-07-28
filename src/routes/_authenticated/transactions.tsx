@@ -966,8 +966,9 @@ function TxnsPage() {
         </span>
       </div>
 
-      {/* Mobile Filters Trigger */}
-      <div className="md:hidden flex flex-shrink-0 items-center justify-between gap-2 flex-wrap">
+      {/* Mobile Filters Trigger — Sticky below app header */}
+      <div className="md:hidden sticky top-[96px] z-20 -mx-4 px-4 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm">
+        <div className="flex flex-shrink-0 items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DialogTrigger asChild>
@@ -1072,6 +1073,7 @@ function TxnsPage() {
         <span className="text-xs text-muted-foreground font-serif">
           {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
         </span>
+        </div>
       </div>
 
       {/* Table (Desktop Layout) */}
