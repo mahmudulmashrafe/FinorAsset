@@ -34,7 +34,8 @@ export function useUserProfile() {
   });
 
   const currency: string = (profile?.currency ?? "USD").toUpperCase();
+  const excludedAccountIds: string[] = authUser?.user_metadata?.net_worth_excluded || [];
   const isLoading = isAuthLoading || isProfileLoading;
 
-  return { profile, authUser, currency, isLoading };
+  return { profile, authUser, currency, excludedAccountIds, isLoading };
 }

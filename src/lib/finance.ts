@@ -40,8 +40,14 @@ export function monthKey(d: Date | string) {
 
 const NET_WORTH_EXCLUDED_KEY = "finor_net_worth_excluded_accounts";
 
-export function getExcludedAccountIds(): string[] {
+export function getExcludedAccountIds(cloudExcluded?: string[]): string[] {
   try {
+    if (Array.isArray(cloudExcluded)) {
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify(cloudExcluded)); } catch {}
+      }
+      return cloudExcluded;
+    }
     const raw = typeof window !== "undefined" ? localStorage.getItem(NET_WORTH_EXCLUDED_KEY) : null;
     return raw ? JSON.parse(raw) : [];
   } catch {
@@ -49,27 +55,39 @@ export function getExcludedAccountIds(): string[] {
   }
 }
 
-export function isAccountIncludedInNetWorth(account: Account | null | undefined): boolean {
+export function isAccountIncludedInNetWorth(account: Account | null | undefined, cloudExcluded?: string[]): boolean {
   if (!account || !account.id) return true;
   const acc = account as any;
   if (acc.include_in_net_worth === false || acc.include_in_net_worth === 0 || acc.include_in_net_worth === "false") {
     return false;
   }
-  const excluded = getExcludedAccountIds();
+  const excluded = getExcludedAccountIds(cloudExcluded);
   return !excluded.includes(account.id);
 }
 
-export function setAccountNetWorthInclusion(accountId: string, include: boolean) {
+export async function setAccountNetWorthInclusion(accountId: string, include: boolean, cloudExcluded?: string[]) {
   try {
-    if (typeof window === "undefined" || !accountId) return;
-    const excluded = getExcludedAccountIds();
+    if (!accountId) return;
+    const excluded = getExcludedAccountIds(cloudExcluded);
+    let next: string[];
     if (include) {
-      const next = excluded.filter(id => id !== accountId);
-      localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify(next));
+      next = excluded.filter(id => id !== accountId);
     } else {
-      if (!excluded.includes(accountId)) {
-        localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify([...excluded, accountId]));
-      }
+      next = excluded.includes(accountId) ? excluded : [...excluded, accountId];
+    }
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify(next)); } catch {}
+    }
+
+    // Sync to Supabase Cloud Auth user metadata so all devices/browsers inherit this setting
+    const { data: u } = await supabase.auth.getUser();
+    if (u.user) {
+      await supabase.auth.updateUser({
+        data: {
+          ...u.user.user_metadata,
+          net_worth_excluded: next
+        }
+      });
     }
   } catch {}
 }

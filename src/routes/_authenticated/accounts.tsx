@@ -222,7 +222,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         setSaving(false);
         setUploadingImage(false);
         if (error) return toast.error(error.message);
-        setAccountNetWorthInclusion(editingAccount!.id, includeInNetWorth);
+        await setAccountNetWorthInclusion(editingAccount!.id, includeInNetWorth);
         toast.success("Account updated!");
       } else {
         const { data: u } = await supabase.auth.getUser();
@@ -245,7 +245,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
         setUploadingImage(false);
         if (error) return toast.error(error.message);
         if (newAcc) {
-          setAccountNetWorthInclusion(newAcc.id, includeInNetWorth);
+          await setAccountNetWorthInclusion(newAcc.id, includeInNetWorth);
         }
         toast.success("Account added!");
       }
@@ -847,7 +847,7 @@ function AccountsPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
-  const { currency: profileCurrency } = useUserProfile();
+  const { currency: profileCurrency, excludedAccountIds } = useUserProfile();
 
   const balances = computeAccountBalances(accounts, txns);
 
@@ -861,6 +861,7 @@ function AccountsPage() {
   function refresh() {
     qc.invalidateQueries({ queryKey: ["accounts"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["auth-user"] });
   }
 
   async function confirmDelete(id: string) {
@@ -870,8 +871,8 @@ function AccountsPage() {
     toast.success("Account deleted");
   }
 
-  const netWorthAccounts = useMemo(() => accounts.filter(a => isAccountIncludedInNetWorth(a)), [accounts]);
-  const nonNetWorthAccounts = useMemo(() => accounts.filter(a => !isAccountIncludedInNetWorth(a)), [accounts]);
+  const netWorthAccounts = useMemo(() => accounts.filter(a => isAccountIncludedInNetWorth(a, excludedAccountIds)), [accounts, excludedAccountIds]);
+  const nonNetWorthAccounts = useMemo(() => accounts.filter(a => !isAccountIncludedInNetWorth(a, excludedAccountIds)), [accounts, excludedAccountIds]);
 
   const filteredAccounts = useMemo(() => {
     if (accountView === "net_worth") return netWorthAccounts;
