@@ -934,15 +934,52 @@ function AccountsPage() {
   return (
     <div className="space-y-6 w-full">
       {/* ── Top Bar Header & Floatable / Collapsible Summary Block ── */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-2 pt-2 border-b shadow-sm sm:shadow-none sm:border-b sm:static -mx-4 px-4 sm:mx-0 sm:px-0 space-y-3">
-        {/* Header Title + Floatable Trigger Button */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-2 pt-2 border-b shadow-sm sm:shadow-none sm:border-b sm:static -mx-4 px-4 sm:mx-0 sm:px-0 space-y-2.5">
+        {/* Main Header Row: View Toggles (Left) + View/Hide Summary Button (Right) */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-3">
-            {/* Quick Badge indicating active view */}
-            <span className="text-xs px-2.5 py-1 rounded-full bg-muted/60 text-muted-foreground font-medium flex items-center gap-1 border">
-              {accountView === "net_worth" ? "🌐 Net Worth" : "🚫 Non Net Worth"}
-              <span className="font-bold text-foreground">({filteredAccounts.length})</span>
-            </span>
+          {/* Toggle Option Buttons — Matching Hide Summary Button Height & Style */}
+          <div className="flex items-center gap-1.5 p-0.5 bg-muted/50 border rounded-xl w-fit relative z-30">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setAccountView("net_worth");
+              }}
+              className={`h-8 px-2.5 sm:px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                accountView === "net_worth"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>🌐 Net Worth</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                accountView === "net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {netWorthAccounts.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setAccountView("non_net_worth");
+              }}
+              className={`h-8 px-2.5 sm:px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                accountView === "non_net_worth"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>🚫 Non Net Worth</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                accountView === "non_net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {nonNetWorthAccounts.length}
+              </span>
+            </button>
           </div>
 
           {/* Floatable Summary Trigger Button */}
@@ -951,7 +988,7 @@ function AccountsPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowSummary(!showSummary)}
-            className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-xs"
+            className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-xs ml-auto"
           >
             <span>📊 {showSummary ? "Hide Summary" : "View Summary"}</span>
             <span className="font-serif num font-bold text-accent">({fmtMoney(viewTotalWorth, profileCurrency)})</span>
@@ -959,78 +996,29 @@ function AccountsPage() {
           </Button>
         </div>
 
-        {/* Floatable / Collapsible Summary Block (Shown on click) */}
+        {/* Collapsible Summary Panel (Contains only 3 Summary Cards) */}
         {showSummary && (
-          <div className="p-3 sm:p-4 rounded-2xl bg-card border shadow-lg border-accent/20 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-            {/* View Option Buttons */}
-            <div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block mb-1.5">Select View Mode:</span>
-              <div className="flex items-center gap-1.5 p-1 bg-muted/60 border rounded-xl w-fit">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setAccountView("net_worth");
-                  }}
-                  className={`text-xs sm:text-sm h-8 px-3 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
-                    accountView === "net_worth"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  }`}
-                >
-                  <span>🌐 Net Worth</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    accountView === "net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                  }`}>
-                    {netWorthAccounts.length}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setAccountView("non_net_worth");
-                  }}
-                  className={`text-xs sm:text-sm h-8 px-3 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
-                    accountView === "non_net_worth"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  }`}
-                >
-                  <span>🚫 Non Net Worth</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    accountView === "non_net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                  }`}>
-                    {nonNetWorthAccounts.length}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Dynamic Summary Cards for Active View */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 w-full md:w-auto">
-              <div className="bg-background px-2 sm:px-5 py-2 sm:py-3 rounded-xl border shadow-xs flex flex-col justify-center min-w-0 md:min-w-[170px] text-center sm:text-left">
-                <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">
-                  {accountView === "net_worth" ? "Net Worth" : "Non NW Total"}
+          <div className="p-3 sm:p-4 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 w-full">
+              <div className="bg-background px-2.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl border shadow-xs flex flex-col justify-center text-center sm:text-left">
+                <span className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">
+                  {accountView === "net_worth" ? "Net Worth Total" : "Non NW Total"}
                 </span>
-                <span className="font-serif num text-[11px] xs:text-xs sm:text-xl font-bold text-foreground truncate">
+                <span className="font-serif num text-xs sm:text-xl font-bold text-foreground truncate">
                   {fmtMoney(viewTotalWorth, profileCurrency)}
                 </span>
               </div>
 
-              <div className="bg-background px-2 sm:px-5 py-2 sm:py-3 rounded-xl border shadow-xs flex flex-col justify-center min-w-0 md:min-w-[170px] text-center sm:text-left">
+              <div className="bg-background px-2.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl border shadow-xs flex flex-col justify-center text-center sm:text-left">
                 <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Income</span>
-                <span className="font-serif num text-[11px] xs:text-xs sm:text-xl font-bold text-[color:var(--success)] truncate">
+                <span className="font-serif num text-xs sm:text-xl font-bold text-[color:var(--success)] truncate">
                   +{fmtMoney(viewIncome, profileCurrency)}
                 </span>
               </div>
 
-              <div className="bg-background px-2 sm:px-5 py-2 sm:py-3 rounded-xl border shadow-xs flex flex-col justify-center min-w-0 md:min-w-[170px] text-center sm:text-left">
+              <div className="bg-background px-2.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl border shadow-xs flex flex-col justify-center text-center sm:text-left">
                 <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expense</span>
-                <span className="font-serif num text-[11px] xs:text-xs sm:text-xl font-bold text-[color:var(--destructive)] truncate">
+                <span className="font-serif num text-xs sm:text-xl font-bold text-[color:var(--destructive)] truncate">
                   −{fmtMoney(viewExpense, profileCurrency)}
                 </span>
               </div>
