@@ -130,20 +130,20 @@ function BudgetsPage() {
                 setCatId(b.category_id);
                 setOpen(true);
               }}
-              className="rounded-xl border bg-card p-6 cursor-pointer hover:border-accent/40 hover:shadow-md transition-all flex flex-col justify-between"
+              className="rounded-xl border bg-card p-4 sm:p-6 cursor-pointer hover:border-accent/40 hover:shadow-md transition-all flex flex-col justify-between"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full" style={{ background: cat?.color }} />
-                  <h3 className="font-serif text-xl">{cat?.name ?? "—"}</h3>
+                  <h3 className="font-serif text-base sm:text-xl font-bold">{cat?.name ?? "—"}</h3>
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between">
-                <span className={`num font-serif text-2xl ${over ? "text-destructive" : ""}`}>{fmtMoney(spent, currency)}</span>
-                <span className="text-sm text-muted-foreground">of {fmtMoney(Number(b.amount), currency)}</span>
+              <div className="mt-2 sm:mt-3 flex items-baseline justify-between gap-1 flex-wrap">
+                <span className={`num font-serif text-base sm:text-2xl font-bold ${over ? "text-destructive" : ""}`}>{fmtMoney(spent, currency)}</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">of {fmtMoney(Number(b.amount), currency)}</span>
               </div>
-              <Progress value={pct} className="mt-3" />
-              <p className="mt-2 text-xs text-muted-foreground">{over ? `Over by ${fmtMoney(spent - Number(b.amount), currency)}` : `${fmtMoney(Number(b.amount) - spent, currency)} left`}</p>
+              <Progress value={pct} className="mt-2 sm:mt-3 h-1.5" />
+              <p className="mt-1.5 text-[10px] sm:text-xs text-muted-foreground">{over ? `Over by ${fmtMoney(spent - Number(b.amount), currency)}` : `${fmtMoney(Number(b.amount) - spent, currency)} left`}</p>
             </div>
           );
         })}

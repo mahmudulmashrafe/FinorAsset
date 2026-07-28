@@ -508,18 +508,18 @@ function LoansPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
         {/* Net Position (Row 1 on Mobile, Col 3 on Desktop) */}
-        <div className="order-1 md:order-3 rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm">
+        <div className="order-1 md:order-3 rounded-xl border bg-card p-3 sm:p-4 flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Net Debt Position</p>
-            <h3 className={`mt-1 font-serif text-2xl font-bold ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium">Net Debt Position</p>
+            <h3 className={`mt-0.5 sm:mt-1 font-serif text-base sm:text-xl md:text-2xl font-bold ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
               {netBalance >= 0 ? "+" : ""}{fmtMoney(netBalance, currency)}
             </h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Lent minus borrowed</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1">Lent minus borrowed</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
-            <CircleDollarSign className="h-5 w-5" />
+          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-accent/10 flex items-center justify-center text-accent shrink-0">
+            <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         </div>
 
@@ -530,18 +530,18 @@ function LoansPage() {
               setBorrowedListOpen(true);
             }
           }}
-          className="order-2 md:order-1 rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+          className="order-2 md:order-1 rounded-xl border bg-card p-3 sm:p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
         >
           <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
               I Take Loan (Borrowed)
               <span className="md:hidden text-[9px] font-sans bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
             </p>
-            <h3 className="mt-1 font-serif text-2xl font-bold text-destructive">{fmtMoney(activeBorrowed, currency)}</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Total active debts you owe</p>
+            <h3 className="mt-0.5 sm:mt-1 font-serif text-base sm:text-xl md:text-2xl font-bold text-destructive">{fmtMoney(activeBorrowed, currency)}</h3>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1">Total active debts you owe</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <TrendingDown className="h-5 w-5" />
+          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive shrink-0">
+            <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         </div>
 
@@ -552,18 +552,18 @@ function LoansPage() {
               setLentListOpen(true);
             }
           }}
-          className="order-3 md:order-2 rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
+          className="order-3 md:order-2 rounded-xl border bg-card p-3 sm:p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
         >
           <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
               I Give Loan (Lent)
               <span className="md:hidden text-[9px] font-sans bg-success/10 text-success px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
             </p>
-            <h3 className="mt-1 font-serif text-2xl font-bold text-success">{fmtMoney(activeLent, currency)}</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Total active funds lent out</p>
+            <h3 className="mt-0.5 sm:mt-1 font-serif text-base sm:text-xl md:text-2xl font-bold text-success">{fmtMoney(activeLent, currency)}</h3>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1">Total active funds lent out</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success">
-            <TrendingUp className="h-5 w-5" />
+          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         </div>
       </div>

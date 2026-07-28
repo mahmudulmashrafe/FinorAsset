@@ -958,27 +958,27 @@ function AccountsPage() {
           </div>
         </div>
 
-        {/* Dynamic Summary Cards — 2-Tier Responsive Mobile vs Web Typography */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3.5 w-full md:w-auto">
-          <div className="bg-card px-2.5 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px]">
-            <span className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 sm:mb-1 truncate">
-              {accountView === "net_worth" ? "Net Worth Total" : "Non NW Total"}
+        {/* Dynamic Summary Cards — Compact Mobile Typography so money values display fully without truncation */}
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 w-full md:w-auto">
+          <div className="bg-card px-1.5 sm:px-5 py-1.5 sm:py-3.5 rounded-lg sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px] text-center sm:text-left">
+            <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">
+              {accountView === "net_worth" ? "Net Worth" : "Non NW Total"}
             </span>
-            <span className="font-serif num text-base sm:text-2xl font-bold text-foreground truncate">
+            <span className="font-serif num text-[11px] xs:text-xs sm:text-xl md:text-2xl font-bold text-foreground truncate">
               {fmtMoney(viewTotalWorth, profileCurrency)}
             </span>
           </div>
 
-          <div className="bg-card px-2.5 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px]">
-            <span className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 sm:mb-1 truncate">This Month Income</span>
-            <span className="font-serif num text-base sm:text-2xl font-bold text-[color:var(--success)] truncate">
+          <div className="bg-card px-1.5 sm:px-5 py-1.5 sm:py-3.5 rounded-lg sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px] text-center sm:text-left">
+            <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Income</span>
+            <span className="font-serif num text-[11px] xs:text-xs sm:text-xl md:text-2xl font-bold text-[color:var(--success)] truncate">
               +{fmtMoney(viewIncome, profileCurrency)}
             </span>
           </div>
 
-          <div className="bg-card px-2.5 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px]">
-            <span className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 sm:mb-1 truncate">This Month Expense</span>
-            <span className="font-serif num text-base sm:text-2xl font-bold text-[color:var(--destructive)] truncate">
+          <div className="bg-card px-1.5 sm:px-5 py-1.5 sm:py-3.5 rounded-lg sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px] text-center sm:text-left">
+            <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expense</span>
+            <span className="font-serif num text-[11px] xs:text-xs sm:text-xl md:text-2xl font-bold text-[color:var(--destructive)] truncate">
               −{fmtMoney(viewExpense, profileCurrency)}
             </span>
           </div>
