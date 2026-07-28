@@ -933,11 +933,11 @@ function AccountsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      {/* ── Top Bar Header & Floatable / Collapsible Summary Block (Fixed / Sticky Position Below Header) ── */}
-      <div className="-mt-4 md:-mt-6 -mx-4 px-4 sm:-mx-6 sm:px-6 py-2.5 sticky top-24 md:top-20 z-30 bg-background border-b shadow-xs space-y-2 mb-6">
+      {/* ── Top Bar Header & Floatable / Collapsible Summary Block (Flush Below Header, Zero Gap, Zero Overlap) ── */}
+      <div className="-mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2.5 bg-background border-b shadow-xs space-y-2 mb-6 relative z-10">
         {/* Main Header Row: Single Non-Wrapping Row for Toggles & View Summary Button */}
         <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
-          {/* Toggle Option Buttons — Micro-Compact h-6 (24px) without emojis */}
+          {/* Toggle Option Buttons — Micro-Compact h-6 (24px) */}
           <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
             <button
               type="button"
@@ -953,7 +953,7 @@ function AccountsPage() {
               }`}
             >
               <span>Net Worth</span>
-              <span className={`text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
                 accountView === "net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}>
                 {netWorthAccounts.length}
@@ -974,7 +974,7 @@ function AccountsPage() {
               }`}
             >
               <span>Non Net Worth</span>
-              <span className={`text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
                 accountView === "non_net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}>
                 {nonNetWorthAccounts.length}
@@ -982,7 +982,7 @@ function AccountsPage() {
             </button>
           </div>
 
-          {/* Floatable Summary Trigger Button — Micro-Compact h-6 (24px) without emoji */}
+          {/* Floatable Summary Trigger Button — Micro-Compact h-6 (24px) */}
           <Button
             type="button"
             variant="outline"
@@ -990,7 +990,7 @@ function AccountsPage() {
             onClick={() => setShowSummary(!showSummary)}
             className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0"
           >
-            <span>{showSummary ? "Hide Summary" : "Summary"}</span>
+            <span>{showSummary ? "Hide" : "Summary"}</span>
             <span className="font-serif num font-bold text-accent">({fmtMoney(viewTotalWorth, profileCurrency)})</span>
             <ChevronDown className={`h-2.5 w-2.5 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
           </Button>
