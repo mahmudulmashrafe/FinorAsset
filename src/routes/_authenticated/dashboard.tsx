@@ -113,7 +113,6 @@ function Dashboard() {
       return b.id.localeCompare(a.id);
     })
     .slice(0, 20);
-  const accMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
     <div className="space-y-2.5 md:space-y-0 md:gap-2.5 w-full md:h-[calc(100vh-12rem)] flex flex-col md:overflow-hidden">
