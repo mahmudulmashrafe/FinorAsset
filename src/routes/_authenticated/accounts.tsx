@@ -948,7 +948,7 @@ function AccountsPage() {
               }}
               className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
                 accountView === "net_worth"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
@@ -969,7 +969,7 @@ function AccountsPage() {
               }}
               className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
                 accountView === "non_net_worth"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
@@ -988,7 +988,7 @@ function AccountsPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowSummary(!showSummary)}
-            className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0"
+            className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-xs shrink-0"
           >
             <span>{showSummary ? "Hide" : "Summary"}</span>
             <span className="font-serif num font-bold text-accent">({fmtMoney(viewTotalWorth, profileCurrency)})</span>
