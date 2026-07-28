@@ -931,56 +931,59 @@ function AccountsPage() {
   }, [currentMonthTxns, viewAccountIds, accountView, netWorthAccountIds]);
 
   return (
-    <div className="space-y-6 w-full">
-      {/* ── Top Bar Header & Net Worth / Non Net Worth View Toggle (Sticky on Mobile) ── */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-3 border-b shadow-sm sm:shadow-none sm:border-b sm:pt-0 sm:pb-4 sm:static flex flex-col md:flex-row md:items-center justify-between gap-3 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-col sm:items-start">
-          <h1 className="font-serif text-xl sm:text-2xl font-bold">Accounts</h1>
-          
-          {/* Toggle Option Buttons */}
-          <div className="flex items-center gap-1 p-1 bg-muted/40 border rounded-xl w-fit">
-            <Button
-              variant={accountView === "net_worth" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setAccountView("net_worth")}
-              className="text-[11px] sm:text-xs h-7 px-2.5 rounded-lg cursor-pointer font-medium"
-            >
-              🌐 Net Worth
-            </Button>
-            <Button
-              variant={accountView === "non_net_worth" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setAccountView("non_net_worth")}
-              className="text-[11px] sm:text-xs h-7 px-2.5 rounded-lg cursor-pointer font-medium"
-            >
-              🚫 Non Net Worth
-            </Button>
-          </div>
-        </div>
-
-        {/* Dynamic Summary Cards for Active View — Compact Grid on Mobile & Spacious on Desktop */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full md:w-auto">
-          <div className="bg-card px-2.5 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl border min-w-0 md:min-w-[190px] flex-1 shadow-sm flex flex-col justify-center text-center sm:text-left">
-            <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">
-              {accountView === "net_worth" ? "Net Worth" : "Non NW Total"}
-            </span>
-            <span className="font-serif num text-xs sm:text-xl font-bold text-foreground truncate">
-              {fmtMoney(viewTotalWorth, profileCurrency)}
-            </span>
+    <div className="space-y-4 w-full">
+      {/* ── Top Bar Header & Net Worth / Non Net Worth View Toggle (Ultra-Compact) ── */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md py-2 border-b shadow-2xs sm:shadow-none sm:border-b sm:static -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {/* Title + Toggle in 1 row */}
+          <div className="flex items-center gap-2.5 justify-between sm:justify-start">
+            <h1 className="font-serif text-lg sm:text-xl font-bold tracking-tight">Accounts</h1>
+            
+            {/* Toggle Option Buttons */}
+            <div className="flex items-center gap-0.5 p-0.5 bg-muted/50 border rounded-lg">
+              <Button
+                variant={accountView === "net_worth" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setAccountView("net_worth")}
+                className="text-[10px] sm:text-xs h-6 px-2 rounded-md cursor-pointer font-medium"
+              >
+                🌐 Net Worth
+              </Button>
+              <Button
+                variant={accountView === "non_net_worth" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setAccountView("non_net_worth")}
+                className="text-[10px] sm:text-xs h-6 px-2 rounded-md cursor-pointer font-medium"
+              >
+                🚫 Non Net Worth
+              </Button>
+            </div>
           </div>
 
-          <div className="bg-card px-2.5 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl border min-w-0 md:min-w-[190px] flex-1 shadow-sm flex flex-col justify-center text-center sm:text-left">
-            <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Income</span>
-            <span className="font-serif num text-xs sm:text-xl font-bold text-[color:var(--success)] truncate">
-              +{fmtMoney(viewIncome, profileCurrency)}
-            </span>
-          </div>
+          {/* Dynamic Summary Cards — Ultra-Compact Badges */}
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2">
+            <div className="bg-card px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border shadow-2xs flex flex-col justify-center text-center sm:text-left min-w-0 sm:min-w-[115px]">
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold truncate leading-none mb-0.5">
+                {accountView === "net_worth" ? "Net Worth" : "Non NW Total"}
+              </span>
+              <span className="font-serif num text-xs sm:text-sm font-bold text-foreground truncate leading-tight">
+                {fmtMoney(viewTotalWorth, profileCurrency)}
+              </span>
+            </div>
 
-          <div className="bg-card px-2.5 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl border min-w-0 md:min-w-[190px] flex-1 shadow-sm flex flex-col justify-center text-center sm:text-left">
-            <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expense</span>
-            <span className="font-serif num text-xs sm:text-xl font-bold text-[color:var(--destructive)] truncate">
-              −{fmtMoney(viewExpense, profileCurrency)}
-            </span>
+            <div className="bg-card px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border shadow-2xs flex flex-col justify-center text-center sm:text-left min-w-0 sm:min-w-[115px]">
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold truncate leading-none mb-0.5">Income</span>
+              <span className="font-serif num text-xs sm:text-sm font-bold text-[color:var(--success)] truncate leading-tight">
+                +{fmtMoney(viewIncome, profileCurrency)}
+              </span>
+            </div>
+
+            <div className="bg-card px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border shadow-2xs flex flex-col justify-center text-center sm:text-left min-w-0 sm:min-w-[115px]">
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold truncate leading-none mb-0.5">Expense</span>
+              <span className="font-serif num text-xs sm:text-sm font-bold text-[color:var(--destructive)] truncate leading-tight">
+                −{fmtMoney(viewExpense, profileCurrency)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
