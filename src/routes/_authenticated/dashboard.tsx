@@ -4,6 +4,7 @@ import { api, computeAccountBalances, fmtMoney, monthKey, isAccountIncludedInNet
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, Zap, Target } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { useExchangeRates, convertCurrency, FALLBACK_RATES } from "@/lib/currency";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -19,14 +20,22 @@ function Dashboard() {
   const { data: budgets = [] } = useQuery({ queryKey: ["budgets", monthKey(new Date())], queryFn: () => api.listBudgets(monthKey(new Date())) });
 
   const { currency, profile } = useUserProfile();
+  const { data: rates = FALLBACK_RATES } = useExchangeRates();
   const displayName = profile?.display_name || "there";
 
   const catMap = new Map(cats.map(c => [c.id, c]));
+  const accMap = new Map(accounts.map(a => [a.id, a]));
 
   const balances = computeAccountBalances(accounts, txns);
+  
+  // Calculate Net Worth converting each account's balance to profile currency if needed
   const net = accounts
     .filter(a => isAccountIncludedInNetWorth(a))
-    .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
+    .reduce((s, a) => {
+      const rawBal = balances.get(a.id) ?? 0;
+      const accCurr = a.currency || currency;
+      return s + convertCurrency(rawBal, accCurr, currency, rates);
+    }, 0);
 
   const netWorthAccountIds = new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
 
@@ -38,11 +47,19 @@ function Dashboard() {
 
   const income = monthTxns
     .filter(t => isTransactionIncomeForNetWorth(t, netWorthAccountIds))
-    .reduce((s, t) => s + Number(t.amount), 0);
+    .reduce((s, t) => {
+      const acc = accMap.get(t.account_id);
+      const accCurr = acc?.currency || currency;
+      return s + convertCurrency(Number(t.amount), accCurr, currency, rates);
+    }, 0);
 
   const expense = monthTxns
     .filter(t => isTransactionExpenseForNetWorth(t, netWorthAccountIds))
-    .reduce((s, t) => s + Number(t.amount), 0);
+    .reduce((s, t) => {
+      const acc = accMap.get(t.account_id);
+      const accCurr = acc?.currency || currency;
+      return s + convertCurrency(Number(t.amount), accCurr, currency, rates);
+    }, 0);
 
   const savingsRate = income > 0 ? Math.max(0, Math.round(((income - expense) / income) * 100)) : 0;
 
