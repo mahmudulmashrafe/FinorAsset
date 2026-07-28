@@ -938,8 +938,6 @@ function AccountsPage() {
         {/* Header Title + Floatable Trigger Button */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">
-            <h1 className="font-serif text-xl sm:text-2xl font-bold">Accounts</h1>
-            
             {/* Quick Badge indicating active view */}
             <span className="text-xs px-2.5 py-1 rounded-full bg-muted/60 text-muted-foreground font-medium flex items-center gap-1 border">
               {accountView === "net_worth" ? "🌐 Net Worth" : "🚫 Non Net Worth"}
