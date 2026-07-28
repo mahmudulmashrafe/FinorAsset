@@ -961,7 +961,7 @@ function Layout() {
       <div className="flex-1 flex flex-col min-w-0 bg-background min-h-svh">
 
         {/* Top bar — cleaner, with centered greeting */}
-        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10 h-24 md:h-20 gap-1 md:gap-0">
+        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-30 h-24 md:h-20 gap-1 md:gap-0">
           
           {/* Mobile Layout (Logo row + Greeting row) */}
           <div className="md:hidden flex flex-col w-full">
@@ -1048,7 +1048,7 @@ function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0 flex flex-col justify-between pb-20 md:pb-6">
+        <main className="flex-1 p-4 md:p-6 overflow-x-clip min-w-0 flex flex-col justify-between pb-20 md:pb-6">
           <div key={path} className="flex-1 page-transition relative flex flex-col">
             <Outlet />
           </div>
