@@ -18,17 +18,17 @@ function Dashboard() {
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: budgets = [] } = useQuery({ queryKey: ["budgets", monthKey(new Date())], queryFn: () => api.listBudgets(monthKey(new Date())) });
 
-  const { currency, profile, excludedAccountIds } = useUserProfile();
+  const { currency, profile } = useUserProfile();
   const displayName = profile?.display_name || "there";
 
   const catMap = new Map(cats.map(c => [c.id, c]));
 
   const balances = computeAccountBalances(accounts, txns);
   const net = accounts
-    .filter(a => isAccountIncludedInNetWorth(a, excludedAccountIds))
+    .filter(a => isAccountIncludedInNetWorth(a))
     .reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
 
-  const netWorthAccountIds = new Set(accounts.filter(a => isAccountIncludedInNetWorth(a, excludedAccountIds)).map(a => a.id));
+  const netWorthAccountIds = new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
 
   const now = new Date();
   const monthTxns = txns.filter((t) => {

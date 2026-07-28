@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           currency: string
           id: string
+          include_in_net_worth: boolean
           name: string
           starting_balance: number
           type: Database["public"]["Enums"]["account_type"]
@@ -33,6 +34,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          include_in_net_worth?: boolean
           name: string
           starting_balance?: number
           type?: Database["public"]["Enums"]["account_type"]
@@ -45,6 +47,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          include_in_net_worth?: boolean
           name?: string
           starting_balance?: number
           type?: Database["public"]["Enums"]["account_type"]

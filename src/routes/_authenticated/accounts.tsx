@@ -871,8 +871,8 @@ function AccountsPage() {
     toast.success("Account deleted");
   }
 
-  const netWorthAccounts = useMemo(() => accounts.filter(a => isAccountIncludedInNetWorth(a, excludedAccountIds)), [accounts, excludedAccountIds]);
-  const nonNetWorthAccounts = useMemo(() => accounts.filter(a => !isAccountIncludedInNetWorth(a, excludedAccountIds)), [accounts, excludedAccountIds]);
+  const netWorthAccounts = useMemo(() => accounts.filter(a => isAccountIncludedInNetWorth(a)), [accounts]);
+  const nonNetWorthAccounts = useMemo(() => accounts.filter(a => !isAccountIncludedInNetWorth(a)), [accounts]);
 
   const filteredAccounts = useMemo(() => {
     if (accountView === "net_worth") return netWorthAccounts;

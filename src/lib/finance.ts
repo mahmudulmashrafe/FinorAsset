@@ -38,57 +38,22 @@ export function monthKey(d: Date | string) {
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-const NET_WORTH_EXCLUDED_KEY = "finor_net_worth_excluded_accounts";
-
-export function getExcludedAccountIds(cloudExcluded?: string[]): string[] {
-  try {
-    if (Array.isArray(cloudExcluded)) {
-      if (typeof window !== "undefined") {
-        try { localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify(cloudExcluded)); } catch {}
-      }
-      return cloudExcluded;
-    }
-    const raw = typeof window !== "undefined" ? localStorage.getItem(NET_WORTH_EXCLUDED_KEY) : null;
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function isAccountIncludedInNetWorth(account: Account | null | undefined, cloudExcluded?: string[]): boolean {
+export function isAccountIncludedInNetWorth(account: Account | null | undefined): boolean {
   if (!account || !account.id) return true;
   const acc = account as any;
   if (acc.include_in_net_worth === false || acc.include_in_net_worth === 0 || acc.include_in_net_worth === "false") {
     return false;
   }
-  const excluded = getExcludedAccountIds(cloudExcluded);
-  return !excluded.includes(account.id);
+  return true;
 }
 
-export async function setAccountNetWorthInclusion(accountId: string, include: boolean, cloudExcluded?: string[]) {
+export async function setAccountNetWorthInclusion(accountId: string, include: boolean) {
   try {
     if (!accountId) return;
-    const excluded = getExcludedAccountIds(cloudExcluded);
-    let next: string[];
-    if (include) {
-      next = excluded.filter(id => id !== accountId);
-    } else {
-      next = excluded.includes(accountId) ? excluded : [...excluded, accountId];
-    }
-    if (typeof window !== "undefined") {
-      try { localStorage.setItem(NET_WORTH_EXCLUDED_KEY, JSON.stringify(next)); } catch {}
-    }
-
-    // Sync to Supabase Cloud Auth user metadata so all devices/browsers inherit this setting
-    const { data: u } = await supabase.auth.getUser();
-    if (u.user) {
-      await supabase.auth.updateUser({
-        data: {
-          ...u.user.user_metadata,
-          net_worth_excluded: next
-        }
-      });
-    }
+    await supabase
+      .from("accounts")
+      .update({ include_in_net_worth: include } as any)
+      .eq("id", accountId);
   } catch {}
 }
 
