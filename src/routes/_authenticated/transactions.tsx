@@ -966,8 +966,8 @@ function TxnsPage() {
         </span>
       </div>
 
-      {/* Mobile Filters Trigger — Sticky fixed below app header, zero gap */}
-      <div className="md:hidden sticky top-[96px] z-20 -mx-4 px-4 -mt-3 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm">
+      {/* Mobile Filters — Fixed below app header, absolutely no movement */}
+      <div className="md:hidden fixed top-[96px] left-0 right-0 z-20 px-4 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm">
         <div className="flex flex-shrink-0 items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -1075,6 +1075,8 @@ function TxnsPage() {
         </span>
         </div>
       </div>
+      {/* Spacer for fixed mobile filter bar */}
+      <div className="md:hidden h-10" />
 
       {/* Table (Desktop Layout) */}
       <div className="hidden md:flex rounded-xl border bg-card flex-1 flex-col min-h-0">
