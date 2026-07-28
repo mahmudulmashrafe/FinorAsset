@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { 
   ShieldCheck, Plus, Trash2, Pencil, Calendar, Image as ImageIcon, 
-  ExternalLink, AlertTriangle, ShieldAlert, Loader2, Upload, X, Shield, FileText 
+  ExternalLink, AlertTriangle, ShieldAlert, Loader2, Upload, X, Shield, FileText, ChevronDown 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

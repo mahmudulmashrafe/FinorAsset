@@ -4,7 +4,7 @@ import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Play, Plus, Cpu, Sparkles, Pencil } from "lucide-react";
+import { Trash2, Play, Plus, Cpu, Sparkles, Pencil, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
