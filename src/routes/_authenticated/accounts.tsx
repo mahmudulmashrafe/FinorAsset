@@ -870,15 +870,14 @@ function AccountsPage() {
     toast.success("Account deleted");
   }
 
+  const netWorthAccounts = useMemo(() => accounts.filter(a => isAccountIncludedInNetWorth(a)), [accounts]);
+  const nonNetWorthAccounts = useMemo(() => accounts.filter(a => !isAccountIncludedInNetWorth(a)), [accounts]);
+
   const filteredAccounts = useMemo(() => {
-    if (accountView === "net_worth") {
-      return accounts.filter(a => isAccountIncludedInNetWorth(a));
-    }
-    if (accountView === "non_net_worth") {
-      return accounts.filter(a => !isAccountIncludedInNetWorth(a));
-    }
+    if (accountView === "net_worth") return netWorthAccounts;
+    if (accountView === "non_net_worth") return nonNetWorthAccounts;
     return accounts;
-  }, [accounts, accountView]);
+  }, [accounts, accountView, netWorthAccounts, nonNetWorthAccounts]);
 
   const viewTotalWorth = useMemo(() => {
     return filteredAccounts.reduce((s, a) => s + (balances.get(a.id) ?? 0), 0);
@@ -895,8 +894,8 @@ function AccountsPage() {
   }, [txns]);
 
   const netWorthAccountIds = useMemo(() => {
-    return new Set(accounts.filter(a => isAccountIncludedInNetWorth(a)).map(a => a.id));
-  }, [accounts]);
+    return new Set(netWorthAccounts.map(a => a.id));
+  }, [netWorthAccounts]);
 
   const viewIncome = useMemo(() => {
     if (accountView === "net_worth") {
@@ -937,38 +936,53 @@ function AccountsPage() {
         <div>
           <h1 className="font-serif text-xl sm:text-2xl font-bold">Accounts</h1>
           
-          {/* Toggle Option Buttons */}
-          <div className="flex items-center gap-1 mt-2 p-1 bg-muted/50 border rounded-xl w-fit relative z-30 touch-manipulation">
-            <Button
+          {/* Toggle Option Buttons with Counts */}
+          <div className="flex items-center gap-1.5 mt-2 p-1 bg-muted/60 border rounded-xl w-fit relative z-30">
+            <button
               type="button"
-              variant={accountView === "net_worth" ? "default" : "ghost"}
-              size="sm"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setAccountView("net_worth");
               }}
-              className="text-xs sm:text-sm h-8 px-2.5 sm:px-3 rounded-lg cursor-pointer font-medium touch-manipulation active:scale-95 transition-transform"
+              className={`text-xs sm:text-sm h-8 px-3 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                accountView === "net_worth"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
             >
-              🌐 Net Worth Accounts
-            </Button>
-            <Button
+              <span>🌐 Net Worth</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                accountView === "net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {netWorthAccounts.length}
+              </span>
+            </button>
+
+            <button
               type="button"
-              variant={accountView === "non_net_worth" ? "default" : "ghost"}
-              size="sm"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setAccountView("non_net_worth");
               }}
-              className="text-xs sm:text-sm h-8 px-2.5 sm:px-3 rounded-lg cursor-pointer font-medium touch-manipulation active:scale-95 transition-transform"
+              className={`text-xs sm:text-sm h-8 px-3 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                accountView === "non_net_worth"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
             >
-              🚫 Non Net Worth
-            </Button>
+              <span>🚫 Non Net Worth</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                accountView === "non_net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {nonNetWorthAccounts.length}
+              </span>
+            </button>
           </div>
         </div>
 
-        {/* Dynamic Summary Cards — Compact Mobile Typography so money values display fully without truncation */}
+        {/* Dynamic Summary Cards — Compact Mobile Typography */}
         <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 w-full md:w-auto">
           <div className="bg-card px-1.5 sm:px-5 py-1.5 sm:py-3.5 rounded-lg sm:rounded-2xl border shadow-sm flex flex-col justify-center min-w-0 md:min-w-[190px] text-center sm:text-left">
             <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">
@@ -1032,28 +1046,40 @@ function AccountsPage() {
       />
 
       {/* ── Account cards grid ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredAccounts.map((a) => (
-          <div
-            key={a.id}
-            onClick={() => setEditAccount(a)}
-            className="rounded-xl border bg-card p-4 relative group transition-all hover:shadow-md hover:border-accent/40 cursor-pointer flex flex-col justify-between"
-          >
-            <div>
-              {/* Card Top Header: Type Label + Eye Button */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  {(a as any).image_url ? (
-                    <img 
-                      src={(a as any).image_url} 
-                      alt={a.name} 
-                      className="h-5 w-5 rounded-full object-cover flex-shrink-0 border border-border/40" 
-                    />
-                  ) : (
-                    <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
-                  )}
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">{TYPE_LABELS[a.type] ?? a.type}</span>
-                </div>
+      {filteredAccounts.length === 0 ? (
+        <div className="col-span-full rounded-2xl border border-dashed bg-card/40 p-8 sm:p-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
+          <p className="text-sm font-semibold text-foreground">
+            No {accountView === "net_worth" ? "Net Worth" : "Non Net Worth"} Accounts Found
+          </p>
+          <p className="text-xs text-muted-foreground max-w-sm">
+            {accountView === "non_net_worth"
+              ? "All your accounts are currently included in Net Worth. Tap any account card to edit it and turn off 'Include in Net Worth'."
+              : "You don't have any Net Worth accounts configured."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredAccounts.map((a) => (
+            <div
+              key={a.id}
+              onClick={() => setEditAccount(a)}
+              className="rounded-xl border bg-card p-4 relative group transition-all hover:shadow-md hover:border-accent/40 cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                {/* Card Top Header: Type Label + Eye Button */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {(a as any).image_url ? (
+                      <img 
+                        src={(a as any).image_url} 
+                        alt={a.name} 
+                        className="h-5 w-5 rounded-full object-cover flex-shrink-0 border border-border/40" 
+                      />
+                    ) : (
+                      <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                    )}
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">{TYPE_LABELS[a.type] ?? a.type}</span>
+                  </div>
 
                 <div className="flex items-center gap-1">
                   <Button
@@ -1086,13 +1112,8 @@ function AccountsPage() {
             </div>
           </div>
         ))}
-
-        {accounts.length === 0 && (
-          <div className="col-span-full rounded-xl border bg-card p-12 text-center text-muted-foreground">
-            No accounts yet — create one to start tracking.
-          </div>
-        )}
       </div>
+      )}
 
       {/* Deletion confirmation alert dialog */}
       <AlertDialog open={!!deleteAccount} onOpenChange={(open) => !open && setDeleteAccount(null)}>

@@ -51,7 +51,10 @@ export function getExcludedAccountIds(): string[] {
 
 export function isAccountIncludedInNetWorth(account: Account | null | undefined): boolean {
   if (!account || !account.id) return true;
-  if ((account as any).include_in_net_worth === false) return false;
+  const acc = account as any;
+  if (acc.include_in_net_worth === false || acc.include_in_net_worth === 0 || acc.include_in_net_worth === "false") {
+    return false;
+  }
   const excluded = getExcludedAccountIds();
   return !excluded.includes(account.id);
 }
