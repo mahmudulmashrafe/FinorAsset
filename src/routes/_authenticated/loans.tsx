@@ -590,13 +590,33 @@ function LoansPage() {
             </button>
           </div>
 
-          {/* Floatable Summary Trigger Button */}
+          {/* Web View (Desktop): Direct Inline Summary Pills matching toggle button height & style */}
+          <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0">
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Net Debt:</span>
+              <span className={`font-serif num ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                {netBalance >= 0 ? "+" : ""}{fmtMoney(netBalance, currency)}
+              </span>
+            </div>
+
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Borrowed:</span>
+              <span className="font-serif num text-destructive">{fmtMoney(activeBorrowed, currency)}</span>
+            </div>
+
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Lent:</span>
+              <span className="font-serif num text-success">{fmtMoney(activeLent, currency)}</span>
+            </div>
+          </div>
+
+          {/* Mobile View: Floatable Summary Trigger Button */}
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => setShowSummary(!showSummary)}
-            className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0 ml-auto"
+            className="md:hidden h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0 ml-auto"
           >
             <span>{showSummary ? "Hide" : "Summary"}</span>
             <span className="font-serif num font-bold text-accent">
@@ -606,27 +626,27 @@ function LoansPage() {
           </Button>
         </div>
 
-        {/* Collapsible Summary Cards Panel */}
+        {/* Collapsible Summary Panel (Mobile View Only) */}
         {showSummary && (
-          <div className="p-3 sm:p-4 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 w-full">
-              <div className="bg-background px-2.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl border shadow-xs flex flex-col justify-center text-center sm:text-left">
-                <span className="text-[9px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Net Debt</span>
-                <span className={`font-serif num text-xs sm:text-xl font-bold truncate ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
+          <div className="md:hidden p-3 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
+            <div className="grid grid-cols-3 gap-1.5 w-full">
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Net Debt</span>
+                <span className={`font-serif num text-[11px] font-bold truncate ${netBalance >= 0 ? "text-success" : "text-destructive"}`}>
                   {netBalance >= 0 ? "+" : ""}{fmtMoney(netBalance, currency)}
                 </span>
               </div>
 
-              <div className="bg-background px-2.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl border shadow-xs flex flex-col justify-center text-center sm:text-left">
-                <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Borrowed</span>
-                <span className="font-serif num text-xs sm:text-xl font-bold text-destructive truncate">
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Borrowed</span>
+                <span className="font-serif num text-[11px] font-bold text-destructive truncate">
                   {fmtMoney(activeBorrowed, currency)}
                 </span>
               </div>
 
-              <div className="bg-background px-2.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl border shadow-xs flex flex-col justify-center text-center sm:text-left">
-                <span className="text-[8px] sm:text-xs uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Lent</span>
-                <span className="font-serif num text-xs sm:text-xl font-bold text-success truncate">
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Lent</span>
+                <span className="font-serif num text-[11px] font-bold text-success truncate">
                   {fmtMoney(activeLent, currency)}
                 </span>
               </div>
