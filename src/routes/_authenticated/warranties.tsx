@@ -109,6 +109,10 @@ function WarrantiesPage() {
   const [deleteWarranty, setDeleteWarranty] = useState<{ id: string; title: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // View and summary states (matching accounts page)
+  const [warrantyView, setWarrantyView] = useState<"all" | "active" | "expiring" | "expired">("all");
+  const [showSummary, setShowSummary] = useState(false);
+
   // Mobile list & Detail popup states (Matching Loans Page design)
   const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null);
   const [activeListOpen, setActiveListOpen] = useState(false);
@@ -506,71 +510,161 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
         </div>
       )}
 
-      {/* Stats Grid */}
+      {/* ── Top Bar Header & Floatable / Collapsible Summary Block ── */}
       {!dbError && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div 
-            onClick={() => {
-              if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-                setActiveListOpen(true);
-              }
-            }}
-            className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
-          >
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                Active Warranties
-                <span className="md:hidden text-[9px] font-sans bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
-              </p>
-              <h3 className="font-serif text-2xl font-black mt-1 num text-emerald-600">{activeWarranties.length}</h3>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Currently under coverage</p>
+        <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm space-y-2 z-20 mb-4">
+          {/* Main Header Row: Toggles (Left) + View Summary Button / Desktop Pills (Right) */}
+          <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
+            {/* Toggle Option Buttons — Micro-Compact h-6 (24px), clean text without emojis */}
+            <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setWarrantyView("all");
+                }}
+                className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                  warrantyView === "all"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+              >
+                <span>All</span>
+                <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                  warrantyView === "all" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {warranties.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setWarrantyView("active");
+                }}
+                className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                  warrantyView === "active"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+              >
+                <span>Active</span>
+                <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                  warrantyView === "active" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {activeWarranties.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setWarrantyView("expiring");
+                }}
+                className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                  warrantyView === "expiring"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+              >
+                <span>Expiring</span>
+                <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                  warrantyView === "expiring" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {soonExpiring.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setWarrantyView("expired");
+                }}
+                className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                  warrantyView === "expired"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+              >
+                <span>Expired</span>
+                <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                  warrantyView === "expired" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {expiredWarranties.length}
+                </span>
+              </button>
             </div>
-            <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <Shield className="h-5 w-5" />
+
+            {/* Web View (Desktop): Direct Inline Summary Pills matching toggle button height & style */}
+            <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0">
+              <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+                <span className="text-muted-foreground uppercase text-[9px]">Active:</span>
+                <span className="font-serif num text-emerald-600 font-bold">{activeWarranties.length}</span>
+              </div>
+
+              <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+                <span className="text-muted-foreground uppercase text-[9px]">Expiring (30d):</span>
+                <span className="font-serif num text-amber-500 font-bold">{soonExpiring.length}</span>
+              </div>
+
+              <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+                <span className="text-muted-foreground uppercase text-[9px]">Covered:</span>
+                <span className="font-serif num text-accent font-bold">
+                  {fmtMoney(activeWarranties.reduce((s, w) => s + Number(w.amount), 0), currency)}
+                </span>
+              </div>
             </div>
+
+            {/* Mobile View: Floatable Summary Trigger Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSummary(!showSummary)}
+              className="md:hidden h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0 ml-auto"
+            >
+              <span>{showSummary ? "Hide" : "Summary"}</span>
+              <span className="font-serif num font-bold text-accent">
+                ({activeWarranties.length} active)
+              </span>
+              <ChevronDown className={`h-2.5 w-2.5 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
+            </Button>
           </div>
 
-          <div 
-            onClick={() => {
-              if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-                setExpiringListOpen(true);
-              }
-            }}
-            className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
-          >
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                Expiring (30d)
-                <span className="md:hidden text-[9px] font-sans bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
-              </p>
-              <h3 className="font-serif text-2xl font-black mt-1 num text-amber-500">{soonExpiring.length}</h3>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Coverage ending within 30 days</p>
-            </div>
-            <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center animate-pulse">
-              <ShieldAlert className="h-5 w-5" />
-            </div>
-          </div>
+          {/* Collapsible Summary Panel (Mobile View Only) */}
+          {showSummary && (
+            <div className="md:hidden p-3 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
+              <div className="grid grid-cols-3 gap-1.5 w-full">
+                <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Active</span>
+                  <span className="font-serif num text-[11px] font-bold text-emerald-600 truncate">
+                    {activeWarranties.length}
+                  </span>
+                </div>
 
-          <div 
-            onClick={() => {
-              if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-                setExpiredListOpen(true);
-              }
-            }}
-            className="rounded-xl border bg-card p-4 flex items-center justify-between shadow-sm cursor-pointer md:cursor-default hover:bg-muted/5 md:hover:bg-card transition-colors"
-          >
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                Expired
-                <span className="md:hidden text-[9px] font-sans bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-bold">Click to view</span>
-              </p>
-              <h3 className="font-serif text-2xl font-black mt-1 num text-destructive">{expiredWarranties.length}</h3>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Past warranty validity</p>
+                <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expiring</span>
+                  <span className="font-serif num text-[11px] font-bold text-amber-500 truncate">
+                    {soonExpiring.length}
+                  </span>
+                </div>
+
+                <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Covered</span>
+                  <span className="font-serif num text-[11px] font-bold text-accent truncate">
+                    {fmtMoney(activeWarranties.reduce((s, w) => s + Number(w.amount), 0), currency)}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="h-10 w-10 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-          </div>
+          )}
         </div>
       )}
 

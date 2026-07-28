@@ -143,8 +143,9 @@ function AutomationPage() {
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
 
-  // Tabs selection
+  // Tabs & Summary selection
   const [activeTab, setActiveTab] = useState<"macros" | "subscriptions">("macros");
+  const [showSummary, setShowSummary] = useState(false);
 
   // Load subscriptions query
   const { data: subscriptions = [] } = useQuery({
@@ -605,24 +606,118 @@ function AutomationPage() {
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
       
-      {/* Tabs Selector */}
-      <div className="flex border-b border-border/40 gap-6">
-        <button
-          onClick={() => setActiveTab("macros")}
-          className={`pb-2.5 text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer ${
-            activeTab === "macros" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Macros
-        </button>
-        <button
-          onClick={() => setActiveTab("subscriptions")}
-          className={`pb-2.5 text-sm font-serif font-black tracking-tight relative transition-colors cursor-pointer ${
-            activeTab === "subscriptions" ? "text-accent border-b-2 border-accent" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Subscriptions
-        </button>
+      {/* ── Top Bar Header & Floatable / Collapsible Summary Block ── */}
+      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm space-y-2 z-20 mb-4">
+        {/* Main Header Row: Toggles (Left) + View Summary Button / Desktop Pills (Right) */}
+        <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
+          {/* Toggle Option Buttons — Micro-Compact h-6 (24px), clean text without emojis */}
+          <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveTab("macros");
+              }}
+              className={`h-6 px-2.5 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                activeTab === "macros"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>Macros</span>
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                activeTab === "macros" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {rules.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveTab("subscriptions");
+              }}
+              className={`h-6 px-2.5 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                activeTab === "subscriptions"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>Subscriptions</span>
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                activeTab === "subscriptions" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {subscriptions.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Web View (Desktop): Direct Inline Summary Pills matching toggle button height & style */}
+          <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0">
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Macros:</span>
+              <span className="font-serif num text-foreground">{rules.length}</span>
+            </div>
+
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Subs:</span>
+              <span className="font-serif num text-foreground">{subscriptions.length}</span>
+            </div>
+
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Subs Total:</span>
+              <span className="font-serif num text-accent font-bold">
+                {fmtMoney(subscriptions.reduce((s, sub) => s + Number(sub.amount), 0), currency)}
+              </span>
+            </div>
+          </div>
+
+          {/* Mobile View: Floatable Summary Trigger Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSummary(!showSummary)}
+            className="md:hidden h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0 ml-auto"
+          >
+            <span>{showSummary ? "Hide" : "Summary"}</span>
+            <span className="font-serif num font-bold text-accent">
+              ({rules.length} macros)
+            </span>
+            <ChevronDown className={`h-2.5 w-2.5 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
+          </Button>
+        </div>
+
+        {/* Collapsible Summary Panel (Mobile View Only) */}
+        {showSummary && (
+          <div className="md:hidden p-3 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
+            <div className="grid grid-cols-3 gap-1.5 w-full">
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Macros</span>
+                <span className="font-serif num text-[11px] font-bold text-foreground truncate">
+                  {rules.length}
+                </span>
+              </div>
+
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Subs</span>
+                <span className="font-serif num text-[11px] font-bold text-foreground truncate">
+                  {subscriptions.length}
+                </span>
+              </div>
+
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Subs Total</span>
+                <span className="font-serif num text-[11px] font-bold text-accent truncate">
+                  {fmtMoney(subscriptions.reduce((s, sub) => s + Number(sub.amount), 0), currency)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {activeTab === "macros" ? (
