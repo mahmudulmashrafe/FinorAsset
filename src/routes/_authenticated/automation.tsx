@@ -666,13 +666,6 @@ function AutomationPage() {
               <span className="text-muted-foreground uppercase text-[9px]">Subs:</span>
               <span className="font-serif num text-foreground">{subscriptions.length}</span>
             </div>
-
-            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-              <span className="text-muted-foreground uppercase text-[9px]">Subs Total:</span>
-              <span className="font-serif num text-accent font-bold">
-                {fmtMoney(subscriptions.reduce((s, sub) => s + Number(sub.amount), 0), currency)}
-              </span>
-            </div>
           </div>
 
           {/* Mobile View: Floatable Summary Trigger Button */}
@@ -694,7 +687,7 @@ function AutomationPage() {
         {/* Collapsible Summary Panel (Mobile View Only) */}
         {showSummary && (
           <div className="md:hidden p-3 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
-            <div className="grid grid-cols-3 gap-1.5 w-full">
+            <div className="grid grid-cols-2 gap-1.5 w-full">
               <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
                 <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Macros</span>
                 <span className="font-serif num text-[11px] font-bold text-foreground truncate">
@@ -706,13 +699,6 @@ function AutomationPage() {
                 <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Subs</span>
                 <span className="font-serif num text-[11px] font-bold text-foreground truncate">
                   {subscriptions.length}
-                </span>
-              </div>
-
-              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
-                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Subs Total</span>
-                <span className="font-serif num text-[11px] font-bold text-accent truncate">
-                  {fmtMoney(subscriptions.reduce((s, sub) => s + Number(sub.amount), 0), currency)}
                 </span>
               </div>
             </div>

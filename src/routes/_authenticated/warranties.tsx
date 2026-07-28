@@ -615,10 +615,8 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               </div>
 
               <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-                <span className="text-muted-foreground uppercase text-[9px]">Covered:</span>
-                <span className="font-serif num text-accent font-bold">
-                  {fmtMoney(activeWarranties.reduce((s, w) => s + Number(w.amount), 0), currency)}
-                </span>
+                <span className="text-muted-foreground uppercase text-[9px]">Expired:</span>
+                <span className="font-serif num text-destructive font-bold">{expiredWarranties.length}</span>
               </div>
             </div>
 
@@ -657,9 +655,9 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                 </div>
 
                 <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
-                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Covered</span>
-                  <span className="font-serif num text-[11px] font-bold text-accent truncate">
-                    {fmtMoney(activeWarranties.reduce((s, w) => s + Number(w.amount), 0), currency)}
+                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expired</span>
+                  <span className="font-serif num text-[11px] font-bold text-destructive truncate">
+                    {expiredWarranties.length}
                   </span>
                 </div>
               </div>
