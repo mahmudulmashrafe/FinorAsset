@@ -933,8 +933,8 @@ function AccountsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      {/* ── Top Bar Header & Floatable / Collapsible Summary Block (Fixed / Sticky Position Below Header) ── */}
-      <div className="sticky top-24 md:top-20 z-20 bg-background/95 backdrop-blur-md py-1.5 border-b shadow-sm -mx-4 px-4 sm:mx-0 sm:px-0 space-y-2">
+      {/* ── Top Bar Header & Floatable / Collapsible Summary Block (Immediate Below Header on Web & Mobile) ── */}
+      <div className="-mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 sticky top-24 md:top-20 z-20 bg-background/95 backdrop-blur-md border-b shadow-xs space-y-2">
         {/* Main Header Row: Single Non-Wrapping Row for Toggles & View Summary Button */}
         <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
           {/* Toggle Option Buttons — Micro-Compact h-6 (24px) */}
