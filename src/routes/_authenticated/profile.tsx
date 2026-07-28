@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { User, Mail, DollarSign, Calendar, Save, Pencil } from "lucide-react";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { convertAllUserFinancialRecords } from "@/lib/currency";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -124,15 +125,25 @@ function ProfilePage() {
     if (!displayName.trim()) {
       return toast.error("Display name cannot be empty");
     }
-    const saveCurrency = currency || "USD";
+
+    const oldCurrency = (profile?.currency || "USD").toUpperCase();
+    const newCurrency = (currency || "USD").toUpperCase();
     setSaving(true);
+
+    let converted = false;
+    if (oldCurrency !== newCurrency) {
+      toast.info(`Converting all records from ${oldCurrency} to ${newCurrency} at today's exchange rate...`);
+      await convertAllUserFinancialRecords(authUser.id, oldCurrency, newCurrency);
+      converted = true;
+    }
+
     // Use upsert to create the row if it's missing, or update if it exists
     const { error } = await supabase
       .from("profiles")
       .upsert({
         id: authUser.id,
         display_name: displayName.trim(),
-        currency: saveCurrency.toUpperCase(),
+        currency: newCurrency,
         avatar_url: avatarUrl || null,
         updated_at: new Date().toISOString(),
       });
@@ -142,10 +153,20 @@ function ProfilePage() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Profile settings updated!");
-      // Invalidate queries to refresh values across the application
+      if (converted) {
+        toast.success(`Currency updated to ${newCurrency}! All financial records converted at today's rate.`);
+      } else {
+        toast.success("Profile settings updated!");
+      }
+      // Invalidate all relevant queries to refresh values across the application
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["loans"] });
+      qc.invalidateQueries({ queryKey: ["budgets"] });
+      qc.invalidateQueries({ queryKey: ["warranties"] });
+      qc.invalidateQueries({ queryKey: ["subscriptions"] });
+      qc.invalidateQueries({ queryKey: ["macros"] });
     }
   }
 
