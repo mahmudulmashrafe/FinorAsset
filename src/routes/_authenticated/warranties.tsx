@@ -510,12 +510,10 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
         </div>
       )}
 
-      {/* ── Top Bar Header & Floatable / Collapsible Summary Block ── */}
+      {/* ── Top Bar Header: Only Toggle Buttons with Record Counts ── */}
       {!dbError && (
-        <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm space-y-2 z-20 mb-4">
-          {/* Main Header Row: Toggles (Left) + View Summary Button / Desktop Pills (Right) */}
-          <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
-            {/* Toggle Option Buttons — Micro-Compact h-6 (24px), clean text without emojis */}
+        <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4">
+          <div className="flex items-center gap-1.5 overflow-x-auto thin-scroll">
             <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
               <button
                 type="button"
@@ -601,68 +599,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                 </span>
               </button>
             </div>
-
-            {/* Web View (Desktop): Direct Inline Summary Pills matching toggle button height & style */}
-            <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0">
-              <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-                <span className="text-muted-foreground uppercase text-[9px]">Active:</span>
-                <span className="font-serif num text-emerald-600 font-bold">{activeWarranties.length}</span>
-              </div>
-
-              <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-                <span className="text-muted-foreground uppercase text-[9px]">Expiring (30d):</span>
-                <span className="font-serif num text-amber-500 font-bold">{soonExpiring.length}</span>
-              </div>
-
-              <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-                <span className="text-muted-foreground uppercase text-[9px]">Expired:</span>
-                <span className="font-serif num text-destructive font-bold">{expiredWarranties.length}</span>
-              </div>
-            </div>
-
-            {/* Mobile View: Floatable Summary Trigger Button */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSummary(!showSummary)}
-              className="md:hidden h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0 ml-auto"
-            >
-              <span>{showSummary ? "Hide" : "Summary"}</span>
-              <span className="font-serif num font-bold text-accent">
-                ({activeWarranties.length} active)
-              </span>
-              <ChevronDown className={`h-2.5 w-2.5 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
-            </Button>
           </div>
-
-          {/* Collapsible Summary Panel (Mobile View Only) */}
-          {showSummary && (
-            <div className="md:hidden p-3 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
-              <div className="grid grid-cols-3 gap-1.5 w-full">
-                <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
-                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Active</span>
-                  <span className="font-serif num text-[11px] font-bold text-emerald-600 truncate">
-                    {activeWarranties.length}
-                  </span>
-                </div>
-
-                <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
-                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expiring</span>
-                  <span className="font-serif num text-[11px] font-bold text-amber-500 truncate">
-                    {soonExpiring.length}
-                  </span>
-                </div>
-
-                <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
-                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Expired</span>
-                  <span className="font-serif num text-[11px] font-bold text-destructive truncate">
-                    {expiredWarranties.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
