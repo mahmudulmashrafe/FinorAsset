@@ -933,12 +933,12 @@ function AccountsPage() {
 
   return (
     <div className="space-y-6 w-full">
-      {/* ── Top Bar Header & Floatable / Collapsible Summary Block ── */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-2 pt-2 border-b shadow-sm sm:shadow-none sm:border-b sm:static -mx-4 px-4 sm:mx-0 sm:px-0 space-y-2">
+      {/* ── Top Bar Header & Floatable / Collapsible Summary Block (Fixed / Sticky Position) ── */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md py-1.5 border-b shadow-sm -mx-4 px-4 sm:mx-0 sm:px-0 space-y-2">
         {/* Main Header Row: Single Non-Wrapping Row for Toggles & View Summary Button */}
-        <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll py-0.5">
-          {/* Toggle Option Buttons — Ultra-Compact h-7 */}
-          <div className="flex items-center gap-1 p-0.5 bg-muted/50 border rounded-lg shrink-0 relative z-30">
+        <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
+          {/* Toggle Option Buttons — Micro-Compact h-6 (24px) */}
+          <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
             <button
               type="button"
               onClick={(e) => {
@@ -946,14 +946,14 @@ function AccountsPage() {
                 e.stopPropagation();
                 setAccountView("net_worth");
               }}
-              className={`h-7 px-2 sm:px-2.5 text-[11px] sm:text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 ${
+              className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
                 accountView === "net_worth"
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
               <span>🌐 Net Worth</span>
-              <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
                 accountView === "net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}>
                 {netWorthAccounts.length}
@@ -967,14 +967,14 @@ function AccountsPage() {
                 e.stopPropagation();
                 setAccountView("non_net_worth");
               }}
-              className={`h-7 px-2 sm:px-2.5 text-[11px] sm:text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 ${
+              className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
                 accountView === "non_net_worth"
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
               <span>🚫 Non Net Worth</span>
-              <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
                 accountView === "non_net_worth" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}>
                 {nonNetWorthAccounts.length}
@@ -982,17 +982,17 @@ function AccountsPage() {
             </button>
           </div>
 
-          {/* Floatable Summary Trigger Button — Ultra-Compact h-7 */}
+          {/* Floatable Summary Trigger Button — Micro-Compact h-6 (24px) */}
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => setShowSummary(!showSummary)}
-            className="h-7 px-2 sm:px-2.5 text-[11px] sm:text-xs font-semibold gap-1 rounded-lg border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-xs shrink-0"
+            className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0"
           >
             <span>📊 {showSummary ? "Hide" : "Summary"}</span>
             <span className="font-serif num font-bold text-accent">({fmtMoney(viewTotalWorth, profileCurrency)})</span>
-            <ChevronDown className={`h-3 w-3 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-2.5 w-2.5 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
           </Button>
         </div>
 
