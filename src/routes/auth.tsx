@@ -166,6 +166,28 @@ function AuthPage() {
     }
   }
 
+  async function sendMagicLink() {
+    if (!email.trim() || !email.includes("@")) {
+      toast.error("Please enter your email address above first.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`Magic sign-in link sent to ${email}! Check your inbox.`);
+      setUseOtp(true);
+      setOtpSent(true);
+    }
+  }
+
   async function sendOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!email) {
@@ -370,19 +392,23 @@ function AuthPage() {
                       {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
                     </div>
                     <Button type="submit" className="w-full rounded-xl h-11 font-semibold" disabled={loading} id="signin-submit">
-                      {loading ? "Signing in…" : "Sign in"}
+                      {loading ? "Signing in…" : "Sign in with password"}
                     </Button>
-                    <div className="text-center pt-2">
-                      <button
+                    <div className="pt-2 text-center space-y-2">
+                      <div className="relative flex py-1 items-center">
+                        <div className="flex-grow border-t border-border/60"></div>
+                        <span className="flex-shrink mx-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Or</span>
+                        <div className="flex-grow border-t border-border/60"></div>
+                      </div>
+                      <Button
                         type="button"
-                        onClick={() => {
-                          setUseOtp(true);
-                          setErrors({});
-                        }}
-                        className="text-xs text-accent hover:underline font-medium cursor-pointer"
+                        variant="outline"
+                        onClick={sendMagicLink}
+                        disabled={loading}
+                        className="w-full rounded-xl h-11 font-semibold border-accent/40 text-accent hover:bg-accent/10 cursor-pointer"
                       >
-                        Passwordless Sign in
-                      </button>
+                        {loading ? "Sending link…" : "Send Magic Link (Passwordless)"}
+                      </Button>
                     </div>
                   </form>
                 )}
