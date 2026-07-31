@@ -154,7 +154,13 @@ function BudgetsPage() {
           return (
             <div
               key={b.id}
-              className={`group relative rounded-2xl border transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row min-h-[150px] ${
+              onClick={() => {
+                setEditingBudget(b);
+                setAmount(String(b.amount));
+                setCatId(b.category_id);
+                setOpen(true);
+              }}
+              className={`group relative rounded-2xl border transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[150px] ${
                 over
                   ? "bg-card border-destructive/30"
                   : "bg-card hover:bg-accent/[0.02]"
@@ -195,41 +201,11 @@ function BudgetsPage() {
               {/* Right 2/3 Column: Budget Details & Actions */}
               <div className="w-2/3 p-3.5 flex flex-col justify-between min-w-0">
                 <div className="space-y-1">
-                  {/* Header: Title + Quick Inline Actions */}
+                  {/* Header: Title */}
                   <div className="flex items-start justify-between gap-1">
                     <h3 className="font-serif font-black text-sm sm:text-base text-foreground truncate" title={cat?.name}>
                       {cat?.name ?? "Budget"}
                     </h3>
-
-                    {/* Edit & Delete Action Buttons Directly in Card View */}
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingBudget(b);
-                          setAmount(String(b.amount));
-                          setCatId(b.category_id);
-                          setOpen(true);
-                        }}
-                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
-                        title="Edit Budget"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(b.id)}
-                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                        title="Delete Budget"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
                   </div>
 
                   {/* Spent vs Budgeted Amount */}

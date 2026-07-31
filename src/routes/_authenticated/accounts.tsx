@@ -1177,7 +1177,7 @@ function AccountsPage() {
                     </div>
                   </div>
 
-                  {/* Actions Row: View Transactions, Edit, Delete */}
+                  {/* Actions Row: View Transactions */}
                   <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between gap-1">
                     <Button
                       type="button"
@@ -1192,36 +1192,6 @@ function AccountsPage() {
                       <Eye className="h-3 w-3" />
                       <span>Txns</span>
                     </Button>
-
-                    <div className="flex items-center gap-0.5 shrink-0 ml-auto">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditAccount(a);
-                        }}
-                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
-                        title="Edit Account"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteAccount({ id: a.id, name: a.name });
-                        }}
-                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                        title="Delete Account"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </div>

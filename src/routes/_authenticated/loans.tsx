@@ -695,7 +695,8 @@ function LoansPage() {
           return (
             <div
               key={loan.id}
-              className={`group relative rounded-2xl border transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row min-h-[160px] ${
+              onClick={() => handleEdit(loan)}
+              className={`group relative rounded-2xl border transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[160px] ${
                 isPaid
                   ? "bg-card/60 opacity-70 grayscale-[25%] hover:opacity-90 hover:grayscale-0 border-border/40"
                   : isBorrowed
@@ -786,7 +787,10 @@ function LoansPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setRepayLoan(loan)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRepayLoan(loan);
+                      }}
                       className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 transition-all cursor-pointer shadow-2xs shrink-0"
                     >
                       <span>Repay</span>
@@ -794,30 +798,6 @@ function LoansPage() {
                   ) : (
                     <span className="text-[10px] text-muted-foreground/60 font-medium">Completed</span>
                   )}
-
-                  <div className="flex items-center gap-0.5 shrink-0 ml-auto">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(loan)}
-                      className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
-                      title="Edit Loan"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteLoan({ id: loan.id, name: loan.person_name })}
-                      className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                      title="Delete Loan"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
                 </div>
               </div>
             </div>
