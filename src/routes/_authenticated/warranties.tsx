@@ -700,7 +700,11 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   <div
                     key={w.id}
                     onClick={() => handleRowClick(w)}
-                    className="group relative rounded-2xl border bg-card hover:bg-accent/[0.02] transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[160px]"
+                    className={`group relative rounded-2xl border transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[160px] ${
+                      isExpired
+                        ? "bg-card/60 opacity-70 grayscale-[25%] hover:opacity-90 hover:grayscale-0 border-destructive/20"
+                        : "bg-card hover:bg-accent/[0.02]"
+                    }`}
                   >
                     {/* Left 1/3 Column: Product Image */}
                     <div className="w-1/3 shrink-0 relative bg-muted flex items-center justify-center border-r border-border/40 overflow-hidden">
