@@ -1095,66 +1095,139 @@ function AccountsPage() {
           </p>
           <p className="text-xs text-muted-foreground max-w-sm">
             {accountView === "non_net_worth"
-              ? "All your accounts are currently included in Net Worth. Tap any account card to edit it and turn off 'Include in Net Worth'."
+              ? "All your accounts are currently included in Net Worth. Edit an account to turn off 'Include in Net Worth'."
               : "You don't have any Net Worth accounts configured."}
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredAccounts.map((a) => (
-            <div
-              key={a.id}
-              onClick={() => setEditAccount(a)}
-              className="rounded-xl border bg-card p-4 relative group transition-all hover:shadow-md hover:border-accent/40 cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                {/* Card Top Header: Type Label + Eye Button */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {(a as any).image_url ? (
-                      <img 
-                        src={(a as any).image_url} 
-                        alt={a.name} 
-                        className="h-5 w-5 rounded-full object-cover flex-shrink-0 border border-border/40" 
-                      />
-                    ) : (
-                      <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
-                    )}
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">{TYPE_LABELS[a.type] ?? a.type}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAccounts.map((a) => {
+            const balance = balances.get(a.id) ?? 0;
+            const isIncludedNW = isAccountIncludedInNetWorth(a);
+            const typeLabel = TYPE_LABELS[a.type] ?? a.type;
+
+            return (
+              <div
+                key={a.id}
+                className="group relative rounded-2xl border bg-card hover:bg-accent/[0.02] transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[150px]"
+                onClick={() => setEditAccount(a)}
+              >
+                {/* Left 1/3 Column: Account Image / Color Block */}
+                <div className="w-1/3 shrink-0 relative bg-muted flex items-center justify-center border-r border-border/40 overflow-hidden">
+                  {(a as any).image_url ? (
+                    <img
+                      src={(a as any).image_url}
+                      alt={a.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div
+                      className="h-full w-full flex flex-col items-center justify-center p-2 text-center"
+                      style={{
+                        background: a.color
+                          ? `linear-gradient(135deg, ${a.color}30, ${a.color}10)`
+                          : undefined,
+                      }}
+                    >
+                      <span
+                        className="h-9 w-9 rounded-full mb-1 shadow-2xs border border-white/20 flex items-center justify-center font-bold text-white text-xs uppercase shrink-0"
+                        style={{ background: a.color || "var(--accent)" }}
+                      >
+                        {a.name.slice(0, 2)}
+                      </span>
+                      <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground truncate max-w-full px-1">
+                        {typeLabel}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Balance Badge Overlaid on Left Block */}
+                  <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded border border-border/60 shadow-2xs">
+                    <span className="font-serif num font-black text-[10px]">
+                      {fmtMoney(balance, profileCurrency)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right 2/3 Column: Details & Inline Actions */}
+                <div className="w-2/3 p-3.5 flex flex-col justify-between min-w-0">
+                  <div className="space-y-1.5">
+                    {/* Header: Title + Type Badge */}
+                    <div className="flex items-start justify-between gap-1">
+                      <h3 className="font-serif font-black text-sm sm:text-base text-foreground truncate group-hover:text-accent transition-colors" title={a.name}>
+                        {a.name}
+                      </h3>
+
+                      <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider shrink-0">
+                        {typeLabel}
+                      </Badge>
+                    </div>
+
+                    {/* Net Worth Inclusion Badge */}
+                    <div>
+                      {isIncludedNW ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                          Net Worth
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground bg-muted/50 border border-border/60 px-1.5 py-0.5 rounded">
+                          Excluded NW
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setViewingTxnAccount(a);
-                    }}
-                    className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
-                    title="View Account Transactions"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  {/* Actions Row: View Transactions, Edit, Delete */}
+                  <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewingTxnAccount(a);
+                      }}
+                      className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 text-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0"
+                    >
+                      <Eye className="h-3 w-3" />
+                      <span>Txns</span>
+                    </Button>
+
+                    <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditAccount(a);
+                        }}
+                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
+                        title="Edit Account"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteAccount({ id: a.id, name: a.name });
+                        }}
+                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        title="Delete Account"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Name & Excluded Badge */}
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <h3 className="font-serif text-base font-bold truncate">{a.name}</h3>
-                {!isAccountIncludedInNetWorth(a) && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground/80 bg-muted/30 border-border/50 shrink-0" title="Excluded from Net Worth">
-                    Excluded NW
-                  </Badge>
-                )}
-              </div>
-
-              {/* Balance */}
-              <p className="mt-3.5 num font-serif text-xl font-bold">{fmtMoney(balances.get(a.id) ?? 0, profileCurrency)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Deletion confirmation alert dialog */}
