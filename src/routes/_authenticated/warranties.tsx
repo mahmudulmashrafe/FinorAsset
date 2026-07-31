@@ -735,11 +735,15 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                           </span>
                         </div>
 
-                        {/* Visual Progress Bar */}
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        {/* Visual Progress Bar with Pointer Knob */}
+                        <div className="relative w-full h-1.5 bg-muted rounded-full flex items-center my-0.5">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${barColorClass}`}
                             style={{ width: `${progressPct}%` }}
+                          />
+                          <div
+                            className={`absolute h-2.5 w-2.5 rounded-full border-2 border-background shadow-2xs transition-all duration-500 -ml-1.25 ${barColorClass}`}
+                            style={{ left: `${Math.max(2, Math.min(98, progressPct))}%` }}
                           />
                         </div>
                       </div>
