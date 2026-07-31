@@ -435,6 +435,18 @@ function WarrantiesPage() {
     return diffDays >= 0 && diffDays <= 30;
   });
 
+  const displayedWarranties = warranties.filter((w) => {
+    if (warrantyView === "active") return new Date(w.expiry_date) >= today;
+    if (warrantyView === "expiring") {
+      const expiry = new Date(w.expiry_date);
+      const diffTime = expiry.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 30;
+    }
+    if (warrantyView === "expired") return new Date(w.expiry_date) < today;
+    return true;
+  });
+
   return (
     <div className="space-y-6 w-full pb-10">
       {/* SQL Setup Notice if table doesn't exist */}
@@ -603,277 +615,172 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
         </div>
       )}
 
-      {/* List / Table */}
+      {/* ── Cards View ── */}
       {!dbError && (
         <>
-          {/* Desktop Table View */}
-          <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-bold py-3 px-4">Item Name</TableHead>
-                  <TableHead className="font-bold py-3 px-4">Purchase Date</TableHead>
-                  <TableHead className="font-bold py-3 px-4">Expiry Date</TableHead>
-                  <TableHead className="font-bold py-3 px-4">Paid From</TableHead>
-                  <TableHead className="font-bold py-3 px-4">Category</TableHead>
-                  <TableHead className="font-bold py-3 px-4 text-right">Cost</TableHead>
-                  <TableHead className="font-bold py-3 px-4 text-center">Receipt & Pic</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto opacity-40 mb-2" />
-                      Loading warranties…
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && warranties.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                      No warranties added yet. Click Add Warranty to begin.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && warranties.map((w) => {
-                  const acc = w.account_id ? accMap.get(w.account_id) : null;
-                  const cat = w.category_id ? catMap.get(w.category_id) : null;
-                  
-                  const isExpired = new Date(w.expiry_date) < today;
-                  const expiryDateObj = new Date(w.expiry_date);
-                  const diffTime = expiryDateObj.getTime() - today.getTime();
-                  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+          {isLoading && (
+            <div className="py-16 text-center text-muted-foreground border rounded-2xl bg-card">
+              <Loader2 className="h-7 w-7 animate-spin mx-auto opacity-40 mb-3" />
+              <p className="text-sm font-medium">Loading warranties…</p>
+            </div>
+          )}
 
-                  let daysLabel = "";
-                  if (isExpired) {
-                    daysLabel = "Expired";
-                  } else if (diffDays === 0) {
-                    daysLabel = "Expires today";
-                  } else if (diffDays === 1) {
-                    daysLabel = "Expires tomorrow";
-                  } else {
-                    daysLabel = `${diffDays} days left`;
-                  }
+          {!isLoading && displayedWarranties.length === 0 && (
+            <div className="py-16 text-center text-muted-foreground text-sm border rounded-2xl bg-card/60 p-6">
+              <ShieldCheck className="h-10 w-10 mx-auto opacity-30 mb-2 text-accent" />
+              <p className="font-semibold text-foreground">No warranties found</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {warrantyView === "all"
+                  ? "Click Add Warranty to protect your first product."
+                  : `No ${warrantyView} warranties right now.`}
+              </p>
+            </div>
+          )}
 
-                  return (
-                    <TableRow 
-                      key={w.id} 
-                      onClick={() => handleRowClick(w)}
-                      className="cursor-pointer hover:bg-accent/5 transition-colors group"
-                    >
-                      <TableCell className="font-medium py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          {w.product_image_url ? (
-                            <img 
-                              src={w.product_image_url} 
-                              alt={w.title} 
-                              className="h-8 w-8 rounded-lg object-cover bg-muted border border-border/60 shrink-0" 
-                            />
-                          ) : (
-                            <div className="h-8 w-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
-                              <ShieldCheck className="h-4 w-4" />
-                            </div>
-                          )}
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-serif font-black truncate">{w.title}</span>
-                            {w.note && <span className="text-[10px] text-muted-foreground max-w-[30ch] truncate mt-0.5">{w.note}</span>}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 tabular-nums text-xs sm:text-sm">
-                        {new Date(w.purchase_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="py-3 px-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="tabular-nums text-xs sm:text-sm font-semibold">{new Date(w.expiry_date).toLocaleDateString()}</span>
-                          <span className={`text-[10px] font-medium leading-none ${isExpired ? "text-destructive" : diffDays <= 30 ? "text-amber-500" : "text-emerald-500"}`}>
-                            {daysLabel}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-xs sm:text-sm text-muted-foreground">
-                        {acc ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
-                            {acc.name}
-                          </div>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-xs sm:text-sm">
-                        {cat ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            {cat.image_url ? (
-                              <img src={cat.image_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
-                            ) : (
-                              <span>{cat.icon}</span>
-                            )}
-                            <span>{cat.name}</span>
-                          </span>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-right font-serif font-bold tabular-nums">
-                        {fmtMoney(Number(w.amount), currency)}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1.5">
-                          {w.product_image_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-7 w-7 p-0 cursor-pointer text-emerald-500 hover:text-emerald-400"
-                              onClick={() => setPreviewImage(w.product_image_url)}
-                              title="View Product Picture"
-                            >
-                              <ImageIcon className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {w.image_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-7 w-7 p-0 cursor-pointer text-accent hover:text-accent/80"
-                              onClick={() => setPreviewImage(w.image_url)}
-                              title="View Receipt"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {!w.image_url && !w.product_image_url && (
-                            <span className="text-muted-foreground/30 text-xs">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          {!isLoading && displayedWarranties.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayedWarranties.map((w) => {
+                const acc = w.account_id ? accMap.get(w.account_id) : null;
+                const cat = w.category_id ? catMap.get(w.category_id) : null;
 
-          {/* Mobile List View */}
-          <div className="md:hidden space-y-2.5">
-            {isLoading && (
-              <div className="py-12 text-center text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto opacity-40 mb-2" />
-                Loading warranties…
-              </div>
-            )}
-            {!isLoading && warranties.length === 0 && (
-              <div className="py-12 text-center text-muted-foreground text-sm border rounded-xl bg-card">
-                No warranties added yet.
-              </div>
-            )}
-            {!isLoading && warranties.map((w) => {
-              const acc = w.account_id ? accMap.get(w.account_id) : null;
-              const cat = w.category_id ? catMap.get(w.category_id) : null;
-              const isExpired = new Date(w.expiry_date) < today;
-              const expiryDateObj = new Date(w.expiry_date);
-              const diffTime = expiryDateObj.getTime() - today.getTime();
-              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                const purchaseDateObj = new Date(w.purchase_date);
+                const expiryDateObj = new Date(w.expiry_date);
+                const isExpired = expiryDateObj < today;
 
-              let daysLabel = "";
-              if (isExpired) {
-                daysLabel = "Expired";
-              } else if (diffDays === 0) {
-                daysLabel = "Expires today";
-              } else if (diffDays === 1) {
-                daysLabel = "Expires tomorrow";
-              } else {
-                daysLabel = `${diffDays} days left`;
-              }
+                const totalDurationDays = Math.max(1, Math.round((expiryDateObj.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24)));
+                const elapsedDays = Math.round((today.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24));
+                const diffDays = Math.round((expiryDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const progressPct = isExpired ? 100 : Math.min(100, Math.max(0, Math.round((elapsedDays / totalDurationDays) * 100)));
 
-              return (
-                <div 
-                  key={w.id} 
-                  onClick={() => handleRowClick(w)}
-                  className={`rounded-xl border bg-card/85 p-3.5 space-y-3 cursor-pointer hover:bg-accent/[0.02] active:bg-accent/[0.04] transition-all`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {w.product_image_url ? (
-                        <img 
-                          src={w.product_image_url} 
-                          alt={w.title} 
-                          className="h-10 w-10 rounded-lg object-cover bg-muted border border-border/60 shrink-0" 
+                let daysLabel = "";
+                let badgeColorClass = "";
+                let barColorClass = "";
+
+                if (isExpired) {
+                  daysLabel = "Expired";
+                  badgeColorClass = "bg-destructive/10 text-destructive border-destructive/20";
+                  barColorClass = "bg-destructive";
+                } else if (diffDays === 0) {
+                  daysLabel = "Expires today";
+                  badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
+                  barColorClass = "bg-amber-500";
+                } else if (diffDays === 1) {
+                  daysLabel = "Expires tomorrow";
+                  badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
+                  barColorClass = "bg-amber-500";
+                } else if (diffDays <= 30) {
+                  daysLabel = `${diffDays} days left`;
+                  badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
+                  barColorClass = "bg-amber-500";
+                } else {
+                  daysLabel = `${diffDays} days left`;
+                  badgeColorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+                  barColorClass = "bg-emerald-500";
+                }
+
+                return (
+                  <div
+                    key={w.id}
+                    onClick={() => handleRowClick(w)}
+                    className="group relative rounded-2xl border bg-card hover:bg-accent/[0.02] transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[160px]"
+                  >
+                    {/* Left 1/3 Column: Product Image */}
+                    <div className="w-1/3 shrink-0 relative bg-muted flex items-center justify-center border-r border-border/40 overflow-hidden">
+                      {(w as any).product_image_url ? (
+                        <img
+                          src={(w as any).product_image_url}
+                          alt={w.title}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
-                          <ShieldCheck className="h-5 w-5" />
+                        <div className="h-full w-full bg-gradient-to-br from-accent/10 via-muted to-accent/5 flex flex-col items-center justify-center p-2 text-center text-accent">
+                          <ShieldCheck className="h-9 w-9 mb-1 opacity-80" />
+                          <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground/80">No Picture</span>
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <h4 className="font-serif font-black text-sm truncate">{w.title}</h4>
-                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${isExpired ? "bg-destructive/10 text-destructive border border-destructive/20" : diffDays <= 30 ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"}`}>
-                            {daysLabel}
-                          </span>
-                          {cat && (
-                            <Badge variant="outline" className="text-[8px] py-0 px-1 border-border/80 text-muted-foreground gap-0.5">
-                              {cat.image_url ? (
-                                <img src={cat.image_url} alt="" className="h-3 w-3 rounded-full object-cover shrink-0" />
-                              ) : (
-                                <span>{cat.icon}</span>
-                              )}
-                              <span>{cat.name}</span>
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="font-serif font-bold text-sm tabular-nums shrink-0">
-                      {fmtMoney(Number(w.amount), currency)}
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground pt-1.5 border-t border-border/40">
-                    <div>
-                      <p className="uppercase tracking-wider text-[8px]">Purchase Date</p>
-                      <p className="font-medium text-foreground mt-0.5">{new Date(w.purchase_date).toLocaleDateString()}</p>
+                      {/* Price Badge Overlaid on Image */}
+                      {Number(w.amount) > 0 && (
+                        <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded border border-border/60 shadow-2xs">
+                          <span className="font-serif num font-black text-[10px]">
+                            {fmtMoney(Number(w.amount), currency)}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <p className="uppercase tracking-wider text-[8px]">Expiry Date</p>
-                      <p className="font-medium text-foreground mt-0.5 font-semibold">{new Date(w.expiry_date).toLocaleDateString()}</p>
-                    </div>
-                    {acc && (
-                      <div className="col-span-2">
-                        <p className="uppercase tracking-wider text-[8px]">Paid From</p>
-                        <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
-                          {acc.name}
+
+                    {/* Right 2/3 Column: Product Details */}
+                    <div className="w-2/3 p-3.5 flex flex-col justify-between min-w-0">
+                      <div className="space-y-1">
+                        {/* Product Title */}
+                        <h3 className="font-serif font-black text-sm sm:text-base text-foreground truncate group-hover:text-accent transition-colors" title={w.title}>
+                          {w.title}
+                        </h3>
+
+                        {/* Expires On */}
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 font-medium truncate">
+                          <Calendar className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                          <span className="truncate">
+                            Expires on: <strong className="text-foreground font-semibold">{new Date(w.expiry_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                          </span>
                         </p>
                       </div>
-                    )}
-                  </div>
 
-                  {(w.image_url || w.product_image_url) && (
-                    <div className="pt-2 border-t border-border/40 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                      {w.product_image_url && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1 text-emerald-600 hover:text-emerald-700 bg-emerald-500/[0.03]"
-                          onClick={() => setPreviewImage(w.product_image_url)}
+                      {/* Days Left Tracker & Visual Bar */}
+                      <div className="mt-2.5 space-y-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Tracker</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none ${badgeColorClass}`}>
+                            {daysLabel}
+                          </span>
+                        </div>
+
+                        {/* Visual Progress Bar */}
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${barColorClass}`}
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Footer Info & Details Button */}
+                      <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {acc ? (
+                            <span className="flex items-center gap-1 truncate">
+                              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
+                              <span className="truncate">{acc.name}</span>
+                            </span>
+                          ) : cat ? (
+                            <span className="flex items-center gap-1 truncate">
+                              <span className="truncate">{cat.name}</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(w);
+                          }}
+                          className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0"
                         >
-                          <ImageIcon className="h-3 w-3" /> Product Pic
+                          <span>Details</span>
+                          <ExternalLink className="h-2.5 w-2.5 text-accent" />
                         </Button>
-                      )}
-                      {w.image_url && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-[10px] h-6 py-0 px-2 cursor-pointer gap-1"
-                          onClick={() => setPreviewImage(w.image_url)}
-                        >
-                          <FileText className="h-3 w-3" /> Receipt
-                        </Button>
-                      )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
 
