@@ -716,15 +716,6 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                           <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground/80">No Picture</span>
                         </div>
                       )}
-
-                      {/* Price Badge Overlaid on Image */}
-                      {Number(w.amount) > 0 && (
-                        <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded border border-border/60 shadow-2xs">
-                          <span className="font-serif num font-black text-[10px]">
-                            {fmtMoney(Number(w.amount), currency)}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Right 2/3 Column: Product Details */}
