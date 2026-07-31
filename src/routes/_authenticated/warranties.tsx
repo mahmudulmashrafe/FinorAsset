@@ -743,38 +743,6 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                           />
                         </div>
                       </div>
-
-                      {/* Footer Info & Details Button */}
-                      <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between gap-2">
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {acc ? (
-                            <span className="flex items-center gap-1 truncate">
-                              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
-                              <span className="truncate">{acc.name}</span>
-                            </span>
-                          ) : cat ? (
-                            <span className="flex items-center gap-1 truncate">
-                              <span className="truncate">{cat.name}</span>
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/60">—</span>
-                          )}
-                        </div>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRowClick(w);
-                          }}
-                          className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0"
-                        >
-                          <span>Details</span>
-                          <ExternalLink className="h-2.5 w-2.5 text-accent" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
                 );
