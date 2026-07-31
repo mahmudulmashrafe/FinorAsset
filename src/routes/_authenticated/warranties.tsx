@@ -643,14 +643,28 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                 const acc = w.account_id ? accMap.get(w.account_id) : null;
                 const cat = w.category_id ? catMap.get(w.category_id) : null;
 
-                const purchaseDateObj = new Date(w.purchase_date);
-                const expiryDateObj = new Date(w.expiry_date);
-                const isExpired = expiryDateObj < today;
+                const purchaseDateObj = w.purchase_date ? new Date(w.purchase_date) : new Date();
+                const expiryDateObj = w.expiry_date ? new Date(w.expiry_date) : new Date();
 
-                const totalDurationDays = Math.max(1, Math.round((expiryDateObj.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24)));
-                const elapsedDays = Math.round((today.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24));
-                const diffDays = Math.round((expiryDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const progressPct = isExpired ? 100 : Math.min(100, Math.max(0, Math.round((elapsedDays / totalDurationDays) * 100)));
+                const validPurchase = !isNaN(purchaseDateObj.getTime());
+                const validExpiry = !isNaN(expiryDateObj.getTime());
+
+                const isExpired = validExpiry ? expiryDateObj < today : false;
+
+                const totalDurationDays = (validPurchase && validExpiry)
+                  ? Math.max(1, Math.round((expiryDateObj.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24)))
+                  : 1;
+
+                const elapsedDays = validPurchase
+                  ? Math.round((today.getTime() - purchaseDateObj.getTime()) / (1000 * 60 * 60 * 24))
+                  : 0;
+
+                const diffDays = validExpiry
+                  ? Math.round((expiryDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                  : 0;
+
+                const rawPct = Math.round((elapsedDays / totalDurationDays) * 100);
+                const progressPct = isNaN(rawPct) ? 0 : isExpired ? 100 : Math.min(100, Math.max(0, rawPct));
 
                 let daysLabel = "";
                 let badgeColorClass = "";
@@ -677,6 +691,10 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   badgeColorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
                   barColorClass = "bg-emerald-500";
                 }
+
+                const expiryFormatted = validExpiry
+                  ? expiryDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                  : "N/A";
 
                 return (
                   <div
@@ -721,7 +739,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                         <p className="text-xs text-muted-foreground flex items-center gap-1 font-medium truncate">
                           <Calendar className="h-3 w-3 shrink-0 text-muted-foreground/70" />
                           <span className="truncate">
-                            Expires on: <strong className="text-foreground font-semibold">{new Date(w.expiry_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                            Expires on: <strong className="text-foreground font-semibold">{expiryFormatted}</strong>
                           </span>
                         </p>
                       </div>
@@ -742,7 +760,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                             style={{ width: `${progressPct}%` }}
                           />
                           <div
-                            className={`absolute h-2.5 w-2.5 rounded-full border-2 border-background shadow-2xs transition-all duration-500 -ml-1.25 ${barColorClass}`}
+                            className={`absolute h-2.5 w-2.5 rounded-full border-2 border-background shadow-xs transition-all duration-500 -translate-x-1/2 ${barColorClass}`}
                             style={{ left: `${Math.max(2, Math.min(98, progressPct))}%` }}
                           />
                         </div>
