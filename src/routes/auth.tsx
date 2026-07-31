@@ -74,7 +74,17 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        toast.error("Email not confirmed yet. Check your inbox or use 'Passwordless Sign in' below.");
+      } else if (error.message.toLowerCase().includes("invalid login credentials")) {
+        toast.error("Invalid email or password. Please check your details or click 'Forgot password?'.");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    toast.success("Signed in successfully!");
     navigate({ to: "/dashboard" });
   }
 
