@@ -518,6 +518,12 @@ function LoansPage() {
     }))
   ];
 
+  const displayedLoans = loans.filter((l) => {
+    if (loanView === "borrowed") return l.kind === "borrowed";
+    if (loanView === "lent") return l.kind === "lent";
+    return true;
+  });
+
   return (
     <div className="space-y-6 w-full pb-10">
       {/* ── Top Bar Header & Floatable / Collapsible Summary Block ── */}
@@ -655,127 +661,168 @@ function LoansPage() {
         )}
       </div>
 
-      {/* Main content grid */}
-      <div className={`grid gap-6 ${loanView === "all" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
-        {/* Part 1: I Take Loan (Borrowed) */}
-        {(loanView === "all" || loanView === "borrowed") && (
-          <section className="rounded-xl border bg-card p-4 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between border-b pb-3 mb-4 cursor-pointer md:cursor-default" onClick={() => setBorrowedCollapsed(!borrowedCollapsed)}>
-                <h2 className="font-serif text-lg font-bold flex items-center gap-2">
-                  <TrendingDown className="h-5 w-5 text-destructive" />
-                  I Take Loan (Borrowed)
-                </h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-serif">
-                    {loans.filter(l => l.kind === "borrowed").length} records
+      {/* Main Content Card Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {displayedLoans.length === 0 && (
+          <div className="col-span-full rounded-2xl border bg-card/60 p-12 text-center text-muted-foreground space-y-2">
+            <div className="h-10 w-10 mx-auto rounded-full bg-accent/10 flex items-center justify-center text-accent mb-2">
+              <CircleDollarSign className="h-5 w-5" />
+            </div>
+            <p className="font-semibold text-foreground">No loan records found</p>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+              {loanView === "borrowed"
+                ? "No borrowed loans recorded yet."
+                : loanView === "lent"
+                ? "No lent loans recorded yet."
+                : "Click the + button to add a new borrowed or lent loan."}
+            </p>
+          </div>
+        )}
+
+        {displayedLoans.map((loan) => {
+          const acc = loan.account_id ? accMap.get(loan.account_id) : null;
+          const isPaid = loan.status === "paid";
+          const isBorrowed = loan.kind === "borrowed";
+
+          const occurredDateFormatted = loan.occurred_on
+            ? new Date(loan.occurred_on).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+            : "N/A";
+
+          const dueDateFormatted = loan.due_date
+            ? new Date(loan.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+            : null;
+
+          return (
+            <div
+              key={loan.id}
+              className={`group relative rounded-2xl border transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row min-h-[160px] ${
+                isPaid
+                  ? "bg-card/60 opacity-70 grayscale-[25%] hover:opacity-90 hover:grayscale-0 border-border/40"
+                  : isBorrowed
+                  ? "bg-card hover:bg-accent/[0.02]"
+                  : "bg-card hover:bg-accent/[0.02]"
+              }`}
+            >
+              {/* Left 1/3 Column: Visual Icon & Type */}
+              <div className="w-1/3 shrink-0 relative bg-muted flex items-center justify-center border-r border-border/40 overflow-hidden">
+                <div
+                  className={`h-full w-full flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br ${
+                    isBorrowed
+                      ? "from-destructive/15 via-muted to-destructive/5 text-destructive"
+                      : "from-emerald-500/15 via-muted to-emerald-500/5 text-emerald-600"
+                  }`}
+                >
+                  {isBorrowed ? (
+                    <TrendingDown className="h-9 w-9 mb-1 opacity-90 drop-shadow-2xs" />
+                  ) : (
+                    <TrendingUp className="h-9 w-9 mb-1 opacity-90 drop-shadow-2xs" />
+                  )}
+                  <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground/80">
+                    {isBorrowed ? "Borrowed" : "Lent"}
                   </span>
-                  <span className="md:hidden text-muted-foreground">
-                    {borrowedCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                </div>
+
+                {/* Amount Badge Overlaid on Left Block */}
+                <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded border border-border/60 shadow-2xs">
+                  <span className={`font-serif num font-black text-[10px] ${isBorrowed ? "text-destructive" : "text-emerald-600"}`}>
+                    {fmtMoney(Number(loan.amount), currency)}
                   </span>
                 </div>
               </div>
 
-              <div className={`space-y-3 max-h-[450px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${borrowedCollapsed ? "hidden md:block" : "block"}`}>
-                {loans.filter(l => l.kind === "borrowed").length === 0 && (
-                  <p className="text-center text-muted-foreground py-10 text-xs">No borrowed loan records.</p>
-                )}
-                {loans.filter(l => l.kind === "borrowed").map((loan) => (
-                  <div 
-                    key={loan.id} 
-                    onClick={() => handleEdit(loan)} 
-                    className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-all hover:border-accent/40 hover:shadow-sm cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"} w-full min-w-0 overflow-hidden`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-serif font-bold text-sm truncate max-w-[120px] sm:max-w-none">{loan.person_name}</span>
-                        {loan.status === "paid" ? (
-                          <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
-                            <CheckCircle2 className="h-2.5 w-2.5" /> Paid
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-destructive/15 text-destructive font-medium">
-                            <Clock className="h-2.5 w-2.5" /> Active
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                        <span>Date: {new Date(loan.occurred_on).toLocaleDateString()}</span>
-                        {loan.due_date && <span className="text-destructive font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
-                        {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
-                      </div>
-                      {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
-                    </div>
+              {/* Right 2/3 Column: Details & Quick Actions */}
+              <div className="w-2/3 p-3.5 flex flex-col justify-between min-w-0">
+                <div className="space-y-1.5">
+                  {/* Title & Status Badge */}
+                  <div className="flex items-start justify-between gap-1">
+                    <h3 className="font-serif font-black text-sm sm:text-base text-foreground truncate" title={loan.person_name}>
+                      {loan.person_name}
+                    </h3>
 
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="font-serif font-bold text-base num text-destructive">{fmtMoney(loan.amount, currency)}</span>
-                    </div>
+                    {isPaid ? (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 font-bold shrink-0">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> Paid
+                      </span>
+                    ) : (
+                      <span className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold shrink-0 border ${
+                        isBorrowed
+                          ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                      }`}>
+                        <Clock className="h-2.5 w-2.5" /> Active
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
 
-        {/* Part 2: I Give Loan (Lent) */}
-        {(loanView === "all" || loanView === "lent") && (
-          <section className="rounded-xl border bg-card p-4 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between border-b pb-3 mb-4 cursor-pointer md:cursor-default" onClick={() => setLentCollapsed(!lentCollapsed)}>
-                <h2 className="font-serif text-lg font-bold flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-success" />
-                  I Give Loan (Lent)
-                </h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-serif">
-                    {loans.filter(l => l.kind === "lent").length} records
-                  </span>
-                  <span className="md:hidden text-muted-foreground">
-                    {lentCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                  </span>
+                  {/* Dates & Linked Account */}
+                  <div className="text-[10px] text-muted-foreground space-y-0.5">
+                    <p className="truncate">
+                      Date: <strong className="text-foreground font-semibold">{occurredDateFormatted}</strong>
+                    </p>
+                    {dueDateFormatted && (
+                      <p className="truncate">
+                        Due: <strong className={`font-semibold ${isBorrowed ? "text-destructive" : "text-emerald-600"}`}>{dueDateFormatted}</strong>
+                      </p>
+                    )}
+                    {acc && (
+                      <p className="flex items-center gap-1 truncate text-accent font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
+                        <span className="truncate">{acc.name}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {loan.note && (
+                    <p className="text-[10px] text-muted-foreground/80 italic font-serif truncate" title={loan.note}>
+                      "{loan.note}"
+                    </p>
+                  )}
+                </div>
+
+                {/* Bottom Row: Actions */}
+                <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between gap-1">
+                  {!isPaid ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRepayLoan(loan)}
+                      className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 transition-all cursor-pointer shadow-2xs shrink-0"
+                    >
+                      <span>Repay</span>
+                    </Button>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/60 font-medium">Completed</span>
+                  )}
+
+                  <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(loan)}
+                      className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 cursor-pointer"
+                      title="Edit Loan"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteLoan({ id: loan.id, name: loan.person_name })}
+                      className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                      title="Delete Loan"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-
-              <div className={`space-y-3 max-h-[450px] overflow-y-auto overflow-x-hidden pr-1 thin-scroll w-full min-w-0 ${lentCollapsed ? "hidden md:block" : "block"}`}>
-                {loans.filter(l => l.kind === "lent").length === 0 && (
-                  <p className="text-center text-muted-foreground py-10 text-xs">No lent loan records.</p>
-                )}
-                {loans.filter(l => l.kind === "lent").map((loan) => (
-                  <div 
-                    key={loan.id} 
-                    onClick={() => handleEdit(loan)} 
-                    className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-all hover:border-accent/40 hover:shadow-sm cursor-pointer ${loan.status === "paid" ? "bg-muted/40 opacity-70" : "bg-card hover:bg-muted/10"} w-full min-w-0 overflow-hidden`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-serif font-bold text-sm truncate max-w-[120px] sm:max-w-none">{loan.person_name}</span>
-                        {loan.status === "paid" ? (
-                          <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
-                            <CheckCircle2 className="h-2.5 w-2.5" /> Paid
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] bg-success/15 text-success font-medium">
-                            <Clock className="h-2.5 w-2.5" /> Active
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                        <span>Date: {new Date(loan.occurred_on).toLocaleDateString()}</span>
-                        {loan.due_date && <span className="text-success font-semibold">Due: {new Date(loan.due_date).toLocaleDateString()}</span>}
-                        {loan.account_id && <span className="text-accent font-medium">Linked: {accMap.get(loan.account_id)?.name}</span>}
-                      </div>
-                      {loan.note && <p className="text-xs text-muted-foreground/80 mt-1 italic font-serif">"{loan.note}"</p>}
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="font-serif font-bold text-base num text-success">{fmtMoney(loan.amount, currency)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-          </section>
-        )}
+          );
+        })}
       </div>
 
       {/* Adding/Editing Dialog */}
