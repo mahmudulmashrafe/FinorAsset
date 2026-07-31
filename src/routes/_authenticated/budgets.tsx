@@ -124,27 +124,29 @@ function BudgetsPage() {
         )}
 
         {budgets.map((b) => {
+          if (!b) return null;
           const cat = cats.find((c) => c.id === b.category_id);
-          const spent = spentByCat.get(b.category_id) ?? 0;
+          const spent = Number(spentByCat.get(b.category_id)) || 0;
           const budgetAmount = Number(b.amount) || 0;
           const over = spent > budgetAmount;
-          const rawPct = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
-          const pct = Math.min(100, Math.max(0, Math.round(rawPct)));
+          const calcPct = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
+          const rawPct = isNaN(calcPct) ? 0 : Math.max(0, Math.round(calcPct));
+          const pct = Math.min(100, rawPct);
 
           let trackerLabel = "";
           let badgeColorClass = "";
           let barColorClass = "";
 
           if (over) {
-            trackerLabel = `Over by ${fmtMoney(spent - budgetAmount, currency)}`;
+            trackerLabel = `Over by ${fmtMoney(Math.max(0, spent - budgetAmount), currency)}`;
             badgeColorClass = "bg-destructive/10 text-destructive border-destructive/20";
             barColorClass = "bg-destructive";
           } else if (pct >= 80) {
-            trackerLabel = `${fmtMoney(budgetAmount - spent, currency)} left`;
+            trackerLabel = `${fmtMoney(Math.max(0, budgetAmount - spent), currency)} left`;
             badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
             barColorClass = "bg-amber-500";
           } else {
-            trackerLabel = `${fmtMoney(budgetAmount - spent, currency)} left`;
+            trackerLabel = `${fmtMoney(Math.max(0, budgetAmount - spent), currency)} left`;
             badgeColorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
             barColorClass = "bg-emerald-500";
           }
