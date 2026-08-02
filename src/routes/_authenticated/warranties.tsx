@@ -141,10 +141,32 @@ function WarrantiesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Duration calculation states
+  const [durationNum, setDurationNum] = useState<string>("1");
+  const [durationUnit, setDurationUnit] = useState<"years" | "months" | "days">("years");
+
+  // Helper to calculate Expiry Date from Purchase Date + Duration
+  function applyDuration(numStr: string, unit: "years" | "months" | "days", baseDateStr: string = purchaseDate) {
+    const num = Number(numStr);
+    if (!baseDateStr || isNaN(num) || num <= 0) return;
+    const d = new Date(baseDateStr);
+    if (isNaN(d.getTime())) return;
+
+    if (unit === "years") {
+      d.setFullYear(d.getFullYear() + num);
+    } else if (unit === "months") {
+      d.setMonth(d.getMonth() + num);
+    } else if (unit === "days") {
+      d.setDate(d.getDate() + num);
+    }
+
+    setExpiryDate(d.toISOString().split("T")[0]);
+  }
+
   function resetForm() {
     setTitle("");
-    setPurchaseDate(new Date().toISOString().split("T")[0]);
-    setExpiryDate("");
+    const todayStr = new Date().toISOString().split("T")[0];
+    setPurchaseDate(todayStr);
     setAmount("");
     setAccountId(accounts[0]?.id || "");
     setCategoryId("none");
@@ -153,6 +175,9 @@ function WarrantiesPage() {
     setImageUrl("");
     setProductImageFile(null);
     setProductImageUrl("");
+    setDurationNum("1");
+    setDurationUnit("years");
+    applyDuration("1", "years", todayStr);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (productFileInputRef.current) productFileInputRef.current.value = "";
   }
@@ -806,6 +831,74 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               />
             </div>
 
+            {/* Warranty Duration Auto-Fill */}
+            <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border/60">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Warranty Duration (Auto-Fills Expiry)
+                </Label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="number"
+                  placeholder="Duration (e.g. 1)"
+                  value={durationNum}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDurationNum(val);
+                    applyDuration(val, durationUnit);
+                  }}
+                  disabled={saving}
+                  className="bg-background text-xs h-9"
+                />
+
+                <Select
+                  value={durationUnit}
+                  onValueChange={(val: "years" | "months" | "days") => {
+                    setDurationUnit(val);
+                    applyDuration(durationNum, val);
+                  }}
+                >
+                  <SelectTrigger className="w-full bg-background text-xs h-9">
+                    <SelectValue placeholder="Unit" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[110]">
+                    <SelectItem value="years">Year(s)</SelectItem>
+                    <SelectItem value="months">Month(s)</SelectItem>
+                    <SelectItem value="days">Day(s)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quick Duration Presets */}
+              <div className="flex flex-wrap items-center gap-1 pt-1">
+                <span className="text-[10px] text-muted-foreground mr-1">Presets:</span>
+                {[
+                  { num: "6", unit: "months" as const, label: "6 Months" },
+                  { num: "1", unit: "years" as const, label: "1 Year" },
+                  { num: "2", unit: "years" as const, label: "2 Years" },
+                  { num: "3", unit: "years" as const, label: "3 Years" },
+                  { num: "5", unit: "years" as const, label: "5 Years" },
+                ].map((preset) => (
+                  <Button
+                    key={preset.label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDurationNum(preset.num);
+                      setDurationUnit(preset.unit);
+                      applyDuration(preset.num, preset.unit);
+                    }}
+                    className="h-6 px-2 text-[10px] font-semibold rounded-md hover:bg-accent/10 cursor-pointer"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Purchase & Expiry Dates */}
             <div className="grid grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
@@ -814,7 +907,13 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   id="purchaseDate" 
                   type="date" 
                   value={purchaseDate} 
-                  onChange={(e) => setPurchaseDate(e.target.value)} 
+                  onChange={(e) => {
+                    const newPurchase = e.target.value;
+                    setPurchaseDate(newPurchase);
+                    if (durationNum) {
+                      applyDuration(durationNum, durationUnit, newPurchase);
+                    }
+                  }} 
                   disabled={saving}
                 />
               </div>
