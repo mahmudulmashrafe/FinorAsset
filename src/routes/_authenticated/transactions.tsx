@@ -966,8 +966,8 @@ function TxnsPage() {
         </span>
       </div>
 
-      {/* Mobile Top Controls Header Bar */}
-      <div className="md:hidden sticky top-[96px] z-20 py-2 bg-background/95 backdrop-blur-md border border-border/40 rounded-xl px-3 shadow-xs mb-4">
+      {/* Mobile Filters Trigger — Sticky fixed below app header, zero gap */}
+      <div className="md:hidden sticky top-[96px] z-20 -mx-4 px-4 -mt-3 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm">
         <div className="flex flex-shrink-0 items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>

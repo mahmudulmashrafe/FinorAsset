@@ -628,8 +628,8 @@ function AutomationPage() {
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
       
-      {/* Top Header Controls Bar */}
-      <div className="sticky top-[96px] md:top-[80px] py-2 bg-background/95 backdrop-blur-md border border-border/40 rounded-xl px-3 shadow-xs z-20 mb-4">
+      {/* ── Top Bar Header: Only Toggle Buttons with Record Counts ── */}
+      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4">
         <div className="flex items-center gap-1.5 overflow-x-auto thin-scroll">
           <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
             <button

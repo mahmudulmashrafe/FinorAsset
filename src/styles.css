@@ -212,14 +212,3 @@
   }
 }
 
-/* Prevent Radix UI scroll locks from forcing overflow: hidden on html/body and collapsing sticky headers on scroll */
-html, body {
-  overflow-x: hidden !important;
-}
-
-body[data-scroll-locked], html[data-scroll-locked] {
-  overflow-x: hidden !important;
-  padding-right: 0px !important;
-  margin-right: 0px !important;
-}
-
