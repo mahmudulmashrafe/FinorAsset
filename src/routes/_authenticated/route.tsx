@@ -39,8 +39,8 @@ const items = [
   { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: true },
   { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: true },
   { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
-  { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
-  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: false },
+  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
+  { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: true },
 ] as const;
 
 // ─── Time-of-day greeting ─────────────────────────────────────────────────────
@@ -133,41 +133,93 @@ function ProfileDropdownContent({
       </div>
 
       {/* Menu items */}
-      <div className="md:hidden">
-        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2.5">
-          <Link to="/stats" className="w-full flex items-center gap-3">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="font-medium text-sm">Stats & Trends</p>
-              <p className="text-xs text-muted-foreground">Analyze your spending</p>
-            </div>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-      </div>
-
-      <DropdownMenuItem onClick={onOpenCategories} className="flex items-center gap-3 cursor-pointer py-2.5">
-        <Tag className="h-4 w-4 text-muted-foreground" />
+      <DropdownMenuItem onClick={onOpenCategories} className="flex items-center gap-3 cursor-pointer py-2">
+        <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
         <div>
-          <p className="font-medium text-sm">Personalization</p>
-          <p className="text-xs text-muted-foreground">Manage your categories</p>
+          <p className="font-medium text-xs">Categories & Tags</p>
+          <p className="text-[10px] text-muted-foreground">Manage transaction categories</p>
         </div>
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2.5">
-        <Settings className="h-4 w-4 text-muted-foreground" />
+      <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2">
+        <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
         <div>
-          <p className="font-medium text-sm">Settings</p>
-          <p className="text-xs text-muted-foreground">Currency, display name</p>
+          <p className="font-medium text-xs">Settings & Profile</p>
+          <p className="text-[10px] text-muted-foreground">Currency & display preferences</p>
         </div>
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={onOpenProfile} className="flex items-center gap-3 cursor-pointer py-2.5">
-        <User className="h-4 w-4 text-muted-foreground" />
-        <div>
-          <p className="font-medium text-sm">Profile</p>
-          <p className="text-xs text-muted-foreground">View your account</p>
-        </div>
+      <DropdownMenuSeparator />
+
+      {/* Quick Navigation Links */}
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/accounts" className="w-full flex items-center gap-3">
+          <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Accounts</p>
+            <p className="text-[10px] text-muted-foreground">Cash, bank & cards</p>
+          </div>
+        </Link>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/envelopes" className="w-full flex items-center gap-3">
+          <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Envelopes</p>
+            <p className="text-[10px] text-muted-foreground">Virtual locked money</p>
+          </div>
+        </Link>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/budgets" className="w-full flex items-center gap-3">
+          <PiggyBank className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Budgets</p>
+            <p className="text-[10px] text-muted-foreground">Monthly expense targets</p>
+          </div>
+        </Link>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/loans" className="w-full flex items-center gap-3">
+          <CircleDollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Loans</p>
+            <p className="text-[10px] text-muted-foreground">Borrowed & lent money</p>
+          </div>
+        </Link>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/warranties" className="w-full flex items-center gap-3">
+          <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Warranty</p>
+            <p className="text-[10px] text-muted-foreground">Product warranties</p>
+          </div>
+        </Link>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/automation" className="w-full flex items-center gap-3">
+          <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Automation</p>
+            <p className="text-[10px] text-muted-foreground">Macros & rules</p>
+          </div>
+        </Link>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+        <Link to="/stats" className="w-full flex items-center gap-3">
+          <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium text-xs">Stats & Trends</p>
+            <p className="text-[10px] text-muted-foreground">Spending analytics</p>
+          </div>
+        </Link>
       </DropdownMenuItem>
 
       <DropdownMenuSeparator />
@@ -284,19 +336,19 @@ function MobileBottomNav() {
   const mobileItems = items.filter(it => it.mobile);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-1 pb-safe shadow-md overflow-x-auto thin-scroll">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-12 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-0.5 pb-safe shadow-md overflow-x-auto thin-scroll">
       {mobileItems.map((it) => {
         const isActive = path === it.url;
         return (
           <Link
             key={it.url}
             to={it.url}
-            className={`flex flex-col items-center justify-center min-w-[52px] h-full gap-0.5 px-1 shrink-0 transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[44px] h-full gap-0.5 px-0.5 shrink-0 transition-all ${
               isActive ? "text-accent scale-105" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <it.icon className="h-5 w-5 shrink-0" />
-            <span className="text-[9px] font-semibold tracking-tight font-serif truncate max-w-full">{it.title}</span>
+            <it.icon className="h-4 w-4 shrink-0" />
+            <span className="text-[8px] font-semibold tracking-tight font-serif truncate max-w-full leading-none">{it.title}</span>
           </Link>
         );
       })}
@@ -1051,7 +1103,7 @@ function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-x-clip min-w-0 flex flex-col justify-between pb-20 md:pb-6">
+        <main className="flex-1 p-4 md:p-6 overflow-x-clip min-w-0 flex flex-col justify-between pb-14 md:pb-6">
           <div key={path} className="flex-1 page-transition relative flex flex-col">
             <Outlet />
           </div>
