@@ -2,14 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney, computeAccountBalances, monthKey } from "@/lib/finance";
 import type { Envelope, EnvelopeAllocation } from "@/lib/finance";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { 
   Mail, Plus, Trash2, Pencil, AlertTriangle, Loader2, RefreshCw, Lock, Unlock, 
-  Wallet, Layers, ArrowRight, ShieldCheck, ChevronRight, X, ChevronDown
+  Wallet, Layers, ArrowRight, ShieldCheck, ChevronRight, X, ChevronDown, Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,6 +143,34 @@ function EnvelopesPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Configured Reset Day of Month state
+  const [resetDay, setResetDay] = useState<string>(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      return localStorage.getItem("finorasset_envelope_reset_day") || "1";
+    }
+    return "1";
+  });
+
+  // Auto-reset logic on month rollover
+  useEffect(() => {
+    if (envelopes.length === 0 || loadingEnv) return;
+    const now = new Date();
+    const currentDay = now.getDate();
+    const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const activeMonthKey = monthKey(now);
+
+    let targetDayNum = parseInt(resetDay, 10);
+    if (resetDay === "last") targetDayNum = totalDaysInMonth;
+    if (isNaN(targetDayNum)) targetDayNum = 1;
+
+    const lastAutoReset = localStorage.getItem("finorasset_last_auto_reset_month");
+
+    if (currentDay >= targetDayNum && lastAutoReset !== activeMonthKey) {
+      handleReleaseAllAllocations(true);
+      localStorage.setItem("finorasset_last_auto_reset_month", activeMonthKey);
+    }
+  }, [envelopes, resetDay, loadingEnv]);
 
   function resetForm() {
     setName("");
@@ -306,7 +334,7 @@ function EnvelopesPage() {
   }
 
   // Release all allocations for the month
-  async function handleReleaseAllAllocations() {
+  async function handleReleaseAllAllocations(isAuto = false) {
     if (envelopes.length === 0) return;
     const envIds = envelopes.map(e => e.id);
 
@@ -317,10 +345,14 @@ function EnvelopesPage() {
         .in("envelope_id", envIds);
       if (error) throw error;
 
-      toast.success("All envelope allocations released for new month!");
+      if (isAuto) {
+        toast.info(`Envelopes auto-reset for new month (Reset Day: ${resetDay === "last" ? "Last day" : `Day ${resetDay}`})`);
+      } else {
+        toast.success("All envelope allocations released for new month!");
+      }
       qc.invalidateQueries({ queryKey: ["envelope_allocations"] });
     } catch (err: any) {
-      toast.error(err.message || "Failed to release allocations");
+      if (!isAuto) toast.error(err.message || "Failed to release allocations");
     }
   }
 
@@ -401,7 +433,7 @@ function EnvelopesPage() {
             </button>
           </div>
 
-          {/* Month Picker & Reset Month */}
+          {/* Month Picker & Automatic Reset Day Selector */}
           <div className="flex items-center gap-1.5 shrink-0 ml-1">
             <Input
               type="month"
@@ -411,16 +443,32 @@ function EnvelopesPage() {
               }}
               className="h-6 w-28 text-[10px] font-semibold bg-background p-1 border rounded-md"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReleaseAllAllocations}
-              className="h-6 px-2 text-[10px] font-bold gap-1 border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer rounded-md shrink-0"
-              title="Release locked funds for new month"
+
+            <Select
+              value={resetDay}
+              onValueChange={(val) => {
+                setResetDay(val);
+                if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+                  localStorage.setItem("finorasset_envelope_reset_day", val);
+                }
+                toast.success(`Monthly reset set to ${val === "last" ? "Last day of month" : `Day ${val} of month`}`);
+              }}
             >
-              <RefreshCw className="h-3 w-3" />
-              <span className="hidden sm:inline">Reset Month</span>
-            </Button>
+              <SelectTrigger className="h-6 px-2 text-[10px] font-bold bg-background border rounded-md gap-1 cursor-pointer w-[125px]">
+                <Calendar className="h-3 w-3 text-accent shrink-0" />
+                <SelectValue placeholder="Reset Day" />
+              </SelectTrigger>
+              <SelectContent className="z-[100]">
+                <SelectItem value="1">Reset: 1st of month</SelectItem>
+                <SelectItem value="5">Reset: 5th of month</SelectItem>
+                <SelectItem value="10">Reset: 10th of month</SelectItem>
+                <SelectItem value="15">Reset: 15th of month</SelectItem>
+                <SelectItem value="20">Reset: 20th of month</SelectItem>
+                <SelectItem value="25">Reset: 25th of month</SelectItem>
+                <SelectItem value="28">Reset: 28th of month</SelectItem>
+                <SelectItem value="last">Reset: Last day</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Web View (Desktop): Direct Inline Summary Pills matching toggle button height & style */}
