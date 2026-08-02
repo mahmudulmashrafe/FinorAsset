@@ -306,19 +306,19 @@ function MobileBottomNav() {
   const mobileItems = items.filter(it => it.mobile);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-12 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-0.5 pb-safe shadow-md overflow-x-auto thin-scroll">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-14 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-1 pb-safe shadow-md overflow-x-auto thin-scroll">
       {mobileItems.map((it) => {
         const isActive = path === it.url;
         return (
           <Link
             key={it.url}
             to={it.url}
-            className={`flex flex-col items-center justify-center min-w-[44px] h-full gap-0.5 px-0.5 shrink-0 transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[50px] h-full gap-1 px-1 shrink-0 transition-all ${
               isActive ? "text-accent scale-105" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <it.icon className="h-4 w-4 shrink-0" />
-            <span className="text-[8px] font-semibold tracking-tight font-serif truncate max-w-full leading-none">{it.title}</span>
+            <it.icon className="h-5 w-5 shrink-0" />
+            <span className="text-[9.5px] font-semibold tracking-tight font-serif truncate max-w-full leading-none">{it.title}</span>
           </Link>
         );
       })}
@@ -1073,7 +1073,7 @@ function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-x-clip min-w-0 flex flex-col justify-between pb-14 md:pb-6">
+        <main className="flex-1 p-4 md:p-6 overflow-x-clip min-w-0 flex flex-col justify-between pb-18 md:pb-6">
           <div key={path} className="flex-1 page-transition relative flex flex-col">
             <Outlet />
           </div>
