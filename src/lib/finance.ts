@@ -23,6 +23,28 @@ export type Warranty = {
   created_at: string;
   updated_at: string;
 };
+
+export type Envelope = {
+  id: string;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  icon: string;
+  color: string;
+  note: string | null;
+  month_key: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EnvelopeAllocation = {
+  id: string;
+  envelope_id: string;
+  account_id: string;
+  amount: number;
+  created_at: string;
+};
+
 export type TxnKind = "income" | "expense" | "transfer";
 
 export function fmtMoney(n: number, currency = "USD") {
@@ -162,6 +184,20 @@ export const api = {
     const { data, error } = await supabase.from("warranties" as any).select("*").order("expiry_date", { ascending: true });
     if (error) throw error;
     return data as any as Warranty[];
+  },
+  async listEnvelopes(monthKeyStr?: string) {
+    let query = supabase.from("envelopes" as any).select("*").order("created_at");
+    if (monthKeyStr) {
+      query = query.eq("month_key", monthKeyStr);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as any as Envelope[];
+  },
+  async listEnvelopeAllocations() {
+    const { data, error } = await supabase.from("envelope_allocations" as any).select("*");
+    if (error) throw error;
+    return data as any as EnvelopeAllocation[];
   },
 };
 

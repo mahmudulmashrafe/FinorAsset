@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign, ShieldCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
@@ -35,6 +35,7 @@ const items = [
   { title: "Dashboard",    url: "/dashboard",    icon: LayoutDashboard,  mobile: true },
   { title: "Transactions", url: "/transactions", icon: Receipt,          mobile: true },
   { title: "Accounts",     url: "/accounts",     icon: Wallet,           mobile: true },
+  { title: "Envelopes",    url: "/envelopes",    icon: Mail,             mobile: true },
   { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: true },
   { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: true },
   { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
