@@ -31,6 +31,7 @@ export type Envelope = {
   target_amount: number;
   icon: string;
   color: string;
+  image_url?: string | null;
   note: string | null;
   month_key: string;
   created_at: string;

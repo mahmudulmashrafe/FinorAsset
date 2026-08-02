@@ -138,12 +138,21 @@ function EnvelopesPage() {
   const [allocAmount, setAllocAmount] = useState("");
   const [allocating, setAllocating] = useState(false);
 
+  // Image Upload state
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   function resetForm() {
     setName("");
     setTargetAmount("");
     setIcon("✉️");
     setColor(COLORS[0]);
     setNote("");
+    setImageUrl("");
+    setImageFile(null);
+    setUploadingImage(false);
     setEditingEnvelope(null);
   }
 
@@ -158,6 +167,8 @@ function EnvelopesPage() {
     setTargetAmount(String(env.target_amount));
     setIcon(env.icon || "✉️");
     setColor(env.color || COLORS[0]);
+    setImageUrl(env.image_url ?? "");
+    setImageFile(null);
     setNote(env.note || "");
     setOpen(true);
   }
@@ -169,7 +180,30 @@ function EnvelopesPage() {
     if (!authUser) return;
 
     setSaving(true);
+    let finalImageUrl = imageUrl;
+
     try {
+      if (imageFile) {
+        setUploadingImage(true);
+        const { data: userResp } = await supabase.auth.getUser();
+        if (userResp.user) {
+          const fileExt = imageFile.name.split('.').pop();
+          const filePath = `${userResp.user.id}/envelope-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('warranties')
+            .upload(filePath, imageFile);
+            
+          if (uploadError) throw uploadError;
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('warranties')
+            .getPublicUrl(filePath);
+            
+          finalImageUrl = publicUrl;
+        }
+      }
+
       if (editingEnvelope) {
         const { error } = await supabase
           .from("envelopes" as any)
@@ -178,6 +212,7 @@ function EnvelopesPage() {
             target_amount: numTarget,
             icon,
             color,
+            image_url: finalImageUrl || null,
             note: note.trim() || null,
             updated_at: new Date().toISOString(),
           })
@@ -191,6 +226,7 @@ function EnvelopesPage() {
           target_amount: numTarget,
           icon,
           color,
+          image_url: finalImageUrl || null,
           note: note.trim() || null,
           month_key: currentMonth,
         });
@@ -564,7 +600,11 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                           : undefined,
                       }}
                     >
-                      <span className="text-3xl mb-1 drop-shadow-2xs">{env.icon || "✉️"}</span>
+                      {env.image_url ? (
+                        <img src={env.image_url} alt="" className="h-10 w-10 rounded-full object-cover mb-1 shadow-2xs border border-border/60" />
+                      ) : (
+                        <span className="text-3xl mb-1 drop-shadow-2xs">{env.icon || "✉️"}</span>
+                      )}
                       <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground truncate max-w-full px-1">
                         {env.name}
                       </span>
@@ -713,6 +753,59 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
               </div>
             </div>
 
+            {/* Custom Picture Upload */}
+            <div className="space-y-1 pt-1 border-t">
+              <Label className="text-xs font-semibold">Custom Envelope Image / Logo (Optional)</Label>
+              <div className="flex flex-col gap-2">
+                {imageUrl || imageFile ? (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={imageFile ? URL.createObjectURL(imageFile) : imageUrl} 
+                      alt="Envelope picture" 
+                      className="h-10 w-10 rounded-full object-cover border" 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => { setImageUrl(""); setImageFile(null); }}
+                      className="h-8 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+                    >
+                      Remove Picture
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => inputRef.current?.click()}
+                      className="h-8 text-xs cursor-pointer"
+                      disabled={saving || uploadingImage}
+                    >
+                      {uploadingImage ? "Uploading…" : "Upload Image"}
+                    </Button>
+                    <input 
+                      type="file" 
+                      ref={inputRef} 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setImageFile(e.target.files[0]);
+                        }
+                      }} 
+                      accept="image/*" 
+                      className="hidden" 
+                      disabled={saving || uploadingImage}
+                    />
+                  </div>
+                )}
+                <div className="text-[10px] text-muted-foreground leading-normal">
+                  Upload a custom picture to identify this envelope visually.
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="env-note" className="text-xs font-semibold">Notes (Optional)</Label>
               <Textarea
@@ -742,7 +835,11 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
         <DialogContent className="max-w-md z-[100] max-h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b shrink-0 bg-background">
             <DialogTitle className="font-serif text-xl flex items-center gap-2">
-              <span className="text-2xl">{selectedEnvelope?.icon || "✉️"}</span>
+              {selectedEnvelope?.image_url ? (
+                <img src={selectedEnvelope.image_url} alt="" className="h-8 w-8 rounded-full object-cover border border-border/60" />
+              ) : (
+                <span className="text-2xl">{selectedEnvelope?.icon || "✉️"}</span>
+              )}
               <span>{selectedEnvelope?.name}</span>
             </DialogTitle>
           </DialogHeader>
