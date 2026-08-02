@@ -228,7 +228,7 @@ function SidebarProfileMenu({
   const email = authUser?.email ?? "";
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
@@ -283,7 +283,7 @@ function HeaderProfileMenu({
   const email = authUser?.email ?? "";
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         {profile?.avatar_url ? (
           <button className="h-10 w-10 rounded-full overflow-hidden border border-border/40 flex-shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
