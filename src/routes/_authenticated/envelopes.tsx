@@ -299,18 +299,6 @@ function EnvelopesPage() {
 
   return (
     <div className="space-y-6 w-full pb-10">
-      {/* Page Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Mail className="h-7 w-7 text-accent" />
-            <h1 className="font-serif text-3xl font-black text-foreground">Envelopes</h1>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Lock money from accounts into virtual envelopes. Bank balances remain intact until spent.
-          </p>
-        </div>
-      </div>
 
       {/* ── Top Bar Header & Floatable / Collapsible Summary Block (identical to Loans page) ── */}
       <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm space-y-2 z-20 mb-4">
