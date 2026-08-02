@@ -151,17 +151,7 @@ function ProfileDropdownContent({
 
       <DropdownMenuSeparator />
 
-      {/* Quick Navigation Links */}
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/accounts" className="w-full flex items-center gap-3">
-          <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Accounts</p>
-            <p className="text-[10px] text-muted-foreground">Cash, bank & cards</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
-
+      {/* Navigation Links for features not in the bottom bar */}
       <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
         <Link to="/envelopes" className="w-full flex items-center gap-3">
           <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -188,26 +178,6 @@ function ProfileDropdownContent({
           <div>
             <p className="font-medium text-xs">Loans</p>
             <p className="text-[10px] text-muted-foreground">Borrowed & lent money</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
-
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/warranties" className="w-full flex items-center gap-3">
-          <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Warranty</p>
-            <p className="text-[10px] text-muted-foreground">Product warranties</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
-
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/automation" className="w-full flex items-center gap-3">
-          <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Automation</p>
-            <p className="text-[10px] text-muted-foreground">Macros & rules</p>
           </div>
         </Link>
       </DropdownMenuItem>
