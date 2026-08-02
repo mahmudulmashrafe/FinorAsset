@@ -53,58 +53,65 @@ interface Warranty {
 }
 
 function getWarrantyStatusInfo(diffDays: number, isExpired: boolean) {
+  let badgeColorClass = "";
+  let barColorClass = "";
+  let textColorClass = "";
+  let colorName = "";
+
   if (isExpired || diffDays < 1) {
-    return {
-      daysLabel: "Expired",
-      badgeColorClass: "bg-red-700/15 text-red-700 border-red-700/40 dark:bg-red-950/40 dark:text-red-400 dark:border-red-700/60 font-bold",
-      barColorClass: "bg-red-700",
-      textColorClass: "text-red-700 font-bold",
-      colorName: "Deep Red",
-    };
+    badgeColorClass = "bg-red-700/15 text-red-700 border-red-700/40 dark:bg-red-950/40 dark:text-red-400 dark:border-red-700/60 font-bold";
+    barColorClass = "bg-red-700";
+    textColorClass = "text-red-700 font-bold";
+    colorName = "Deep Red";
+  } else if (diffDays < 15) {
+    badgeColorClass = "bg-rose-400/15 text-rose-500 border-rose-400/30 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-400/50 font-bold";
+    barColorClass = "bg-rose-400";
+    textColorClass = "text-rose-500 font-bold";
+    colorName = "Light Red";
+  } else if (diffDays < 30) {
+    badgeColorClass = "bg-orange-500/15 text-orange-600 border-orange-500/30 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-500/50 font-bold";
+    barColorClass = "bg-orange-500";
+    textColorClass = "text-orange-600 font-bold";
+    colorName = "Orange";
+  } else if (diffDays < 90) {
+    badgeColorClass = "bg-yellow-500/15 text-yellow-600 border-yellow-500/30 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-500/50 font-bold";
+    barColorClass = "bg-yellow-500";
+    textColorClass = "text-yellow-600 font-bold";
+    colorName = "Yellow";
+  } else if (diffDays < 180) {
+    badgeColorClass = "bg-teal-500/15 text-teal-600 border-teal-500/30 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-500/50 font-bold";
+    barColorClass = "bg-teal-500";
+    textColorClass = "text-teal-600 font-bold";
+    colorName = "Semi Green";
+  } else {
+    badgeColorClass = "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/50 font-bold";
+    barColorClass = "bg-emerald-500";
+    textColorClass = "text-emerald-600 font-bold";
+    colorName = "Green";
   }
-  if (diffDays < 15) {
-    // 1 to 14 days => Light Red
-    return {
-      daysLabel: diffDays === 1 ? "1 day left" : `${diffDays} days left`,
-      badgeColorClass: "bg-rose-400/15 text-rose-500 border-rose-400/30 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-400/50 font-bold",
-      barColorClass: "bg-rose-400",
-      textColorClass: "text-rose-500 font-bold",
-      colorName: "Light Red",
-    };
-  }
-  if (diffDays < 30) {
-    // 15 to 29 days (< 1 month) => Orange
-    return {
-      daysLabel: `${diffDays} days left`,
-      badgeColorClass: "bg-orange-500/15 text-orange-600 border-orange-500/30 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-500/50 font-bold",
-      barColorClass: "bg-orange-500",
-      textColorClass: "text-orange-600 font-bold",
-      colorName: "Orange",
-    };
-  }
-  if (diffDays < 90) {
-    // 30 to 89 days (< 3 months) => Yellow
-    return {
-      daysLabel: `${diffDays} days left`,
-      badgeColorClass: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-500/50 font-bold",
-      barColorClass: "bg-yellow-500",
-      textColorClass: "text-yellow-600 font-bold",
-      colorName: "Yellow",
-    };
-  }
-  if (diffDays < 180) {
-    // 90 to 179 days (< 6 months) => Semi Green
-    return {
-      daysLabel: `${diffDays} days left`,
-      badgeColorClass: "bg-teal-500/15 text-teal-600 border-teal-500/30 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-500/50 font-bold",
-      barColorClass: "bg-teal-500",
-      textColorClass: "text-teal-600 font-bold",
-      colorName: "Semi Green",
-    };
-  }
-  // >= 180 days (>= 6 months) => Green
-  let formattedLabel = `${diffDays} days left`;
-  if (diffDays >= 365) {
+
+  // Label Formatting Logic
+  let formattedLabel = "";
+
+  if (isExpired || diffDays < 1) {
+    formattedLabel = "Expired";
+  } else if (diffDays < 30) {
+    // Less than 1 month => Days ONLY
+    formattedLabel = diffDays === 1 ? "1 day left" : `${diffDays} days left`;
+  } else if (diffDays < 365) {
+    // 1 Month to < 1 Year => Months and Days
+    const months = Math.floor(diffDays / 30);
+    const days = diffDays % 30;
+    const monthStr = months === 1 ? "1 month" : `${months} months`;
+
+    if (days === 0) {
+      formattedLabel = `${monthStr} left`;
+    } else {
+      const dayStr = days === 1 ? "1 day" : `${days} days`;
+      formattedLabel = `${monthStr} ${dayStr} left`;
+    }
+  } else {
+    // 1 Year / 12 Months or more => Years, Months, and Days
     const years = Math.floor(diffDays / 365);
     const remDays = diffDays % 365;
     const months = Math.floor(remDays / 30);
@@ -129,10 +136,10 @@ function getWarrantyStatusInfo(diffDays: number, isExpired: boolean) {
 
   return {
     daysLabel: formattedLabel,
-    badgeColorClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/50 font-bold",
-    barColorClass: "bg-emerald-500",
-    textColorClass: "text-emerald-600 font-bold",
-    colorName: "Green",
+    badgeColorClass,
+    barColorClass,
+    textColorClass,
+    colorName,
   };
 }
 
