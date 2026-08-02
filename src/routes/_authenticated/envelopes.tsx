@@ -592,23 +592,29 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                     onClick={() => setSelectedEnvelope(env)}
                     className="group relative rounded-2xl border bg-card hover:bg-accent/[0.02] transition-all hover:shadow-lg hover:border-accent/40 overflow-hidden flex flex-row cursor-pointer min-h-[150px]"
                   >
-                    {/* Left 1/3 Column: Envelope Icon & Theme */}
-                    <div
-                      className="w-1/3 shrink-0 relative flex flex-col items-center justify-center p-3 text-center border-r border-border/40 overflow-hidden"
-                      style={{
-                        background: env.color
-                          ? `linear-gradient(135deg, ${env.color}25, ${env.color}10)`
-                          : undefined,
-                      }}
-                    >
+                    {/* Left 1/3 Column: Envelope Image / Color Block */}
+                    <div className="w-1/3 shrink-0 relative bg-muted flex items-center justify-center border-r border-border/40 overflow-hidden">
                       {env.image_url ? (
-                        <img src={env.image_url} alt="" className="h-10 w-10 rounded-full object-cover mb-1 shadow-2xs border border-border/60" />
+                        <img
+                          src={env.image_url}
+                          alt={env.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
                       ) : (
-                        <span className="text-3xl mb-1 drop-shadow-2xs">{env.icon || "✉️"}</span>
+                        <div
+                          className="h-full w-full flex flex-col items-center justify-center p-3 text-center"
+                          style={{
+                            background: env.color
+                              ? `linear-gradient(135deg, ${env.color}25, ${env.color}10)`
+                              : undefined,
+                          }}
+                        >
+                          <span className="text-3xl mb-1 drop-shadow-2xs">{env.icon || "✉️"}</span>
+                          <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground truncate max-w-full px-1">
+                            {env.name}
+                          </span>
+                        </div>
                       )}
-                      <span className="text-[9px] font-bold tracking-wider uppercase text-muted-foreground truncate max-w-full px-1">
-                        {env.name}
-                      </span>
 
                       {/* Percentage Badge */}
                       <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded border border-border/60 shadow-2xs">
