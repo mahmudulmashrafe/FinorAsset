@@ -1,9 +1,14 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) {
+      throw redirect({ to: "/dashboard" });
+    }
     const { data } = await supabase.auth.getUser();
     if (data.user) {
       throw redirect({ to: "/dashboard" });
@@ -19,6 +24,23 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        navigate({ to: "/dashboard", replace: true });
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        navigate({ to: "/dashboard", replace: true });
+      }
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, [navigate]);
   return (
     <div className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between relative">
       {/* Premium subtle background glow */}
