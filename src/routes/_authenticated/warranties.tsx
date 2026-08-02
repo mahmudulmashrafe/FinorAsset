@@ -802,7 +802,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent className="z-[110]">
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="all">Categories</SelectItem>
                   {effectiveWarrantyCats.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <div className="flex items-center gap-1.5 truncate">
@@ -823,12 +823,10 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                 variant="outline"
                 size="sm"
                 onClick={() => setCategoryModalOpen(true)}
-                className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 text-accent hover:bg-accent/10 cursor-pointer shrink-0"
+                className="h-6 w-6 p-0 flex items-center justify-center font-bold rounded-md border-accent/40 text-accent hover:bg-accent/10 cursor-pointer shrink-0"
                 title="Add or Edit Warranty Category"
               >
-                <Plus className="h-3 w-3" />
-                <span className="hidden sm:inline">Add Category</span>
-                <span className="sm:hidden">Category</span>
+                <Plus className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
