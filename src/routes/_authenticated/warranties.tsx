@@ -99,7 +99,7 @@ function WarrantiesPage() {
     const availableUnlocked = rawBal - locked;
     let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
     if (locked > 0) {
-      label = `${a.name} (${fmtMoney(availableUnlocked, currency)} unlocked · ${fmtMoney(locked, currency)} locked in envelope)`;
+      label = `${a.name} (${fmtMoney(availableUnlocked, currency)} avail · 🔒 ${fmtMoney(locked, currency)})`;
     }
     return {
       value: a.id,

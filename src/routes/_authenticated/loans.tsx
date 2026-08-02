@@ -52,8 +52,17 @@ function LoansPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
+  const { data: envelopeAllocations = [] } = useQuery({
+    queryKey: ["envelope_allocations"],
+    queryFn: async () => { try { return await api.listEnvelopeAllocations(); } catch { return []; } },
+  });
 
   const balances = computeAccountBalances(accounts, txns);
+  const lockedPerAccount = new Map<string, number>();
+  envelopeAllocations.forEach((alloc) => {
+    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
+    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+  });
 
   // Dialog states
   const [open, setOpen] = useState(false);
@@ -184,9 +193,11 @@ function LoansPage() {
         if (kind === "lent") {
           for (const split of accountSplits) {
             if (split.accountId !== "none") {
-              const balance = balances.get(split.accountId) ?? 0;
-              if (balance < split.amount) {
-                return toast.error(`Insufficient funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+              const rawBal = balances.get(split.accountId) ?? 0;
+              const lockedAmt = lockedPerAccount.get(split.accountId) ?? 0;
+              const availableUnlocked = rawBal - lockedAmt;
+              if (availableUnlocked < split.amount) {
+                return toast.error(`Insufficient unlocked funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Avail: ${fmtMoney(availableUnlocked, currency)}, locked in envelope: ${fmtMoney(lockedAmt, currency)}`);
               }
             }
           }
@@ -194,9 +205,14 @@ function LoansPage() {
       } else {
         // Single account balance check
         if (kind === "lent" && accountId !== "none") {
-          const balance = balances.get(accountId) ?? 0;
-          if (balance < Number(amount)) {
-            return toast.error(`Insufficient funds in ${accMap.get(accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(Number(amount), currency)}`);
+          const rawBal = balances.get(accountId) ?? 0;
+          const lockedAmt = lockedPerAccount.get(accountId) ?? 0;
+          let availableUnlocked = rawBal - lockedAmt;
+          if (editingLoan && (editingLoan as any).account_id === accountId && (editingLoan as any).kind === "lent") {
+            availableUnlocked += Number((editingLoan as any).amount);
+          }
+          if (availableUnlocked < Number(amount)) {
+            return toast.error(`Insufficient unlocked funds in ${accMap.get(accountId)?.name || 'selected account'}. Avail: ${fmtMoney(availableUnlocked, currency)}, locked in envelope: ${fmtMoney(lockedAmt, currency)}`);
           }
         }
       }
@@ -376,9 +392,11 @@ function LoansPage() {
     if (repayLoan.kind === "borrowed") {
       for (const split of repaySplits) {
         if (split.accountId !== "none") {
-          const balance = balances.get(split.accountId) ?? 0;
-          if (balance < split.amount) {
-            return toast.error(`Insufficient funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Available: ${fmtMoney(balance, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+          const rawBal = balances.get(split.accountId) ?? 0;
+          const lockedAmt = lockedPerAccount.get(split.accountId) ?? 0;
+          const availableUnlocked = rawBal - lockedAmt;
+          if (availableUnlocked < split.amount) {
+            return toast.error(`Insufficient unlocked funds in ${accMap.get(split.accountId)?.name || 'selected account'}. Avail: ${fmtMoney(availableUnlocked, currency)}, locked in envelope: ${fmtMoney(lockedAmt, currency)}`);
           }
         }
       }
@@ -510,12 +528,21 @@ function LoansPage() {
 
   const accountOptions = [
     { value: "none", label: "Do not link account" },
-    ...accounts.map(a => ({
-      value: a.id,
-      label: `${a.name} (${fmtMoney(balances.get(a.id) ?? 0, currency)})`,
-      imageUrl: (a as any).image_url,
-      icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
-    }))
+    ...accounts.map(a => {
+      const rawBal = balances.get(a.id) ?? 0;
+      const locked = lockedPerAccount.get(a.id) ?? 0;
+      const availableUnlocked = rawBal - locked;
+      let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
+      if (locked > 0) {
+        label = `${a.name} (${fmtMoney(availableUnlocked, currency)} avail · 🔒 ${fmtMoney(locked, currency)})`;
+      }
+      return {
+        value: a.id,
+        label,
+        imageUrl: (a as any).image_url,
+        icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+      };
+    })
   ];
 
   const displayedLoans = loans.filter((l) => {
@@ -1273,6 +1300,17 @@ function AccountSplitsSelector({
   currency: string;
   showBalanceCheck: boolean;
 }) {
+  const { data: envelopeAllocations = [] } = useQuery({
+    queryKey: ["envelope_allocations"],
+    queryFn: async () => { try { return await api.listEnvelopeAllocations(); } catch { return []; } },
+  });
+
+  const lockedPerAccount = new Map<string, number>();
+  envelopeAllocations.forEach((alloc) => {
+    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
+    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+  });
+
   const handleAddSplit = () => {
     setSplits([...splits, { accountId: accounts[0]?.id || "none", amount: 0 }]);
   };
@@ -1311,17 +1349,28 @@ function AccountSplitsSelector({
 
       <div className="space-y-2">
         {splits.map((split, idx) => {
-          const balance = balances.get(split.accountId) ?? 0;
-          const isOverdrawn = showBalanceCheck && split.accountId !== "none" && balance < split.amount;
+          const rawBal = balances.get(split.accountId) ?? 0;
+          const lockedAmt = lockedPerAccount.get(split.accountId) ?? 0;
+          const availableUnlocked = rawBal - lockedAmt;
+          const isOverdrawn = showBalanceCheck && split.accountId !== "none" && availableUnlocked < split.amount;
 
           const splitAccountOptions = [
             { value: "none", label: "Do not link account" },
-            ...accounts.map(a => ({
-              value: a.id,
-              label: `${a.name} (${fmtMoney(balances.get(a.id) ?? 0, currency)})`,
-              imageUrl: (a as any).image_url,
-              icon: (a as any).image_url ? undefined : <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: a.color }} />
-            }))
+            ...accounts.map(a => {
+              const rBal = balances.get(a.id) ?? 0;
+              const lAmt = lockedPerAccount.get(a.id) ?? 0;
+              const avail = rBal - lAmt;
+              let label = `${a.name} (${fmtMoney(rBal, currency)})`;
+              if (lAmt > 0) {
+                label = `${a.name} (${fmtMoney(avail, currency)} avail · 🔒 ${fmtMoney(lAmt, currency)})`;
+              }
+              return {
+                value: a.id,
+                label,
+                imageUrl: (a as any).image_url,
+                icon: (a as any).image_url ? undefined : <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: a.color }} />
+              };
+            })
           ];
 
           return (
@@ -1337,7 +1386,7 @@ function AccountSplitsSelector({
                 />
                 {split.accountId !== "none" && (
                   <div className="text-[10px] text-muted-foreground mt-0.5 px-1 flex justify-between">
-                    <span>Available: {fmtMoney(balance, currency)}</span>
+                    <span>Avail Unlocked: {fmtMoney(availableUnlocked, currency)}</span>
                     {isOverdrawn && <span className="text-destructive font-semibold">Insufficient funds</span>}
                   </div>
                 )}
