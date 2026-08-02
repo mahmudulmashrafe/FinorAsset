@@ -1158,7 +1158,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
 
             return (
               <div className="space-y-4 mt-3">
-                <div className="flex items-center gap-3 border-b pb-3">
+                <div className="flex items-center gap-3 border-b pb-3 min-w-0">
                   {(selectedWarranty as any).product_image_url ? (
                     <img 
                       src={(selectedWarranty as any).product_image_url} 
@@ -1170,9 +1170,9 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                       <ShieldCheck className="h-6 w-6" />
                     </div>
                   )}
-                  <div className="min-w-0">
-                    <h3 className="font-serif font-black text-lg text-foreground truncate">{selectedWarranty.title}</h3>
-                    <p className="text-xs text-muted-foreground">Purchased: {new Date(selectedWarranty.purchase_date).toLocaleDateString()}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-serif font-black text-base sm:text-lg text-foreground break-words leading-snug">{selectedWarranty.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Purchased: {new Date(selectedWarranty.purchase_date).toLocaleDateString()}</p>
                   </div>
                 </div>
 
