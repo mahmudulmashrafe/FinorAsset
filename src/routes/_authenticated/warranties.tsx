@@ -202,21 +202,28 @@ function WarrantiesPage() {
     if (new Date(expiryDate) <= new Date(purchaseDate)) {
       return toast.error("Expiry date must be after purchase date");
     }
-    if (!amount || Number(amount) <= 0) return toast.error("Please enter a valid amount");
-    if (!accountId) return toast.error("Please select an account");
+    const numAmount = amount === "" || amount === undefined || amount === null ? 0 : Number(amount);
+    if (isNaN(numAmount) || numAmount < 0) {
+      return toast.error("Please enter a valid amount (0 or higher)");
+    }
 
-    // Balance validation
-    const targetAcc = accounts.find(a => a.id === accountId);
-    if (targetAcc) {
-      const currentBal = balances.get(accountId) ?? 0;
-      let available = currentBal;
-      // If editing, add back original amount if same account
-      if (editingWarranty && editingWarranty.account_id === accountId) {
-        available += Number(editingWarranty.amount);
-      }
-      const required = Number(amount);
-      if (available < required) {
-        return toast.error(`Insufficient funds in ${targetAcc.name}. Available: ${fmtMoney(available, currency)}, required: ${fmtMoney(required, currency)}`);
+    if (numAmount > 0 && !accountId) {
+      return toast.error("Please select an account");
+    }
+
+    // Balance validation for paid warranties
+    if (numAmount > 0 && accountId) {
+      const targetAcc = accounts.find(a => a.id === accountId);
+      if (targetAcc) {
+        const currentBal = balances.get(accountId) ?? 0;
+        let available = currentBal;
+        // If editing, add back original amount if same account
+        if (editingWarranty && editingWarranty.account_id === accountId) {
+          available += Number(editingWarranty.amount);
+        }
+        if (available < numAmount) {
+          return toast.error(`Insufficient funds in ${targetAcc.name}. Available: ${fmtMoney(available, currency)}, required: ${fmtMoney(numAmount, currency)}`);
+        }
       }
     }
 
@@ -272,42 +279,48 @@ function WarrantiesPage() {
       }
 
       const categoryVal = categoryId === "none" ? null : categoryId;
+      const validAccountId = accountId === "none" || !accountId ? null : accountId;
 
       if (editingWarranty) {
-        // Update transaction if exists
         let finalTxnId = editingWarranty.transaction_id;
-        if (finalTxnId) {
-          const { error: txnError } = await supabase
-            .from("transactions")
-            .update({
-              amount: Number(amount),
-              account_id: accountId,
-              category_id: categoryVal,
-              occurred_on: purchaseDate,
-              note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
-            })
-            .eq("id", finalTxnId);
-            
-          if (txnError) console.error("Failed to update linked transaction:", txnError);
-        } else {
-          // If transaction didn't exist before, create one now
-          const { data: newTxn, error: txnError } = await supabase
-            .from("transactions")
-            .insert({
-              user_id: authUser.id,
-              kind: "expense",
-              amount: Number(amount),
-              account_id: accountId,
-              category_id: categoryVal,
-              occurred_on: purchaseDate,
-              note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
-            })
-            .select()
-            .single();
-            
-          if (!txnError && newTxn) {
-            finalTxnId = newTxn.id;
+
+        if (numAmount > 0 && validAccountId) {
+          if (finalTxnId) {
+            const { error: txnError } = await supabase
+              .from("transactions")
+              .update({
+                amount: numAmount,
+                account_id: validAccountId,
+                category_id: categoryVal,
+                occurred_on: purchaseDate,
+                note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
+              })
+              .eq("id", finalTxnId);
+              
+            if (txnError) console.error("Failed to update linked transaction:", txnError);
+          } else {
+            const { data: newTxn, error: txnError } = await supabase
+              .from("transactions")
+              .insert({
+                user_id: authUser.id,
+                kind: "expense",
+                amount: numAmount,
+                account_id: validAccountId,
+                category_id: categoryVal,
+                occurred_on: purchaseDate,
+                note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
+              })
+              .select()
+              .single();
+              
+            if (!txnError && newTxn) {
+              finalTxnId = newTxn.id;
+            }
           }
+        } else if (finalTxnId && numAmount === 0) {
+          // If updated to 0 cost, delete linked transaction to clean up expense
+          await supabase.from("transactions").delete().eq("id", finalTxnId);
+          finalTxnId = null;
         }
 
         // Update Warranty
@@ -317,8 +330,8 @@ function WarrantiesPage() {
             title: title.trim(),
             purchase_date: purchaseDate,
             expiry_date: expiryDate,
-            amount: Number(amount),
-            account_id: accountId,
+            amount: numAmount,
+            account_id: validAccountId,
             category_id: categoryVal,
             transaction_id: finalTxnId,
             note: note.trim() || null,
@@ -331,23 +344,25 @@ function WarrantiesPage() {
         if (error) throw error;
         toast.success("Warranty updated successfully!");
       } else {
-        // Create Transaction first
-        const { data: newTxn, error: txnError } = await supabase
-          .from("transactions")
-          .insert({
-            user_id: authUser.id,
-            kind: "expense",
-            amount: Number(amount),
-            account_id: accountId,
-            category_id: categoryVal,
-            occurred_on: purchaseDate,
-            note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
-          })
-          .select()
-          .single();
+        let newTxnId = null;
+        if (numAmount > 0 && validAccountId) {
+          const { data: newTxn, error: txnError } = await supabase
+            .from("transactions")
+            .insert({
+              user_id: authUser.id,
+              kind: "expense",
+              amount: numAmount,
+              account_id: validAccountId,
+              category_id: categoryVal,
+              occurred_on: purchaseDate,
+              note: `[Warranty] ${title.trim()}${note.trim() ? ` · ${note.trim()}` : ""}`,
+            })
+            .select()
+            .single();
 
-        if (txnError) {
-          console.error("Failed to insert warranty transaction:", txnError);
+          if (!txnError && newTxn) {
+            newTxnId = newTxn.id;
+          }
         }
 
         // Insert Warranty
@@ -356,10 +371,10 @@ function WarrantiesPage() {
           title: title.trim(),
           purchase_date: purchaseDate,
           expiry_date: expiryDate,
-          amount: Number(amount),
-          account_id: accountId,
+          amount: numAmount,
+          account_id: validAccountId,
           category_id: categoryVal,
-          transaction_id: newTxn ? newTxn.id : null,
+          transaction_id: newTxnId,
           note: note.trim() || null,
           image_url: finalImageUrl || null,
           product_image_url: finalProductImageUrl || null,
