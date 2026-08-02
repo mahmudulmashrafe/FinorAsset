@@ -423,6 +423,8 @@ function CategoryCard({
   onEdit: () => void;
   onDelete?: () => void;
 }) {
+  const isWarranty = Boolean((cat as any).is_warranty);
+
   return (
     <div 
       onClick={onEdit}
@@ -443,7 +445,14 @@ function CategoryCard({
         </span>
       )}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold truncate">{cat.name}</p>
+        <div className="flex items-center justify-between gap-1">
+          <p className="font-semibold truncate">{cat.name}</p>
+          {isWarranty && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/30 shrink-0">
+              Warranty Only
+            </span>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground capitalize">{cat.kind}</p>
       </div>
     </div>
@@ -467,8 +476,9 @@ export function CategoriesDialog({
   const [editCategory, setEditCategory] = useState<Category | null>(null);
   const [deleteCat, setDeleteCat] = useState<{ id: string; name: string } | null>(null);
 
-  const incomeCategories = categories.filter((c) => c.kind === "income");
-  const expenseCategories = categories.filter((c) => c.kind === "expense");
+  const warrantyCategories = categories.filter((c) => (c as any).is_warranty === true || (c as any).is_warranty === 1);
+  const incomeCategories = categories.filter((c) => c.kind === "income" && !(c as any).is_warranty);
+  const expenseCategories = categories.filter((c) => c.kind === "expense" && !(c as any).is_warranty);
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ["categories"] });
@@ -516,6 +526,30 @@ export function CategoriesDialog({
           />
 
           {isLoading && <p className="text-muted-foreground animate-pulse">Loading categories…</p>}
+
+          {/* Warranty Categories Section */}
+          <section>
+            <h2 className="font-serif text-xl mb-3 flex items-center gap-2">
+              <span>Warranty Only Categories</span>
+              <span className="text-sm font-sans text-muted-foreground font-normal">({warrantyCategories.length})</span>
+            </h2>
+            {warrantyCategories.length === 0 ? (
+              <div className="rounded-xl border bg-card p-6 text-center text-muted-foreground text-sm">
+                No warranty categories created yet — check "Warranty Category" when creating a category above.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {warrantyCategories.map((c) => (
+                  <CategoryCard
+                    key={c.id}
+                    cat={c}
+                    onEdit={() => setEditCategory(c)}
+                    onDelete={() => setDeleteCat({ id: c.id, name: c.name })}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
 
           <section>
             <h2 className="font-serif text-xl mb-3">
