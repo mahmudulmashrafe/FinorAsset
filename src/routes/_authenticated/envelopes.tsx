@@ -68,11 +68,8 @@ function EnvelopesPage() {
         setDbError(null);
         return data;
       } catch (err: any) {
-        if (err.code === "42P01") {
-          setDbError(err);
-          return [];
-        }
-        throw err;
+        setDbError(err);
+        return [];
       }
     },
     enabled: !!authUser,
@@ -151,6 +148,29 @@ function EnvelopesPage() {
     }
     return "1";
   });
+
+  // Release all allocations for the month
+  async function handleReleaseAllAllocations(isAuto = false) {
+    if (envelopes.length === 0) return;
+    const envIds = envelopes.map(e => e.id);
+
+    try {
+      const { error } = await supabase
+        .from("envelope_allocations" as any)
+        .delete()
+        .in("envelope_id", envIds);
+      if (error) throw error;
+
+      if (isAuto) {
+        toast.info(`Envelopes auto-reset for new month (Reset Day: ${resetDay === "last" ? "Last day" : `Day ${resetDay}`})`);
+      } else {
+        toast.success("All envelope allocations released for new month!");
+      }
+      qc.invalidateQueries({ queryKey: ["envelope_allocations"] });
+    } catch (err: any) {
+      if (!isAuto) toast.error(err.message || "Failed to release allocations");
+    }
+  }
 
   // Auto-reset logic on month rollover
   useEffect(() => {
@@ -333,28 +353,7 @@ function EnvelopesPage() {
     }
   }
 
-  // Release all allocations for the month
-  async function handleReleaseAllAllocations(isAuto = false) {
-    if (envelopes.length === 0) return;
-    const envIds = envelopes.map(e => e.id);
 
-    try {
-      const { error } = await supabase
-        .from("envelope_allocations" as any)
-        .delete()
-        .in("envelope_id", envIds);
-      if (error) throw error;
-
-      if (isAuto) {
-        toast.info(`Envelopes auto-reset for new month (Reset Day: ${resetDay === "last" ? "Last day" : `Day ${resetDay}`})`);
-      } else {
-        toast.success("All envelope allocations released for new month!");
-      }
-      qc.invalidateQueries({ queryKey: ["envelope_allocations"] });
-    } catch (err: any) {
-      if (!isAuto) toast.error(err.message || "Failed to release allocations");
-    }
-  }
 
   // Summary Metrics
   const totalTarget = envelopes.reduce((acc, e) => acc + Number(e.target_amount), 0);
