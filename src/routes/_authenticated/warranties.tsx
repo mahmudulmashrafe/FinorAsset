@@ -705,11 +705,12 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
         </div>
       )}
 
-      {/* ── Top Bar Header: Only Toggle Buttons with Record Counts ── */}
+      {/* ── Top Bar Header: Toggle Buttons & Category Selector ── */}
       {!dbError && (
-        <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4">
-          <div className="flex items-center gap-1.5 overflow-x-auto thin-scroll">
-            <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
+        <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4 flex items-center justify-between gap-2">
+          {/* Left: Horizontal Scrollable Toggle Badges */}
+          <div className="flex items-center gap-1.5 overflow-x-auto thin-scroll shrink min-w-0">
+            <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0">
               <button
                 type="button"
                 onClick={(e) => {
@@ -794,41 +795,41 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                 </span>
               </button>
             </div>
+          </div>
 
-            {/* Warranty Category Dropdown Filter & Category Manager */}
-            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-6 text-[10px] sm:text-[11px] font-bold bg-muted/60 border rounded-md px-2 py-0 cursor-pointer min-w-[120px] max-w-[170px] truncate">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent className="z-[110]">
-                  <SelectItem value="all">Categories</SelectItem>
-                  {effectiveWarrantyCats.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex items-center gap-1.5 truncate">
-                        {c.image_url ? (
-                          <img src={c.image_url} alt="" className="h-3.5 w-3.5 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <span className="text-xs shrink-0">{c.icon}</span>
-                        )}
-                        <span className="truncate">{c.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Right: Static Category Dropdown & Add Button (outside overflow-x-auto) */}
+          <div className="flex items-center gap-1.5 shrink-0 z-30 ml-auto">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-6 text-[10px] sm:text-[11px] font-bold bg-muted/60 border rounded-md px-2 py-0 cursor-pointer min-w-[120px] max-w-[170px] truncate">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent className="z-[150]" position="popper" sideOffset={4}>
+                <SelectItem value="all">Categories</SelectItem>
+                {effectiveWarrantyCats.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <div className="flex items-center gap-1.5 truncate">
+                      {c.image_url ? (
+                        <img src={c.image_url} alt="" className="h-3.5 w-3.5 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <span className="text-xs shrink-0">{c.icon}</span>
+                      )}
+                      <span className="truncate">{c.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCategoryModalOpen(true)}
-                className="h-6 w-6 p-0 flex items-center justify-center font-bold rounded-md border-accent/40 text-accent hover:bg-accent/10 cursor-pointer shrink-0"
-                title="Add or Edit Warranty Category"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCategoryModalOpen(true)}
+              className="h-6 w-6 p-0 flex items-center justify-center font-bold rounded-md border-accent/40 text-accent hover:bg-accent/10 cursor-pointer shrink-0"
+              title="Add or Edit Warranty Category"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
       )}
