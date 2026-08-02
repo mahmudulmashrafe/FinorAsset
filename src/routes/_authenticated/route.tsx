@@ -40,7 +40,7 @@ const items = [
   { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: true },
   { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
   { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
-  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
+  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: false },
 ] as const;
 
 // ─── Time-of-day greeting ─────────────────────────────────────────────────────
@@ -281,20 +281,22 @@ function HeaderProfileMenu({
 // ─── Mobile Bottom Navigation ─────────────────────────────────────────────────
 function MobileBottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const mobileItems = items.filter(it => it.mobile);
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/80 backdrop-blur-md md:hidden flex items-center justify-around px-2 pb-safe shadow-sm">
-      {items.filter(it => it.mobile).map((it) => {
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-1 pb-safe shadow-md overflow-x-auto thin-scroll">
+      {mobileItems.map((it) => {
         const isActive = path === it.url;
         return (
           <Link
             key={it.url}
             to={it.url}
-            className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[52px] h-full gap-0.5 px-1 shrink-0 transition-all ${
               isActive ? "text-accent scale-105" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <it.icon className="h-5.5 w-5.5 shrink-0" />
-            <span className="text-[10px] font-medium tracking-tight font-serif">{it.title}</span>
+            <it.icon className="h-5 w-5 shrink-0" />
+            <span className="text-[9px] font-semibold tracking-tight font-serif truncate max-w-full">{it.title}</span>
           </Link>
         );
       })}
