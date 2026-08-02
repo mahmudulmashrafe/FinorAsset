@@ -79,16 +79,31 @@ function WarrantiesPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
+  const { data: envelopeAllocations = [] } = useQuery({
+    queryKey: ["envelope_allocations"],
+    queryFn: async () => { try { return await api.listEnvelopeAllocations(); } catch { return []; } },
+  });
 
   const balances = computeAccountBalances(accounts, txns);
+  const lockedPerAccount = new Map<string, number>();
+  envelopeAllocations.forEach((alloc) => {
+    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
+    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+  });
   const catMap = new Map(cats.map(c => [c.id, c]));
   const accMap = new Map(accounts.map(a => [a.id, a]));
 
   const accountOptions = accounts.map(a => {
-    const bal = balances.get(a.id) ?? 0;
+    const rawBal = balances.get(a.id) ?? 0;
+    const locked = lockedPerAccount.get(a.id) ?? 0;
+    const availableUnlocked = rawBal - locked;
+    let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
+    if (locked > 0) {
+      label = `${a.name} (${fmtMoney(availableUnlocked, currency)} unlocked · ${fmtMoney(locked, currency)} locked in envelope)`;
+    }
     return {
       value: a.id,
-      label: `${a.name} (${fmtMoney(bal, currency)})`,
+      label,
       imageUrl: (a as any).image_url,
       icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
     };
@@ -248,14 +263,18 @@ function WarrantiesPage() {
     if (numAmount > 0 && accountId) {
       const targetAcc = accounts.find(a => a.id === accountId);
       if (targetAcc) {
-        const currentBal = balances.get(accountId) ?? 0;
-        let available = currentBal;
-        // If editing, add back original amount if same account
+        const rawBal = balances.get(accountId) ?? 0;
+        const lockedAmt = lockedPerAccount.get(accountId) ?? 0;
+        let availableUnlocked = rawBal - lockedAmt;
         if (editingWarranty && editingWarranty.account_id === accountId) {
-          available += Number(editingWarranty.amount);
+          availableUnlocked += Number(editingWarranty.amount);
         }
-        if (available < numAmount) {
-          return toast.error(`Insufficient funds in ${targetAcc.name}. Available: ${fmtMoney(available, currency)}, required: ${fmtMoney(numAmount, currency)}`);
+        if (availableUnlocked < numAmount) {
+          if (lockedAmt > 0) {
+            return toast.error(`Insufficient unlocked funds in ${targetAcc.name}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableUnlocked, currency)}`);
+          } else {
+            return toast.error(`Insufficient funds in ${targetAcc.name}. Available: ${fmtMoney(rawBal, currency)}, required: ${fmtMoney(numAmount, currency)}`);
+          }
         }
       }
     }

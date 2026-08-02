@@ -256,8 +256,20 @@ export function TransactionDialog({
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts, enabled: open });
   const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories, enabled: open });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000), enabled: open });
+  const { data: envelopeAllocations = [] } = useQuery({
+    queryKey: ["envelope_allocations"],
+    queryFn: async () => { try { return await api.listEnvelopeAllocations(); } catch { return []; } },
+    enabled: open,
+  });
 
   const balances = computeAccountBalances(accounts, txns);
+
+  // Compute locked envelope funds per account
+  const lockedPerAccount = new Map<string, number>();
+  envelopeAllocations.forEach((alloc) => {
+    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
+    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+  });
 
   // Pre-fill form when editing or set defaults for new
   useEffect(() => {
@@ -516,11 +528,17 @@ export function TransactionDialog({
 
         if (kind === "expense") {
           for (const split of splits) {
-            const currentBal = balances.get(split.accountId) ?? 0;
-            if (currentBal < split.amount) {
+            const rawBal = balances.get(split.accountId) ?? 0;
+            const lockedAmt = lockedPerAccount.get(split.accountId) ?? 0;
+            const availableUnlocked = rawBal - lockedAmt;
+            if (availableUnlocked < split.amount) {
               const accName = accounts.find(a => a.id === split.accountId)?.name || "selected account";
               setSaving(false);
-              return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(currentBal, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+              if (lockedAmt > 0) {
+                return toast.error(`Insufficient unlocked funds in ${accName}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableUnlocked, currency)}`);
+              } else {
+                return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(rawBal, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+              }
             }
           }
         }
@@ -544,11 +562,20 @@ export function TransactionDialog({
       } else {
         // Single transaction balance validation
         if (kind === "expense" || kind === "transfer") {
-          const currentBal = balances.get(accountId) ?? 0;
-          if (currentBal < parsed.data.amount) {
+          const rawBal = balances.get(accountId) ?? 0;
+          const lockedAmt = lockedPerAccount.get(accountId) ?? 0;
+          let availableUnlocked = rawBal - lockedAmt;
+          if (editingTransaction && (editingTransaction as any).account_id === accountId && (editingTransaction as any).kind === kind) {
+            availableUnlocked += Number((editingTransaction as any).amount);
+          }
+          if (availableUnlocked < parsed.data.amount) {
             const accName = accounts.find(a => a.id === accountId)?.name || "selected account";
             setSaving(false);
-            return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(currentBal, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+            if (lockedAmt > 0) {
+              return toast.error(`Insufficient unlocked funds in ${accName}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableUnlocked, currency)}`);
+            } else {
+              return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(rawBal, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+            }
           }
         }
 
@@ -576,10 +603,16 @@ export function TransactionDialog({
   }
 
   const accountOptions = accounts.map(a => {
-    const bal = balances.get(a.id) ?? 0;
+    const rawBal = balances.get(a.id) ?? 0;
+    const locked = lockedPerAccount.get(a.id) ?? 0;
+    const availableUnlocked = rawBal - locked;
+    let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
+    if (locked > 0) {
+      label = `${a.name} (${fmtMoney(availableUnlocked, currency)} unlocked · ${fmtMoney(locked, currency)} locked in envelope)`;
+    }
     return {
       value: a.id,
-      label: `${a.name} (${fmtMoney(bal, currency)})`,
+      label,
       imageUrl: (a as any).image_url,
       icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
     };
