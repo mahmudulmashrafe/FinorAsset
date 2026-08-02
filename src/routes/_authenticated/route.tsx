@@ -35,12 +35,12 @@ const items = [
   { title: "Dashboard",    url: "/dashboard",    icon: LayoutDashboard,  mobile: true },
   { title: "Transactions", url: "/transactions", icon: Receipt,          mobile: true },
   { title: "Accounts",     url: "/accounts",     icon: Wallet,           mobile: true },
-  { title: "Envelopes",    url: "/envelopes",    icon: Mail,             mobile: true },
-  { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: true },
-  { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: true },
   { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
   { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
-  { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: true },
+  { title: "Envelopes",    url: "/envelopes",    icon: Mail,             mobile: false },
+  { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: false },
+  { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: false },
+  { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
 ] as const;
 
 // ─── Time-of-day greeting ─────────────────────────────────────────────────────
