@@ -106,13 +106,24 @@ function getWarrantyStatusInfo(diffDays: number, isExpired: boolean) {
   let formattedLabel = `${diffDays} days left`;
   if (diffDays >= 365) {
     const years = Math.floor(diffDays / 365);
-    const remainingDays = diffDays % 365;
+    const remDays = diffDays % 365;
+    const months = Math.floor(remDays / 30);
+    const days = remDays % 30;
+
     const yearStr = years === 1 ? "1 yr" : `${years} yrs`;
-    if (remainingDays === 0) {
+
+    if (months === 0 && days === 0) {
       formattedLabel = `${yearStr} left`;
-    } else {
-      const dayStr = remainingDays === 1 ? "1 day" : `${remainingDays} days`;
+    } else if (months > 0 && days === 0) {
+      const monthStr = months === 1 ? "1 mo" : `${months} mos`;
+      formattedLabel = `${yearStr} ${monthStr} left`;
+    } else if (months === 0 && days > 0) {
+      const dayStr = days === 1 ? "1 day" : `${days} days`;
       formattedLabel = `${yearStr} ${dayStr} left`;
+    } else {
+      const monthStr = months === 1 ? "1 mo" : `${months} mos`;
+      const dayStr = days === 1 ? "1 day" : `${days} days`;
+      formattedLabel = `${yearStr} ${monthStr} ${dayStr} left`;
     }
   }
 
