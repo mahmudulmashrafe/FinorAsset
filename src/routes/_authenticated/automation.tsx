@@ -63,13 +63,29 @@ function AutomationPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
+  const { data: envelopeAllocations = [] } = useQuery({
+    queryKey: ["envelope_allocations"],
+    queryFn: async () => { try { return await api.listEnvelopeAllocations(); } catch { return []; } },
+  });
+
   const balances = computeAccountBalances(accounts, txns);
+  const lockedPerAccount = new Map<string, number>();
+  envelopeAllocations.forEach((alloc) => {
+    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
+    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+  });
 
   const accountOptions = accounts.map(a => {
-    const bal = balances.get(a.id) ?? 0;
+    const rawBal = balances.get(a.id) ?? 0;
+    const locked = lockedPerAccount.get(a.id) ?? 0;
+    const availableUnlocked = rawBal - locked;
+    let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
+    if (locked > 0) {
+      label = `${a.name} (${fmtMoney(availableUnlocked, currency)} avail · 🔒 ${fmtMoney(locked, currency)})`;
+    }
     return {
       value: a.id,
-      label: `${a.name} (${fmtMoney(bal, currency)})`,
+      label,
       imageUrl: (a as any).image_url,
       icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
     };
@@ -528,10 +544,16 @@ function AutomationPage() {
 
     for (const [accountId, totalDeduction] of deductions.entries()) {
       if (totalDeduction <= 0) continue; // Net positive or zero change on this account: no balance check needed!
-      const balance = balances.get(accountId) ?? 0;
-      if (balance < totalDeduction) {
+      const rawBal = balances.get(accountId) ?? 0;
+      const lockedAmt = lockedPerAccount.get(accountId) ?? 0;
+      const availableUnlocked = rawBal - lockedAmt;
+      if (availableUnlocked < totalDeduction) {
         const accName = accountMap.get(accountId)?.name || "selected account";
-        return toast.error(`Insufficient funds to run macro "${rule.name}". ${accName} has ${fmtMoney(balance, currency)}, but macro requires ${fmtMoney(totalDeduction, currency)}.`);
+        if (lockedAmt > 0) {
+          return toast.error(`Insufficient unlocked funds to run automation "${rule.name}". ${accName} has ${fmtMoney(availableUnlocked, currency)} unlocked (${fmtMoney(lockedAmt, currency)} locked in envelope), but automation requires ${fmtMoney(totalDeduction, currency)}.`);
+        } else {
+          return toast.error(`Insufficient funds to run automation "${rule.name}". ${accName} has ${fmtMoney(rawBal, currency)}, but automation requires ${fmtMoney(totalDeduction, currency)}.`);
+        }
       }
     }
 
@@ -1099,8 +1121,8 @@ function AutomationPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
+                      <div className="space-y-2">
+                        <div className="space-y-1 w-full">
                           <Label className="text-[10px] font-semibold">
                             {act.kind === "transfer" ? "Source Account" : "Account"}
                           </Label>
@@ -1115,7 +1137,7 @@ function AutomationPage() {
                         </div>
 
                         {act.kind === "transfer" ? (
-                          <div className="space-y-1">
+                          <div className="space-y-1 w-full">
                             <Label className="text-[10px] font-semibold">Destination Account</Label>
                             <SearchableSelect
                               options={accountOptions.filter(a => a.value !== act.account_id)}
@@ -1127,7 +1149,7 @@ function AutomationPage() {
                             />
                           </div>
                         ) : (
-                          <div className="space-y-1">
+                          <div className="space-y-1 w-full">
                             <Label className="text-[10px] font-semibold">Category</Label>
                             <SearchableSelect
                               options={categoryOptions.filter(c => {
