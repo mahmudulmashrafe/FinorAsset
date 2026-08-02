@@ -939,8 +939,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
 
                       {/* Days Left Tracker & Visual Bar */}
                       <div className="mt-2.5 space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Tracker</span>
+                        <div className="flex items-center justify-end gap-1">
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none ${badgeColorClass}`}>
                             {daysLabel}
                           </span>
