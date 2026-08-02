@@ -103,8 +103,21 @@ function getWarrantyStatusInfo(diffDays: number, isExpired: boolean) {
     };
   }
   // >= 180 days (>= 6 months) => Green
+  let formattedLabel = `${diffDays} days left`;
+  if (diffDays >= 365) {
+    const years = Math.floor(diffDays / 365);
+    const remainingDays = diffDays % 365;
+    const yearStr = years === 1 ? "1 yr" : `${years} yrs`;
+    if (remainingDays === 0) {
+      formattedLabel = `${yearStr} left`;
+    } else {
+      const dayStr = remainingDays === 1 ? "1 day" : `${remainingDays} days`;
+      formattedLabel = `${yearStr} ${dayStr} left`;
+    }
+  }
+
   return {
-    daysLabel: `${diffDays} days left`,
+    daysLabel: formattedLabel,
     badgeColorClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/50 font-bold",
     barColorClass: "bg-emerald-500",
     textColorClass: "text-emerald-600 font-bold",
