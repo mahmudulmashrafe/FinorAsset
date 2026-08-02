@@ -461,21 +461,43 @@ function WarrantiesPage() {
     setDeleteWarranty({ id: editingWarranty.id, title: editingWarranty.title });
   }
 
-  // Stats Computations
+  // Stats Computations & Expiry Sorting
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const activeWarranties = warranties.filter(w => new Date(w.expiry_date) >= today);
-  const expiredWarranties = warranties.filter(w => new Date(w.expiry_date) < today);
+  function sortWarranties(list: Warranty[]): Warranty[] {
+    const todayTime = today.getTime();
+    return [...list].sort((a, b) => {
+      const aTime = a.expiry_date ? new Date(a.expiry_date).getTime() : 0;
+      const bTime = b.expiry_date ? new Date(b.expiry_date).getTime() : 0;
+      const aExpired = aTime < todayTime;
+      const bExpired = bTime < todayTime;
 
-  const soonExpiring = warranties.filter(w => {
+      // Active warranties come before Expired warranties
+      if (!aExpired && bExpired) return -1;
+      if (aExpired && !bExpired) return 1;
+
+      if (!aExpired && !bExpired) {
+        // Both Active: Expiring soonest comes first (Ascending order)
+        return aTime - bTime;
+      } else {
+        // Both Expired: Most recently expired comes first (Descending order)
+        return bTime - aTime;
+      }
+    });
+  }
+
+  const activeWarranties = sortWarranties(warranties.filter(w => new Date(w.expiry_date) >= today));
+  const expiredWarranties = sortWarranties(warranties.filter(w => new Date(w.expiry_date) < today));
+
+  const soonExpiring = sortWarranties(warranties.filter(w => {
     const expiry = new Date(w.expiry_date);
     const diffTime = expiry.getTime() - today.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 0 && diffDays <= 30;
-  });
+  }));
 
-  const displayedWarranties = warranties.filter((w) => {
+  const filteredWarranties = warranties.filter((w) => {
     if (warrantyView === "active") return new Date(w.expiry_date) >= today;
     if (warrantyView === "expiring") {
       const expiry = new Date(w.expiry_date);
@@ -486,6 +508,8 @@ function WarrantiesPage() {
     if (warrantyView === "expired") return new Date(w.expiry_date) < today;
     return true;
   });
+
+  const displayedWarranties = sortWarranties(filteredWarranties);
 
   return (
     <div className="space-y-6 w-full pb-10">
