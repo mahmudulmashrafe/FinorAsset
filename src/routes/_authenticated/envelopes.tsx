@@ -754,68 +754,15 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
               />
             </div>
 
-            {/* Icon Picker */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Envelope Icon / Emoji</Label>
-                <span className="text-[10px] text-muted-foreground">Type custom or select below</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-2xl shrink-0">
-                  {icon || "✉️"}
-                </div>
-                <Input
-                  value={icon}
-                  onChange={(e) => setIcon(e.target.value)}
-                  placeholder="e.g. ✉️ or type emoji"
-                  className="h-10 text-base flex-1 bg-background"
-                  maxLength={4}
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto thin-scroll p-1 border rounded-lg bg-card/40 mt-1">
-                {ICONS.map((em) => (
-                  <button
-                    key={em}
-                    type="button"
-                    onClick={() => setIcon(em)}
-                    className={`h-8 w-8 rounded-lg text-lg flex items-center justify-center transition-all cursor-pointer ${
-                      icon === em ? "ring-2 ring-accent bg-accent/20 scale-105" : "hover:bg-muted"
-                    }`}
-                  >
-                    {em}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color Picker */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Color</Label>
-              <div className="grid grid-cols-12 gap-1.5">
-                {COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    className={`h-6 w-6 rounded-full transition-all cursor-pointer ${
-                      color === c ? "ring-2 ring-offset-1 ring-foreground scale-110" : "hover:scale-105"
-                    }`}
-                    style={{ background: c }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Picture Upload */}
-            <div className="space-y-1 pt-1 border-t">
-              <Label className="text-xs font-semibold">Custom Envelope Image / Logo (Optional)</Label>
+            {/* Custom Logo / Picture Upload */}
+            <div className="space-y-1.5 pt-1 border-t">
+              <Label className="text-xs font-semibold">Custom Envelope Logo / Picture (Optional)</Label>
               <div className="flex flex-col gap-2">
                 {imageUrl || imageFile ? (
                   <div className="flex items-center gap-2">
                     <img 
                       src={imageFile ? URL.createObjectURL(imageFile) : imageUrl} 
-                      alt="Envelope picture" 
+                      alt="Envelope logo" 
                       className="h-10 w-10 rounded-full object-cover border" 
                     />
                     <Button 
@@ -825,7 +772,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       onClick={() => { setImageUrl(""); setImageFile(null); }}
                       className="h-8 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
                     >
-                      Remove Picture
+                      Remove Logo
                     </Button>
                   </div>
                 ) : (
@@ -838,7 +785,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       className="h-8 text-xs cursor-pointer"
                       disabled={saving || uploadingImage}
                     >
-                      {uploadingImage ? "Uploading…" : "Upload Image"}
+                      {uploadingImage ? "Uploading…" : "Upload Logo"}
                     </Button>
                     <input 
                       type="file" 
@@ -855,8 +802,26 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                   </div>
                 )}
                 <div className="text-[10px] text-muted-foreground leading-normal">
-                  Upload a custom picture to identify this envelope visually.
+                  Upload a custom picture or logo to visually represent this envelope.
                 </div>
+              </div>
+            </div>
+
+            {/* Color Picker */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Color Theme</Label>
+              <div className="grid grid-cols-12 gap-1.5">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    className={`h-6 w-6 rounded-full transition-all cursor-pointer ${
+                      color === c ? "ring-2 ring-offset-1 ring-foreground scale-110" : "hover:scale-105"
+                    }`}
+                    style={{ background: c }}
+                  />
+                ))}
               </div>
             </div>
 
