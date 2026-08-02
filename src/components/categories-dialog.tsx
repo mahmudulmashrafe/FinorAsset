@@ -150,16 +150,18 @@ const NoOverlayDialogContent = React.forwardRef<
 ));
 NoOverlayDialogContent.displayName = "NoOverlayDialogContent";
 
-function CategoryFormDialog({
+export function CategoryFormDialog({
   open,
   onOpenChange,
   editingCategory,
+  defaultIsWarranty = false,
   onSaved,
   onDelete,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingCategory?: Category | null;
+  defaultIsWarranty?: boolean;
   onSaved: () => void;
   onDelete?: (id: string, name: string) => void;
 }) {
@@ -168,6 +170,7 @@ function CategoryFormDialog({
   const [kind, setKind] = useState<Kind>("expense");
   const [color, setColor] = useState(COLORS[0]);
   const [icon, setIcon] = useState(ICONS[0]);
+  const [isWarranty, setIsWarranty] = useState(defaultIsWarranty);
   const [saving, setSaving] = useState(false);
 
   const [imageUrl, setImageUrl] = useState("");
@@ -184,6 +187,7 @@ function CategoryFormDialog({
         setIcon(editingCategory.icon ?? ICONS[0]);
         setImageUrl(editingCategory.image_url || "");
         setImageFile(null);
+        setIsWarranty(Boolean((editingCategory as any)?.is_warranty));
       } else {
         setName("");
         setKind("expense");
@@ -191,9 +195,10 @@ function CategoryFormDialog({
         setIcon(ICONS[0]);
         setImageUrl("");
         setImageFile(null);
+        setIsWarranty(defaultIsWarranty);
       }
     }
-  }, [open, editingCategory]);
+  }, [open, editingCategory, defaultIsWarranty]);
 
   async function save() {
     if (!name.trim()) return toast.error("Category name is required");
@@ -225,7 +230,7 @@ function CategoryFormDialog({
       if (isEdit) {
         const { error } = await supabase
           .from("categories")
-          .update({ name: name.trim(), kind, color, icon, image_url: finalImageUrl || null })
+          .update({ name: name.trim(), kind, color, icon, image_url: finalImageUrl || null, is_warranty: isWarranty } as any)
           .eq("id", editingCategory!.id);
         if (error) throw error;
         toast.success("Category updated!");
@@ -239,7 +244,8 @@ function CategoryFormDialog({
           color,
           icon,
           image_url: finalImageUrl || null,
-        });
+          is_warranty: isWarranty,
+        } as any);
         if (error) throw error;
         toast.success("Category created!");
       }
@@ -282,6 +288,19 @@ function CategoryFormDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-muted/40 hover:bg-muted/60 transition-colors">
+            <input
+              type="checkbox"
+              id="cat-is-warranty"
+              checked={isWarranty}
+              onChange={(e) => setIsWarranty(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer shrink-0"
+            />
+            <Label htmlFor="cat-is-warranty" className="text-xs font-semibold cursor-pointer select-none leading-snug">
+              Warranty Category (Shown on Warranty Page & Transactions)
+            </Label>
           </div>
 
           <div>

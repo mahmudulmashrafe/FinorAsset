@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CategoryFormDialog } from "@/components/categories-dialog";
 
 export const Route = createFileRoute("/_authenticated/warranties")({
   component: WarrantiesPage,
@@ -93,9 +94,12 @@ function WarrantiesPage() {
     };
   });
 
+  const warrantyCategories = cats.filter(c => (c as any).is_warranty === true || (c as any).is_warranty === 1);
+  const effectiveWarrantyCats = warrantyCategories.length > 0 ? warrantyCategories : cats.filter(c => c.kind === "expense");
+
   const categoryOptions = [
     { value: "none", label: "None" },
-    ...cats.filter(c => c.kind === "expense").map(c => ({
+    ...effectiveWarrantyCats.map(c => ({
       value: c.id,
       label: c.name,
       imageUrl: c.image_url || undefined,
@@ -108,6 +112,10 @@ function WarrantiesPage() {
   const [editingWarranty, setEditingWarranty] = useState<Warranty | null>(null);
   const [deleteWarranty, setDeleteWarranty] = useState<{ id: string; title: string } | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Category filter & creation modal state
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryModalOpen, setCategoryModalOpen] = useState<boolean>(false);
 
   // View and summary states (matching accounts page)
   const [warrantyView, setWarrantyView] = useState<"all" | "active" | "expiring" | "expired">("all");
@@ -498,6 +506,7 @@ function WarrantiesPage() {
   }));
 
   const filteredWarranties = warranties.filter((w) => {
+    if (categoryFilter !== "all" && w.category_id !== categoryFilter) return false;
     if (warrantyView === "active") return new Date(w.expiry_date) >= today;
     if (warrantyView === "expiring") {
       const expiry = new Date(w.expiry_date);
@@ -674,6 +683,43 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   {expiredWarranties.length}
                 </span>
               </button>
+            </div>
+
+            {/* Warranty Category Dropdown Filter & Category Manager */}
+            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-6 text-[10px] sm:text-[11px] font-bold bg-muted/60 border rounded-md px-2 py-0 cursor-pointer min-w-[120px] max-w-[170px] truncate">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent className="z-[110]">
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {effectiveWarrantyCats.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-1.5 truncate">
+                        {c.image_url ? (
+                          <img src={c.image_url} alt="" className="h-3.5 w-3.5 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <span className="text-xs shrink-0">{c.icon}</span>
+                        )}
+                        <span className="truncate">{c.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCategoryModalOpen(true)}
+                className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md border-accent/40 text-accent hover:bg-accent/10 cursor-pointer shrink-0"
+                title="Add or Edit Warranty Category"
+              >
+                <Plus className="h-3 w-3" />
+                <span className="hidden sm:inline">Add Category</span>
+                <span className="sm:hidden">Category</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -1438,6 +1484,14 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
         </button>,
         document.body
       )}
+
+      {/* Category Creation / Edit Modal */}
+      <CategoryFormDialog
+        open={categoryModalOpen}
+        onOpenChange={setCategoryModalOpen}
+        defaultIsWarranty={true}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["categories"] })}
+      />
 
       {/* Delete Confirmation Alert */}
       <AlertDialog open={!!deleteWarranty} onOpenChange={(val) => !val && setDeleteWarranty(null)}>
