@@ -256,11 +256,19 @@ export function TransactionDialog({
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts, enabled: open });
   const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories, enabled: open });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000), enabled: open });
+  const { data: envelopes = [] } = useQuery({
+    queryKey: ["envelopes"],
+    queryFn: async () => { try { return await api.listEnvelopes(); } catch { return []; } },
+    enabled: open,
+  });
   const { data: envelopeAllocations = [] } = useQuery({
     queryKey: ["envelope_allocations"],
     queryFn: async () => { try { return await api.listEnvelopeAllocations(); } catch { return []; } },
     enabled: open,
   });
+
+  const [sourceType, setSourceType] = useState<"account" | "envelope">("account");
+  const [selectedEnvelopeVal, setSelectedEnvelopeVal] = useState("");
 
   const balances = computeAccountBalances(accounts, txns);
 
@@ -617,6 +625,17 @@ export function TransactionDialog({
       icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
     };
   });
+  const envelopeOptions = envelopes.map((env) => {
+    const envAllocs = envelopeAllocations.filter((a) => a.envelope_id === env.id);
+    const allocated = envAllocs.reduce((sum, a) => sum + Number(a.amount), 0);
+    const mainAcc = accounts.find((a) => a.id === envAllocs[0]?.account_id);
+    const accText = mainAcc ? ` · ${mainAcc.name}` : "";
+    return {
+      value: `env:${env.id}:${envAllocs[0]?.account_id || ""}`,
+      label: `${env.icon || "✉️"} ${env.name} (✉️ ${fmtMoney(allocated, currency)} locked envelope${accText})`,
+      icon: <span>{env.icon || "✉️"}</span>,
+    };
+  });
 
   const categoryOptions = filteredCats.map(c => {
     return {
@@ -944,15 +963,64 @@ export function TransactionDialog({
               />
             </div>
           ) : (
-            <div className="col-span-2">
-              <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
-              <SearchableSelect
-                options={accountOptions}
-                value={accountId}
-                onValueChange={setAccountId}
-                placeholder="Select Account"
-                searchPlaceholder="Search Account..."
-              />
+            <div className="col-span-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account / Source"}</Label>
+                {kind !== "transfer" && envelopes.length > 0 && (
+                  <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSourceType("account");
+                        setSelectedEnvelopeVal("");
+                      }}
+                      className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
+                        sourceType === "account"
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Account
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSourceType("envelope")}
+                      className={`px-2 py-0.5 rounded cursor-pointer transition-all flex items-center gap-1 ${
+                        sourceType === "envelope"
+                          ? "bg-accent text-accent-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span>✉️ Envelope</span>
+                      <span className="text-[8px] px-1 py-0 rounded-full bg-accent-foreground/20 font-mono">
+                        {envelopes.length}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {sourceType === "envelope" && kind !== "transfer" ? (
+                <SearchableSelect
+                  options={envelopeOptions}
+                  value={selectedEnvelopeVal}
+                  onValueChange={(val) => {
+                    setSelectedEnvelopeVal(val);
+                    const parts = val.split(":");
+                    if (parts[2]) setAccountId(parts[2]);
+                  }}
+                  placeholder="Select Source Envelope"
+                  searchPlaceholder="Search Envelopes..."
+                />
+              ) : (
+                <SearchableSelect
+                  options={accountOptions}
+                  value={accountId}
+                  onValueChange={setAccountId}
+                  placeholder="Select Account"
+                  searchPlaceholder="Search Account..."
+                />
+              )}
               {errors.accountId && <p className="mt-1 text-xs text-destructive">{errors.accountId}</p>}
             </div>
           )}

@@ -734,9 +734,15 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
               const rawBal = accountBalances.get(a.id) ?? 0;
               const locked = lockedPerAccount.get(a.id) ?? 0;
               const available = rawBal - locked;
+              let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
+              if (locked > 0) {
+                label = `${a.name} (${fmtMoney(available, currency)} avail · 🔒 ${fmtMoney(locked, currency)})`;
+              } else {
+                label = `${a.name} (${fmtMoney(available, currency)} avail)`;
+              }
               return {
                 value: a.id,
-                label: `${a.name} (Available to lock: ${fmtMoney(available, currency)})`,
+                label,
                 imageUrl: (a as any).image_url,
                 icon: (a as any).image_url ? undefined : <span className="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={{ background: a.color }} />
               };
