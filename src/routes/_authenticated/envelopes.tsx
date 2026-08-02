@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { 
   Mail, Plus, Trash2, Pencil, AlertTriangle, Loader2, RefreshCw, Lock, Unlock, 
-  Wallet, Layers, ArrowRight, ShieldCheck, ChevronRight, X
+  Wallet, Layers, ArrowRight, ShieldCheck, ChevronRight, X, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +107,10 @@ function EnvelopesPage() {
     list.push(alloc);
     allocationsByEnvelope.set(alloc.envelope_id, list);
   });
+
+  // View and summary states (matching Loans page)
+  const [envView, setEnvView] = useState<"all" | "funded" | "pending">("all");
+  const [showSummary, setShowSummary] = useState(false);
 
   // Dialog states
   const [open, setOpen] = useState(false);
@@ -280,6 +284,18 @@ function EnvelopesPage() {
   // Summary Metrics
   const totalTarget = envelopes.reduce((acc, e) => acc + Number(e.target_amount), 0);
   const totalAllocated = envelopes.reduce((acc, e) => acc + (allocatedPerEnvelope.get(e.id) ?? 0), 0);
+  const totalUnallocated = Math.max(0, totalTarget - totalAllocated);
+
+  const fundedCount = envelopes.filter(e => (allocatedPerEnvelope.get(e.id) ?? 0) >= Number(e.target_amount) && Number(e.target_amount) > 0).length;
+  const pendingCount = envelopes.filter(e => (allocatedPerEnvelope.get(e.id) ?? 0) < Number(e.target_amount)).length;
+
+  const displayedEnvelopes = envelopes.filter((env) => {
+    const allocated = allocatedPerEnvelope.get(env.id) ?? 0;
+    const target = Number(env.target_amount);
+    if (envView === "funded") return target > 0 && allocated >= target;
+    if (envView === "pending") return allocated < target;
+    return true;
+  });
 
   return (
     <div className="space-y-6 w-full pb-10">
@@ -296,47 +312,149 @@ function EnvelopesPage() {
         </div>
       </div>
 
-      {/* Sticky Header Bar matching Loans & Warranties page */}
-      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2.5 bg-background/95 backdrop-blur-md border-b shadow-2xs space-y-2 z-20 mb-4">
-        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-          {/* Left: Month Picker & Reset Button */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 p-1 bg-card border rounded-lg shadow-2xs">
-              <Mail className="h-3.5 w-3.5 text-accent ml-1 shrink-0" />
-              <Input
-                type="month"
-                value={currentMonth.substring(0, 7)}
-                onChange={(e) => {
-                  if (e.target.value) setCurrentMonth(`${e.target.value}-01`);
-                }}
-                className="h-7 w-32 text-xs bg-transparent border-none shadow-none focus-visible:ring-0 p-0"
-              />
-            </div>
+      {/* ── Top Bar Header & Floatable / Collapsible Summary Block (identical to Loans page) ── */}
+      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm space-y-2 z-20 mb-4">
+        {/* Main Header Row: Toggles (Left) + View Summary Button (Right) */}
+        <div className="flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto thin-scroll">
+          {/* Toggle Option Buttons — Micro-Compact h-6 (24px) */}
+          <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
+            <button
+              type="button"
+              onClick={() => setEnvView("all")}
+              className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                envView === "all"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>All</span>
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                envView === "all" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {envelopes.length}
+              </span>
+            </button>
 
+            <button
+              type="button"
+              onClick={() => setEnvView("funded")}
+              className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                envView === "funded"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>Funded</span>
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                envView === "funded" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {fundedCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEnvView("pending")}
+              className={`h-6 px-2 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
+                envView === "pending"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>Needs Funds</span>
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
+                envView === "pending" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {pendingCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Month Picker & Reset Month */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+            <Input
+              type="month"
+              value={currentMonth.substring(0, 7)}
+              onChange={(e) => {
+                if (e.target.value) setCurrentMonth(`${e.target.value}-01`);
+              }}
+              className="h-6 w-28 text-[10px] font-semibold bg-background p-1 border rounded-md"
+            />
             <Button
               variant="outline"
               size="sm"
               onClick={handleReleaseAllAllocations}
-              className="h-8 gap-1.5 text-xs font-semibold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer rounded-lg shadow-2xs"
+              className="h-6 px-2 text-[10px] font-bold gap-1 border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer rounded-md shrink-0"
               title="Release locked funds for new month"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Reset Month</span>
+              <RefreshCw className="h-3 w-3" />
+              <span className="hidden sm:inline">Reset Month</span>
             </Button>
           </div>
 
-          {/* Right: Inline Summary Pills */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="h-8 px-3 text-xs font-bold rounded-lg bg-card border flex items-center gap-1.5 shadow-2xs">
-              <span className="text-muted-foreground uppercase text-[10px]">Target:</span>
+          {/* Web View (Desktop): Direct Inline Summary Pills matching toggle button height & style */}
+          <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0">
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Target:</span>
               <span className="font-serif num font-black text-foreground">{fmtMoney(totalTarget, currency)}</span>
             </div>
-            <div className="h-8 px-3 text-xs font-bold rounded-lg bg-card border flex items-center gap-1.5 shadow-2xs">
-              <span className="text-muted-foreground uppercase text-[10px]">Locked:</span>
+
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Locked:</span>
               <span className="font-serif num font-black text-emerald-600">{fmtMoney(totalAllocated, currency)}</span>
             </div>
+
+            <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
+              <span className="text-muted-foreground uppercase text-[9px]">Unallocated:</span>
+              <span className={`font-serif num font-black ${totalUnallocated > 0 ? "text-amber-500" : "text-foreground"}`}>
+                {fmtMoney(totalUnallocated, currency)}
+              </span>
+            </div>
           </div>
+
+          {/* Mobile View: Floatable Summary Trigger Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSummary(!showSummary)}
+            className="md:hidden h-6 px-2 text-[10px] font-bold gap-1 rounded-md border-accent/40 hover:border-accent hover:bg-accent/10 transition-all cursor-pointer shadow-2xs shrink-0 ml-auto"
+          >
+            <span>{showSummary ? "Hide" : "Summary"}</span>
+            <span className="font-serif num font-bold text-emerald-600">
+              ({fmtMoney(totalAllocated, currency)})
+            </span>
+            <ChevronDown className={`h-2.5 w-2.5 text-accent transition-transform duration-200 ${showSummary ? "rotate-180" : ""}`} />
+          </Button>
         </div>
+
+        {/* Collapsible Summary Panel (Mobile View Only) */}
+        {showSummary && (
+          <div className="md:hidden p-3 rounded-2xl bg-card border shadow-lg border-accent/20 animate-in fade-in slide-in-from-top-2 duration-200 mt-2">
+            <div className="grid grid-cols-3 gap-1.5 w-full">
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Target</span>
+                <span className="font-serif num text-[11px] font-bold truncate text-foreground">
+                  {fmtMoney(totalTarget, currency)}
+                </span>
+              </div>
+
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Locked</span>
+                <span className="font-serif num text-[11px] font-bold text-emerald-600 truncate">
+                  {fmtMoney(totalAllocated, currency)}
+                </span>
+              </div>
+
+              <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Unallocated</span>
+                <span className={`font-serif num text-[11px] font-bold truncate ${totalUnallocated > 0 ? "text-amber-500" : "text-foreground"}`}>
+                  {fmtMoney(totalUnallocated, currency)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Database Table Setup SQL Notice if missing */}
@@ -395,42 +513,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
         </div>
       )}
 
-      {/* Summary Header Metrics */}
-      {!dbError && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-2xl border bg-card p-4 flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Target Budget</p>
-              <p className="font-serif num font-black text-xl text-foreground mt-0.5">{fmtMoney(totalTarget, currency)}</p>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-              <Mail className="h-5 w-5" />
-            </div>
-          </div>
 
-          <div className="rounded-2xl border bg-card p-4 flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Locked / Allocated</p>
-              <p className="font-serif num font-black text-xl text-emerald-600 mt-0.5">{fmtMoney(totalAllocated, currency)}</p>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600">
-              <Lock className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border bg-card p-4 flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Unallocated Target</p>
-              <p className={`font-serif num font-black text-xl mt-0.5 ${totalTarget - totalAllocated > 0 ? "text-amber-500" : "text-foreground"}`}>
-                {fmtMoney(Math.max(0, totalTarget - totalAllocated), currency)}
-              </p>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-              <Unlock className="h-5 w-5" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Envelopes 2-Column Split Cards Layout */}
       {!dbError && (
@@ -442,19 +525,19 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
             </div>
           )}
 
-          {!loadingEnv && envelopes.length === 0 && (
+          {!loadingEnv && displayedEnvelopes.length === 0 && (
             <div className="py-16 text-center text-muted-foreground text-sm border rounded-2xl bg-card/60 p-6">
               <Mail className="h-10 w-10 mx-auto opacity-30 mb-2 text-accent" />
-              <p className="font-semibold text-foreground">No envelopes created for this month</p>
+              <p className="font-semibold text-foreground">No envelopes found</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Click the + button below to create your first envelope (e.g. Rent, Groceries, Emergency Fund).
+                {envelopes.length === 0 ? "Click the + button below to create your first envelope." : "No envelopes match the selected filter."}
               </p>
             </div>
           )}
 
-          {!loadingEnv && envelopes.length > 0 && (
+          {!loadingEnv && displayedEnvelopes.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {envelopes.map((env) => {
+              {displayedEnvelopes.map((env) => {
                 const allocated = allocatedPerEnvelope.get(env.id) ?? 0;
                 const target = Number(env.target_amount);
                 const rawPct = target > 0 ? (allocated / target) * 100 : 0;
