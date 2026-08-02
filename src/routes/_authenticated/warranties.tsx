@@ -920,6 +920,44 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               />
             </div>
 
+            {/* Paid From Account in a separate full-width row */}
+            <div className="space-y-1.5">
+              <Label htmlFor="account" className="text-xs font-semibold">Paid From Account</Label>
+              <SearchableSelect
+                options={accountOptions}
+                value={accountId}
+                onValueChange={setAccountId}
+                placeholder="Select account"
+                searchPlaceholder="Search account..."
+              />
+            </div>
+
+            {/* Price / Cost & Category in another row */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="amount" className="text-xs font-semibold">Price / Cost ({currency})</Label>
+                <Input 
+                  id="amount" 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="0.00" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)} 
+                  disabled={saving}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="category" className="text-xs font-semibold">Category (Optional)</Label>
+                <SearchableSelect
+                  options={categoryOptions}
+                  value={categoryId}
+                  onValueChange={setCategoryId}
+                  placeholder="Select category"
+                  searchPlaceholder="Search category..."
+                />
+              </div>
+            </div>
+
             {/* Warranty Duration Auto-Fill */}
             <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border/60">
               <div className="flex items-center justify-between">
@@ -988,7 +1026,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               </div>
             </div>
 
-            {/* Purchase & Expiry Dates */}
+            {/* Purchase & Expiry Dates in another row */}
             <div className="grid grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
                 <Label htmlFor="purchaseDate" className="text-xs font-semibold">Purchase Date</Label>
@@ -1016,44 +1054,6 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                   disabled={saving}
                 />
               </div>
-            </div>
-
-            {/* Cost & Account */}
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="space-y-1.5">
-                <Label htmlFor="amount" className="text-xs font-semibold">Price / Cost ({currency})</Label>
-                <Input 
-                  id="amount" 
-                  type="number" 
-                  step="0.01" 
-                  placeholder="0.00" 
-                  value={amount} 
-                  onChange={(e) => setAmount(e.target.value)} 
-                  disabled={saving}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="account" className="text-xs font-semibold">Paid From</Label>
-                <SearchableSelect
-                  options={accountOptions}
-                  value={accountId}
-                  onValueChange={setAccountId}
-                  placeholder="Select account"
-                  searchPlaceholder="Search account..."
-                />
-              </div>
-            </div>
-
-            {/* Category */}
-            <div className="space-y-1.5">
-              <Label htmlFor="category" className="text-xs font-semibold">Category (Optional)</Label>
-              <SearchableSelect
-                options={categoryOptions}
-                value={categoryId}
-                onValueChange={setCategoryId}
-                placeholder="Select category"
-                searchPlaceholder="Search category..."
-              />
             </div>
 
             {/* Note */}
