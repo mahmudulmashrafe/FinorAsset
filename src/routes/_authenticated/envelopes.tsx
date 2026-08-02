@@ -512,6 +512,7 @@ CREATE TABLE IF NOT EXISTS public.envelopes (
   target_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
   icon TEXT NOT NULL DEFAULT '✉️',
   color TEXT NOT NULL DEFAULT '#F59E0B',
+  image_url TEXT,
   note TEXT,
   month_key TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
