@@ -944,7 +944,7 @@ export function TransactionDialog({
               />
             </div>
           ) : (
-            <div>
+            <div className="col-span-2">
               <Label htmlFor="txn-account">{kind === "transfer" ? "From account" : "Account"}</Label>
               <SearchableSelect
                 options={accountOptions}
@@ -957,8 +957,16 @@ export function TransactionDialog({
             </div>
           )}
 
+          {/* Date & Category/To-Account in the same row */}
+          <div className="col-span-1">
+            <Label htmlFor="txn-date">Date</Label>
+            <Input id="txn-date" type="date" value={date}
+              onChange={(e) => setDate(e.target.value)} aria-invalid={!!errors.date} />
+            {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
+          </div>
+
           {kind === "transfer" ? (
-            <div>
+            <div className="col-span-1">
               <Label htmlFor="txn-to-account">To account</Label>
               <SearchableSelect
                 options={accountOptions.filter((a) => a.value !== accountId)}
@@ -970,7 +978,7 @@ export function TransactionDialog({
               {errors.toAccountId && <p className="mt-1 text-xs text-destructive">{errors.toAccountId}</p>}
             </div>
           ) : (
-            <div className={isSplit ? "col-span-2" : ""}>
+            <div className="col-span-1">
               <Label htmlFor="txn-category">Category</Label>
               <SearchableSelect
                 options={categoryOptions}
@@ -980,8 +988,8 @@ export function TransactionDialog({
                 searchPlaceholder="Search Category..."
               />
               <button type="button" onClick={() => setShowNewCat(true)}
-                className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                <PlusCircle className="h-3.5 w-3.5" /> Create new category
+                className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer truncate">
+                <PlusCircle className="h-3 w-3 shrink-0" /> <span className="truncate">New category</span>
               </button>
               <CategoryCreatorDialog
                 open={showNewCat}
@@ -991,13 +999,6 @@ export function TransactionDialog({
               />
             </div>
           )}
-
-          <div className="col-span-2">
-            <Label htmlFor="txn-date">Date</Label>
-            <Input id="txn-date" type="date" value={date}
-              onChange={(e) => setDate(e.target.value)} aria-invalid={!!errors.date} />
-            {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
-          </div>
 
           <div className="col-span-2">
             <Label htmlFor="txn-note">Note</Label>
