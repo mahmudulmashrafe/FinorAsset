@@ -45,7 +45,7 @@ export function SearchableSelect({
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (
-    <div className={cn("relative inline-block", className)}>
+    <div className={cn("relative w-full min-w-0", className)}>
       <Popover open={open && !disabled} onOpenChange={(val) => { setOpen(val); if (!val) setSearch(""); }}>
         <PopoverTrigger asChild>
           <Button
@@ -53,9 +53,9 @@ export function SearchableSelect({
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            className={cn("w-full justify-between font-normal bg-background h-9 px-2.5 text-xs rounded-md border text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden", triggerClassName)}
+            className={cn("w-full min-w-0 justify-between font-normal bg-background h-9 px-2.5 text-xs rounded-md border text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden", triggerClassName)}
           >
-            <span className="flex items-center gap-1.5 truncate min-w-0 pr-1">
+            <span className="flex items-center gap-1.5 truncate min-w-0 flex-1">
               {selectedOption ? (
                 <>
                   {selectedOption.imageUrl ? (
@@ -63,16 +63,16 @@ export function SearchableSelect({
                   ) : selectedOption.icon ? (
                     selectedOption.icon
                   ) : null}
-                  <span className="truncate">{selectedOption.label}</span>
+                  <span className="truncate flex-1 min-w-0">{selectedOption.label}</span>
                 </>
               ) : (
-                <span className="text-muted-foreground truncate">{placeholder}</span>
+                <span className="text-muted-foreground truncate flex-1 min-w-0">{placeholder}</span>
               )}
             </span>
             <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50 text-muted-foreground" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[230px] max-w-[90vw] p-0 z-[200]">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[220px] max-w-[90vw] p-0 z-[200]">
           <div className="p-2 border-b border-border">
             <Input
               placeholder={searchPlaceholder}
@@ -98,17 +98,17 @@ export function SearchableSelect({
                       setSearch("");
                     }}
                     className={cn(
-                      "w-full text-left px-2.5 py-2 text-xs rounded-md flex items-center justify-between hover:bg-accent hover:text-accent-foreground transition-all cursor-pointer",
+                      "w-full text-left px-2.5 py-2 text-xs rounded-md flex items-center justify-between hover:bg-accent hover:text-accent-foreground transition-all cursor-pointer min-w-0",
                       isSelected ? "bg-accent/40 font-semibold" : ""
                     )}
                   >
-                    <span className="flex items-center gap-2 truncate">
+                    <span className="flex items-center gap-2 truncate min-w-0 flex-1 mr-1">
                       {opt.imageUrl ? (
                         <img src={opt.imageUrl} alt="" className="h-4 w-4 rounded-full object-cover shrink-0 border border-border/40" />
                       ) : opt.icon ? (
                         opt.icon
                       ) : null}
-                      <span className="truncate">{opt.label}</span>
+                      <span className="truncate flex-1 min-w-0">{opt.label}</span>
                     </span>
                     {isSelected && <Check className="h-3.5 w-3.5 text-accent flex-shrink-0" />}
                   </button>
