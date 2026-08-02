@@ -44,7 +44,14 @@ const COLORS = [
   "#84CC16", "#65A30D", "#6B7280", "#374151",
 ];
 
-const ICONS = ["✉️", "🏠", "🛒", "🚗", "✈️", "💡", "🍔", "💊", "🎓", "🎮", "🎁", "💳", "🏖️", "💻", "⚡"];
+const ICONS = [
+  "✉️", "📩", "📨", "📮", "📦", "💼", "🧾", "🏷️",
+  "🏠", "💡", "💧", "📶", "⚡", "🔑", "🛋️",
+  "🛒", "🍔", "🍎", "☕", "🍕", "🥩",
+  "🚗", "⛽", "🚌", "✈️", "🚲", "🚕",
+  "💰", "💵", "💳", "🏦", "🎯", "🔒", "🛡️",
+  "🎁", "🎮", "💊", "🏖️", "💻", "🎓", "👶"
+];
 
 function EnvelopesPage() {
   const qc = useQueryClient();
@@ -655,15 +662,31 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
             {/* Icon Picker */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Icon</Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Envelope Icon / Emoji</Label>
+                <span className="text-[10px] text-muted-foreground">Type custom or select below</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-2xl shrink-0">
+                  {icon || "✉️"}
+                </div>
+                <Input
+                  value={icon}
+                  onChange={(e) => setIcon(e.target.value)}
+                  placeholder="e.g. ✉️ or type emoji"
+                  className="h-10 text-base flex-1 bg-background"
+                  maxLength={4}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto thin-scroll p-1 border rounded-lg bg-card/40 mt-1">
                 {ICONS.map((em) => (
                   <button
                     key={em}
                     type="button"
                     onClick={() => setIcon(em)}
                     className={`h-8 w-8 rounded-lg text-lg flex items-center justify-center transition-all cursor-pointer ${
-                      icon === em ? "ring-2 ring-foreground bg-accent/20" : "hover:bg-muted"
+                      icon === em ? "ring-2 ring-accent bg-accent/20 scale-105" : "hover:bg-muted"
                     }`}
                   >
                     {em}
