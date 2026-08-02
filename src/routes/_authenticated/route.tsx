@@ -40,11 +40,11 @@ const items = [
   { title: "Dashboard",    url: "/dashboard",    icon: LayoutDashboard,  mobile: true },
   { title: "Transactions", url: "/transactions", icon: Receipt,          mobile: true },
   { title: "Accounts",     url: "/accounts",     icon: Wallet,           mobile: true },
-  { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
-  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
   { title: "Envelopes",    url: "/envelopes",    icon: Mail,             mobile: false },
   { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: false },
   { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: false },
+  { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
+  { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
   { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
 ] as const;
 
@@ -154,48 +154,49 @@ function ProfileDropdownContent({
         </div>
       </DropdownMenuItem>
 
-      <DropdownMenuSeparator />
+      {/* Navigation Links for mobile view only (features not in mobile bottom bar) */}
+      <div className="md:hidden">
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+          <Link to="/envelopes" className="w-full flex items-center gap-3">
+            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="font-medium text-xs">Envelopes</p>
+              <p className="text-[10px] text-muted-foreground">Virtual locked money</p>
+            </div>
+          </Link>
+        </DropdownMenuItem>
 
-      {/* Navigation Links for features not in the bottom bar */}
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/envelopes" className="w-full flex items-center gap-3">
-          <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Envelopes</p>
-            <p className="text-[10px] text-muted-foreground">Virtual locked money</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
+        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+          <Link to="/budgets" className="w-full flex items-center gap-3">
+            <PiggyBank className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="font-medium text-xs">Budgets</p>
+              <p className="text-[10px] text-muted-foreground">Monthly expense targets</p>
+            </div>
+          </Link>
+        </DropdownMenuItem>
 
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/budgets" className="w-full flex items-center gap-3">
-          <PiggyBank className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Budgets</p>
-            <p className="text-[10px] text-muted-foreground">Monthly expense targets</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
+        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+          <Link to="/loans" className="w-full flex items-center gap-3">
+            <CircleDollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="font-medium text-xs">Loans</p>
+              <p className="text-[10px] text-muted-foreground">Borrowed & lent money</p>
+            </div>
+          </Link>
+        </DropdownMenuItem>
 
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/loans" className="w-full flex items-center gap-3">
-          <CircleDollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Loans</p>
-            <p className="text-[10px] text-muted-foreground">Borrowed & lent money</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
-
-      <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
-        <Link to="/stats" className="w-full flex items-center gap-3">
-          <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <p className="font-medium text-xs">Stats & Trends</p>
-            <p className="text-[10px] text-muted-foreground">Spending analytics</p>
-          </div>
-        </Link>
-      </DropdownMenuItem>
+        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+          <Link to="/stats" className="w-full flex items-center gap-3">
+            <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="font-medium text-xs">Stats & Trends</p>
+              <p className="text-[10px] text-muted-foreground">Spending analytics</p>
+            </div>
+          </Link>
+        </DropdownMenuItem>
+      </div>
 
       <DropdownMenuSeparator />
 
