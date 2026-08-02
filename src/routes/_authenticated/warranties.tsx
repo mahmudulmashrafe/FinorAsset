@@ -52,6 +52,66 @@ interface Warranty {
   updated_at: string;
 }
 
+function getWarrantyStatusInfo(diffDays: number, isExpired: boolean) {
+  if (isExpired || diffDays < 1) {
+    return {
+      daysLabel: "Expired",
+      badgeColorClass: "bg-red-700/15 text-red-700 border-red-700/40 dark:bg-red-950/40 dark:text-red-400 dark:border-red-700/60 font-bold",
+      barColorClass: "bg-red-700",
+      textColorClass: "text-red-700 font-bold",
+      colorName: "Deep Red",
+    };
+  }
+  if (diffDays < 15) {
+    // 1 to 14 days => Light Red
+    return {
+      daysLabel: diffDays === 1 ? "1 day left" : `${diffDays} days left`,
+      badgeColorClass: "bg-rose-400/15 text-rose-500 border-rose-400/30 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-400/50 font-bold",
+      barColorClass: "bg-rose-400",
+      textColorClass: "text-rose-500 font-bold",
+      colorName: "Light Red",
+    };
+  }
+  if (diffDays < 30) {
+    // 15 to 29 days (< 1 month) => Orange
+    return {
+      daysLabel: `${diffDays} days left`,
+      badgeColorClass: "bg-orange-500/15 text-orange-600 border-orange-500/30 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-500/50 font-bold",
+      barColorClass: "bg-orange-500",
+      textColorClass: "text-orange-600 font-bold",
+      colorName: "Orange",
+    };
+  }
+  if (diffDays < 90) {
+    // 30 to 89 days (< 3 months) => Yellow
+    return {
+      daysLabel: `${diffDays} days left`,
+      badgeColorClass: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-500/50 font-bold",
+      barColorClass: "bg-yellow-500",
+      textColorClass: "text-yellow-600 font-bold",
+      colorName: "Yellow",
+    };
+  }
+  if (diffDays < 180) {
+    // 90 to 179 days (< 6 months) => Semi Green
+    return {
+      daysLabel: `${diffDays} days left`,
+      badgeColorClass: "bg-teal-500/15 text-teal-600 border-teal-500/30 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-500/50 font-bold",
+      barColorClass: "bg-teal-500",
+      textColorClass: "text-teal-600 font-bold",
+      colorName: "Semi Green",
+    };
+  }
+  // >= 180 days (>= 6 months) => Green
+  return {
+    daysLabel: `${diffDays} days left`,
+    badgeColorClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-500/50 font-bold",
+    barColorClass: "bg-emerald-500",
+    textColorClass: "text-emerald-600 font-bold",
+    colorName: "Green",
+  };
+}
+
 function WarrantiesPage() {
   const qc = useQueryClient();
   const { currency, authUser } = useUserProfile();
@@ -795,31 +855,10 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
                 const rawPct = Math.round((elapsedDays / totalDurationDays) * 100);
                 const progressPct = isNaN(rawPct) ? 0 : isExpired ? 100 : Math.min(100, Math.max(0, rawPct));
 
-                let daysLabel = "";
-                let badgeColorClass = "";
-                let barColorClass = "";
-
-                if (isExpired) {
-                  daysLabel = "Expired";
-                  badgeColorClass = "bg-destructive/10 text-destructive border-destructive/20";
-                  barColorClass = "bg-destructive";
-                } else if (diffDays === 0) {
-                  daysLabel = "Expires today";
-                  badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
-                  barColorClass = "bg-amber-500";
-                } else if (diffDays === 1) {
-                  daysLabel = "Expires tomorrow";
-                  badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
-                  barColorClass = "bg-amber-500";
-                } else if (diffDays <= 30) {
-                  daysLabel = `${diffDays} days left`;
-                  badgeColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
-                  barColorClass = "bg-amber-500";
-                } else {
-                  daysLabel = `${diffDays} days left`;
-                  badgeColorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-                  barColorClass = "bg-emerald-500";
-                }
+                const statusInfo = getWarrantyStatusInfo(diffDays, isExpired);
+                const daysLabel = statusInfo.daysLabel;
+                const badgeColorClass = statusInfo.badgeColorClass;
+                const barColorClass = statusInfo.barColorClass;
 
                 const expiryFormatted = validExpiry
                   ? expiryDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1210,16 +1249,8 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
             const diffTime = expiryDateObj.getTime() - today.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            let daysLabel = "";
-            if (isExpired) {
-              daysLabel = "Expired";
-            } else if (diffDays === 0) {
-              daysLabel = "Expires today";
-            } else if (diffDays === 1) {
-              daysLabel = "Expires tomorrow";
-            } else {
-              daysLabel = `${diffDays} days left`;
-            }
+            const statusInfo = getWarrantyStatusInfo(diffDays, isExpired);
+            const daysLabel = statusInfo.daysLabel;
 
             return (
               <div className="space-y-4 mt-3">
@@ -1243,7 +1274,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
 
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="text-xs text-muted-foreground uppercase font-bold">Coverage Status</span>
-                  <Badge className={`capitalize font-semibold ${isExpired ? "bg-destructive text-destructive-foreground" : diffDays <= 30 ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"}`}>
+                  <Badge className={`capitalize font-semibold border ${statusInfo.badgeColorClass}`}>
                     {daysLabel}
                   </Badge>
                 </div>
@@ -1257,7 +1288,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
 
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="text-xs text-muted-foreground uppercase font-bold">Expiry Date</span>
-                  <span className={`text-xs font-bold ${isExpired ? "text-destructive" : diffDays <= 30 ? "text-amber-500" : "text-emerald-600"}`}>
+                  <span className={`text-xs ${statusInfo.textColorClass}`}>
                     {new Date(selectedWarranty.expiry_date).toLocaleDateString()}
                   </span>
                 </div>
@@ -1365,25 +1396,29 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
             {activeWarranties.length === 0 && (
               <p className="text-center text-muted-foreground py-10 text-xs">No active warranties found.</p>
             )}
-            {activeWarranties.map((w) => (
-              <div 
-                key={w.id} 
-                onClick={() => { 
-                  setActiveListOpen(false); 
-                  setSelectedWarranty(w);
-                }} 
-                className="p-3 rounded-lg border bg-card hover:bg-muted/10 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
-              >
-                <div className="min-w-0 flex-1">
-                  <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                    <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
-                    <span className="text-emerald-600 font-semibold">Expires: {new Date(w.expiry_date).toLocaleDateString()}</span>
+            {activeWarranties.map((w) => {
+              const diffDays = Math.round((new Date(w.expiry_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              const statusInfo = getWarrantyStatusInfo(diffDays, false);
+              return (
+                <div 
+                  key={w.id} 
+                  onClick={() => { 
+                    setActiveListOpen(false); 
+                    setSelectedWarranty(w);
+                  }} 
+                  className="p-3 rounded-lg border bg-card hover:bg-muted/10 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                      <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
+                      <span className={`${statusInfo.textColorClass}`}>Expires: {new Date(w.expiry_date).toLocaleDateString()} ({statusInfo.daysLabel})</span>
+                    </div>
                   </div>
+                  <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
                 </div>
-                <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
@@ -1401,25 +1436,29 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
             {soonExpiring.length === 0 && (
               <p className="text-center text-muted-foreground py-10 text-xs">No warranties expiring within 30 days.</p>
             )}
-            {soonExpiring.map((w) => (
-              <div 
-                key={w.id} 
-                onClick={() => { 
-                  setExpiringListOpen(false); 
-                  setSelectedWarranty(w);
-                }} 
-                className="p-3 rounded-lg border bg-card hover:bg-muted/10 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
-              >
-                <div className="min-w-0 flex-1">
-                  <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                    <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
-                    <span className="text-amber-500 font-bold">Expires: {new Date(w.expiry_date).toLocaleDateString()}</span>
+            {soonExpiring.map((w) => {
+              const diffDays = Math.round((new Date(w.expiry_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              const statusInfo = getWarrantyStatusInfo(diffDays, false);
+              return (
+                <div 
+                  key={w.id} 
+                  onClick={() => { 
+                    setExpiringListOpen(false); 
+                    setSelectedWarranty(w);
+                  }} 
+                  className="p-3 rounded-lg border bg-card hover:bg-muted/10 flex items-center justify-between gap-3 transition-colors cursor-pointer w-full min-w-0 overflow-hidden"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="font-serif font-bold text-sm truncate block">{w.title}</span>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                      <span>Purchased: {new Date(w.purchase_date).toLocaleDateString()}</span>
+                      <span className={`${statusInfo.textColorClass}`}>Expires: {new Date(w.expiry_date).toLocaleDateString()} ({statusInfo.daysLabel})</span>
+                    </div>
                   </div>
+                  <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
                 </div>
-                <span className="font-serif font-bold text-base num text-foreground shrink-0">{fmtMoney(Number(w.amount), currency)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
