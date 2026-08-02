@@ -284,7 +284,7 @@ function EnvelopesPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <Mail className="h-7 w-7 text-accent" />
@@ -294,28 +294,48 @@ function EnvelopesPage() {
             Lock money from accounts into virtual envelopes. Bank balances remain intact until spent.
           </p>
         </div>
+      </div>
 
-        {/* Month Picker & Action Controls */}
-        <div className="flex items-center gap-2">
-          <Input
-            type="month"
-            value={currentMonth.substring(0, 7)}
-            onChange={(e) => {
-              if (e.target.value) setCurrentMonth(`${e.target.value}-01`);
-            }}
-            className="h-9 w-36 text-xs bg-card"
-          />
+      {/* Sticky Header Bar matching Loans & Warranties page */}
+      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2.5 bg-background/95 backdrop-blur-md border-b shadow-2xs space-y-2 z-20 mb-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          {/* Left: Month Picker & Reset Button */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 p-1 bg-card border rounded-lg shadow-2xs">
+              <Mail className="h-3.5 w-3.5 text-accent ml-1 shrink-0" />
+              <Input
+                type="month"
+                value={currentMonth.substring(0, 7)}
+                onChange={(e) => {
+                  if (e.target.value) setCurrentMonth(`${e.target.value}-01`);
+                }}
+                className="h-7 w-32 text-xs bg-transparent border-none shadow-none focus-visible:ring-0 p-0"
+              />
+            </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReleaseAllAllocations}
-            className="h-9 gap-1 text-xs font-semibold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer"
-            title="Release locked funds for new month"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Reset Month</span>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReleaseAllAllocations}
+              className="h-8 gap-1.5 text-xs font-semibold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer rounded-lg shadow-2xs"
+              title="Release locked funds for new month"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Reset Month</span>
+            </Button>
+          </div>
+
+          {/* Right: Inline Summary Pills */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="h-8 px-3 text-xs font-bold rounded-lg bg-card border flex items-center gap-1.5 shadow-2xs">
+              <span className="text-muted-foreground uppercase text-[10px]">Target:</span>
+              <span className="font-serif num font-black text-foreground">{fmtMoney(totalTarget, currency)}</span>
+            </div>
+            <div className="h-8 px-3 text-xs font-bold rounded-lg bg-card border flex items-center gap-1.5 shadow-2xs">
+              <span className="text-muted-foreground uppercase text-[10px]">Locked:</span>
+              <span className="font-serif num font-black text-emerald-600">{fmtMoney(totalAllocated, currency)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -762,7 +782,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                 onClick={() => handleDeleteEnvelope(selectedEnvelope.id)}
                 className="cursor-pointer text-xs h-8"
               >
-                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete Envelope
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
             )}
             <Button
