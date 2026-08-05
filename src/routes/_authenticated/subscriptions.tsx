@@ -281,28 +281,32 @@ function SubscriptionsPage() {
 
     try {
       let uploadedUrl = subImageUrl;
-      if (subImageFile && authUser) {
+      if (subImageFile) {
         setUploadingImage(true);
         try {
+          const { data: userResp } = await supabase.auth.getUser();
+          const userId = userResp?.user?.id || authUser?.id || "anonymous";
           const fileExt = subImageFile.name.split(".").pop();
-          const filePath = `${authUser.id}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const filePath = `${userId}/sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
           const { error: uploadError } = await supabase.storage
             .from("warranties")
             .upload(filePath, subImageFile);
 
           if (uploadError) {
-            console.error("Storage upload error, using DataURL fallback:", uploadError);
-            uploadedUrl = await readFileAsDataUrl(subImageFile);
+            console.error("Supabase Storage upload error, using DataURL:", uploadError);
+            if (!uploadedUrl) uploadedUrl = await readFileAsDataUrl(subImageFile);
           } else {
             const { data: pubData } = supabase.storage.from("warranties").getPublicUrl(filePath);
             if (pubData?.publicUrl) {
               uploadedUrl = pubData.publicUrl;
-            } else {
+            } else if (!uploadedUrl) {
               uploadedUrl = await readFileAsDataUrl(subImageFile);
             }
           }
-        } catch {
-          uploadedUrl = await readFileAsDataUrl(subImageFile);
+        } catch (err) {
+          console.error("Storage error:", err);
+          if (!uploadedUrl) uploadedUrl = await readFileAsDataUrl(subImageFile);
         }
         setUploadingImage(false);
       }
@@ -322,44 +326,45 @@ function SubscriptionsPage() {
         updated_at: new Date().toISOString(),
       };
 
-      if (!authUser) throw new Error("Unauthenticated");
+      const { data: userResp } = await supabase.auth.getUser();
+      const currentUserId = userResp?.user?.id || authUser?.id;
+      if (!currentUserId) throw new Error("Unauthenticated");
 
       if (editingSub) {
         const fullItem = { ...editingSub, ...payload };
-        let { error } = await supabase
+        const { error } = await supabase
           .from("subscriptions" as any)
           .update(payload)
           .eq("id", editingSub.id);
 
-        if (error && (error.code === "42703" || error.message?.includes("schema cache"))) {
-          const cleanedPayload = stripMissingColumn(payload, error.message || "");
-          await supabase
-            .from("subscriptions" as any)
-            .update(cleanedPayload)
-            .eq("id", editingSub.id);
+        if (error) {
+          console.error("Supabase subscriptions update error:", error);
+          if (error.code === "42703") {
+            toast.error("Database schema update required: Please reload PostgREST schema cache in Supabase Settings -> API.");
+          }
         }
 
         const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? fullItem : s);
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", authUser.id], updated);
+        qc.setQueryData(["subscriptions", currentUserId], updated);
         toast.success("Subscription updated!");
       } else {
         const newId = generateId();
-        const newPayload = { ...payload, id: newId, user_id: authUser.id, created_at: new Date().toISOString() };
-        let { error } = await supabase
+        const newPayload = { ...payload, id: newId, user_id: currentUserId, created_at: new Date().toISOString() };
+        const { error } = await supabase
           .from("subscriptions" as any)
           .insert(newPayload);
 
-        if (error && (error.code === "42703" || error.message?.includes("schema cache"))) {
-          const cleanedPayload = stripMissingColumn(newPayload, error.message || "");
-          await supabase
-            .from("subscriptions" as any)
-            .insert(cleanedPayload);
+        if (error) {
+          console.error("Supabase subscriptions insert error:", error);
+          if (error.code === "42703") {
+            toast.error("Database schema update required: Please reload PostgREST schema cache in Supabase Settings -> API.");
+          }
         }
 
         const updated = [newPayload as SubscriptionItem, ...subscriptions];
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", authUser.id], updated);
+        qc.setQueryData(["subscriptions", currentUserId], updated);
         toast.success("Subscription created!");
       }
 
