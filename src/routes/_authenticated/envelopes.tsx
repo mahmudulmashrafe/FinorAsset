@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney, computeAccountBalances, monthKey } from "@/lib/finance";
-import type { Envelope, EnvelopeAllocation } from "@/lib/finance";
+import type { Envelope, EnvelopeAllocation, Transaction } from "@/lib/finance";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { 
   Mail, Plus, Trash2, Pencil, AlertTriangle, Loader2, RefreshCw, Lock, Unlock, 
-  Wallet, Layers, ArrowRight, ShieldCheck, ChevronRight, X, ChevronDown, Calendar
+  Wallet, Layers, ArrowRight, ShieldCheck, ChevronRight, X, ChevronDown, Calendar, Receipt
 } from "lucide-react";
+import { TransactionDialog } from "@/components/transaction-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,10 +89,12 @@ function EnvelopesPage() {
   });
 
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
+  const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
 
   const accountBalances = computeAccountBalances(accounts, txns);
   const accMap = new Map(accounts.map(a => [a.id, a]));
+  const catMap = new Map(cats.map(c => [c.id, c]));
 
   // Calculate locked money per account across all envelope allocations
   const lockedPerAccount = new Map<string, number>();
@@ -122,6 +125,25 @@ function EnvelopesPage() {
   const [selectedEnvelope, setSelectedEnvelope] = useState<Envelope | null>(null);
   const [deleteEnvelope, setDeleteEnvelope] = useState<{ id: string; name: string } | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Transaction history & transact states
+  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
+  const [transactEnv, setTransactEnv] = useState<Envelope | null>(null);
+  const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
+
+  const handleDeleteTxn = async (txnId: string) => {
+    try {
+      const { error } = await supabase.from("transactions").delete().eq("id", txnId);
+      if (error) throw error;
+      toast.success("Transaction deleted!");
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["envelopes"] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      setDeleteTxnId(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete transaction");
+    }
+  };
 
   // Form state
   const [name, setName] = useState("");
@@ -711,6 +733,26 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                           />
                         </div>
                       </div>
+
+                      {/* Transact / Spend Action */}
+                      <div className="flex items-center justify-between pt-1.5 border-t mt-1.5">
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          Available: <strong className="font-serif num font-bold text-emerald-600">{fmtMoney(allocated, currency)}</strong>
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTransactEnv(env);
+                          }}
+                          className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shrink-0 shadow-2xs"
+                          title="Spend from envelope"
+                        >
+                          <Receipt className="h-3 w-3" />
+                          <span>Transact</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -889,8 +931,8 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
             return (
               <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
-                {/* Envelope Status Banner */}
-                <div className="p-3.5 rounded-xl border bg-muted/40 space-y-2">
+                {/* Envelope Status Banner & Transact Button */}
+                <div className="p-3.5 rounded-xl border bg-muted/40 space-y-2.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground uppercase font-bold text-[10px]">Target Budget</span>
                     <span className="font-serif num font-black text-sm">{fmtMoney(target, currency)}</span>
@@ -899,6 +941,19 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                     <span className="text-muted-foreground uppercase font-bold text-[10px]">Currently Locked</span>
                     <span className="font-serif num font-black text-sm text-emerald-600">{fmtMoney(currentAllocated, currency)}</span>
                   </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const envToTransact = selectedEnvelope;
+                      setSelectedEnvelope(null);
+                      setTransactEnv(envToTransact);
+                    }}
+                    className="w-full h-8 text-xs font-bold gap-1.5 rounded-lg bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shadow-xs"
+                  >
+                    <Receipt className="h-3.5 w-3.5" />
+                    <span>Transact / Spend from {selectedEnvelope.name}</span>
+                  </Button>
                 </div>
 
                 {/* Lock Money Form */}
@@ -980,8 +1035,94 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                   )}
                 </div>
 
+                {/* Transaction History Section */}
+                {(() => {
+                  const envNameLower = selectedEnvelope.name.toLowerCase();
+                  const envTxns = txns.filter(t => {
+                    const noteLower = (t.note ?? "").toLowerCase();
+                    return noteLower.includes(`env_${envNameLower}`) || noteLower.includes(`[env:${selectedEnvelope.id}]`);
+                  });
+
+                  return (
+                    <div className="space-y-2 pt-2 border-t">
+                      <h4 className="font-serif font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                        <span>Transaction History ({envTxns.length})</span>
+                      </h4>
+
+                      {envTxns.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic py-3 text-center border rounded-xl bg-muted/20">
+                          No transactions logged for this envelope yet. Click Transact to spend from this envelope.
+                        </p>
+                      ) : (
+                        <div className="space-y-2 max-h-56 overflow-y-auto thin-scroll pr-0.5">
+                          {envTxns.map((t) => {
+                            const cat = t.category_id ? catMap.get(t.category_id) : null;
+                            const sign = t.kind === "income" ? "+" : t.kind === "expense" ? "−" : "↔";
+                            const amtColor = t.kind === "income" ? "text-emerald-600" : t.kind === "expense" ? "text-destructive" : "";
+
+                            return (
+                              <div key={t.id} className="p-2.5 rounded-xl border bg-card text-xs flex items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-accent inline-flex items-center gap-1">
+                                      <span>✉️</span>
+                                      <span>ENV_{selectedEnvelope.name}</span>
+                                    </span>
+                                    {cat && (
+                                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium">
+                                        {cat.icon || "🏷️"} {cat.name}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
+                                    <span>{new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                    {t.note && (
+                                      <>
+                                        <span>·</span>
+                                        <span className="italic truncate">{t.note.replace(new RegExp(`ENV_${selectedEnvelope.name}\\s*[-:]?\\s*`, 'i'), '')}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className={`font-serif num font-black text-sm ${amtColor}`}>
+                                    {sign}{fmtMoney(Number(t.amount), currency)}
+                                  </span>
+                                  <div className="flex items-center gap-0.5">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setEditingTxn(t)}
+                                      className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                                      title="Edit transaction"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setDeleteTxnId(t.id)}
+                                      className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                                      title="Delete transaction"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {selectedEnvelope.note && (
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1 pt-1 border-t">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Notes</span>
                     <p className="p-2.5 bg-muted/40 rounded-xl border text-xs text-foreground italic">"{selectedEnvelope.note}"</p>
                   </div>
@@ -1016,6 +1157,49 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Transaction Dialog */}
+      {editingTxn && (
+        <TransactionDialog
+          editingTransaction={editingTxn}
+          open={!!editingTxn}
+          onOpenChange={(v) => { if (!v) setEditingTxn(null); }}
+          onDelete={handleDeleteTxn}
+        />
+      )}
+
+      {/* Spend / Transact from Envelope Dialog */}
+      {transactEnv && (
+        <TransactionDialog
+          open={!!transactEnv}
+          onOpenChange={(v) => { if (!v) setTransactEnv(null); }}
+          defaultSourceType="envelope"
+          defaultEnvelopeId={transactEnv.id}
+          defaultEnvelopeName={transactEnv.name}
+          defaultAccountId={allocationsByEnvelope.get(transactEnv.id)?.[0]?.account_id}
+        />
+      )}
+
+      {/* Delete Transaction Confirmation */}
+      <AlertDialog open={!!deleteTxnId} onOpenChange={(v) => { if (!v) setDeleteTxnId(null); }}>
+        <AlertDialogContent className="z-[130]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif">Delete Transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this transaction? This will update your envelope and account balances in the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-9 text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteTxnId) handleDeleteTxn(deleteTxnId); }}
+              className="h-9 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Transaction
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Floating Action Button (FAB) for creating new envelope */}
       {!dbError && createPortal(

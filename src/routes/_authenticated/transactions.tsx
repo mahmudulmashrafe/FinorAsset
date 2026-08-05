@@ -1459,12 +1459,27 @@ function TxnsPage() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {acc ? (
                           <span className="inline-flex items-center gap-1.5">
-                            {(acc as any).image_url ? (
-                              <img src={(acc as any).image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0 border border-border/40" />
-                            ) : (
-                              <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: acc.color }} />
-                            )}
-                            <span>{acc.name}</span>
+                            {(() => {
+                              const envMatch = (t.note ?? "").match(/ENV_([^\s\-:;,\n]+)/);
+                              if (envMatch) {
+                                return (
+                                  <span className="inline-flex items-center gap-1 font-bold text-accent">
+                                    <span>✉️</span>
+                                    <span>ENV_{envMatch[1]}</span>
+                                  </span>
+                                );
+                              }
+                              return (
+                                <>
+                                  {(acc as any).image_url ? (
+                                    <img src={(acc as any).image_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0 border border-border/40" />
+                                  ) : (
+                                    <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ background: acc.color }} />
+                                  )}
+                                  <span>{acc.name}</span>
+                                </>
+                              );
+                            })()}
                           </span>
                         ) : (
                           <span>—</span>
@@ -1815,7 +1830,13 @@ function TxnsPage() {
                       <Badge variant="outline" className="capitalize text-[9px] px-1 py-0 scale-90 origin-left leading-none">{t.kind}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {acc?.name} {t.to_account_id && `→ ${accMap.get(t.to_account_id)?.name}`}
+                      {(() => {
+                        const envMatch = (t.note ?? "").match(/ENV_([^\s\-:;,\n]+)/);
+                        if (envMatch) {
+                          return <span className="font-bold text-accent">✉️ ENV_{envMatch[1]}</span>;
+                        }
+                        return `${acc?.name || "—"} ${t.to_account_id ? `→ ${accMap.get(t.to_account_id)?.name}` : ""}`;
+                      })()}
                       <span className="mx-1">·</span>
                       {new Date(t.occurred_on).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </div>

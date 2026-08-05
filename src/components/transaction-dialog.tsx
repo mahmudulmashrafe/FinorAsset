@@ -175,6 +175,10 @@ interface TransactionDialogProps {
   open?: boolean;
   onOpenChange?: (v: boolean) => void;
   onDelete?: (id: string) => void;
+  defaultSourceType?: "account" | "envelope";
+  defaultEnvelopeId?: string;
+  defaultEnvelopeName?: string;
+  defaultAccountId?: string;
 }
 
 export function TransactionDialog({
@@ -184,6 +188,10 @@ export function TransactionDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   onDelete,
+  defaultSourceType,
+  defaultEnvelopeId,
+  defaultEnvelopeName,
+  defaultAccountId,
 }: TransactionDialogProps) {
   const qc = useQueryClient();
   const { currency } = useUserProfile();
@@ -336,8 +344,16 @@ export function TransactionDialog({
       setIsSplit(false);
       setEventTitle("");
       setEventDate(new Date().toISOString().slice(0, 10));
+      if (defaultSourceType === "envelope" && defaultEnvelopeId && defaultEnvelopeName) {
+        setSourceType("envelope");
+        setSelectedEnvelopeVal(`${defaultEnvelopeId}:${defaultEnvelopeName}:${defaultAccountId || ""}`);
+        if (defaultAccountId) setAccountId(defaultAccountId);
+      } else {
+        setSourceType("account");
+        setSelectedEnvelopeVal("");
+      }
       if (accounts.length) {
-        const defAcc = accounts[0].id;
+        const defAcc = defaultAccountId || accounts[0].id;
         const curDate = new Date().toISOString().slice(0, 10);
         setSplits([{ accountId: defAcc, amount: 0 }]);
         setEventItems([
@@ -498,7 +514,18 @@ export function TransactionDialog({
       }
 
       // UPDATE existing transaction
-      let finalNote = note || null;
+      let finalNoteStr = note ? note.trim() : "";
+      if (sourceType === "envelope" && selectedEnvelopeVal) {
+        const parts = selectedEnvelopeVal.split(":");
+        const envName = parts[1];
+        if (envName && !finalNoteStr.includes(`ENV_${envName}`)) {
+          finalNoteStr = finalNoteStr ? `ENV_${envName} - ${finalNoteStr}` : `ENV_${envName}`;
+        }
+      } else if (defaultEnvelopeName && !finalNoteStr.includes(`ENV_${defaultEnvelopeName}`)) {
+        finalNoteStr = finalNoteStr ? `ENV_${defaultEnvelopeName} - ${finalNoteStr}` : `ENV_${defaultEnvelopeName}`;
+      }
+
+      let finalNote = finalNoteStr || null;
       if (editingTransaction && editingTransaction.note && editingTransaction.note.startsWith("[Event: ")) {
         const match = editingTransaction.note.match(/^\[Event:\s*(.*?)\|id:(.*?)\]/);
         if (match) {
@@ -525,6 +552,18 @@ export function TransactionDialog({
       // INSERT new transaction
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) { setSaving(false); return; }
+
+      let finalNoteStr = note ? note.trim() : "";
+      if (sourceType === "envelope" && selectedEnvelopeVal) {
+        const parts = selectedEnvelopeVal.split(":");
+        const envName = parts[1];
+        if (envName && !finalNoteStr.includes(`ENV_${envName}`)) {
+          finalNoteStr = finalNoteStr ? `ENV_${envName} - ${finalNoteStr}` : `ENV_${envName}`;
+        }
+      } else if (defaultEnvelopeName && !finalNoteStr.includes(`ENV_${defaultEnvelopeName}`)) {
+        finalNoteStr = finalNoteStr ? `ENV_${defaultEnvelopeName} - ${finalNoteStr}` : `ENV_${defaultEnvelopeName}`;
+      }
+      const finalNote = finalNoteStr || null;
 
       if (isSplit) {
         // Splits validation
@@ -559,7 +598,7 @@ export function TransactionDialog({
           category_id: categoryId || null,
           kind,
           amount: Number(split.amount),
-          note: note || null,
+          note: finalNote,
           occurred_on: date,
         }));
 
@@ -594,7 +633,7 @@ export function TransactionDialog({
           category_id: kind === "transfer" ? null : (categoryId || null),
           kind,
           amount: parsed.data.amount,
-          note: note || null,
+          note: finalNote,
           occurred_on: date,
         });
         setSaving(false);
