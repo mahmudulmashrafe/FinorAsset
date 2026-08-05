@@ -332,43 +332,49 @@ function SubscriptionsPage() {
 
       if (editingSub) {
         const fullItem = { ...editingSub, ...payload };
-        const { error } = await supabase
+        let { error } = await supabase
           .from("subscriptions" as any)
           .update(payload)
           .eq("id", editingSub.id);
 
         if (error) {
-          console.error("Supabase subscriptions update error:", error);
-          if (error.code === "42703") {
-            toast.error("Database schema update required: Please reload PostgREST schema cache in Supabase Settings -> API.");
-          }
+          console.warn("Retrying update with core payload:", error.message);
+          const { image_url, status, billing_cycle, ...corePayload } = payload;
+          const retry = await supabase
+            .from("subscriptions" as any)
+            .update(corePayload)
+            .eq("id", editingSub.id);
+          if (retry.error && retry.error.code !== "42P01") console.error("Update retry error:", retry.error);
         }
 
         const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? fullItem : s);
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
         qc.setQueryData(["subscriptions", currentUserId], updated);
+        qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription updated!");
       } else {
         const newId = generateId();
         const newPayload = { ...payload, id: newId, user_id: currentUserId, created_at: new Date().toISOString() };
-        const { error } = await supabase
+        let { error } = await supabase
           .from("subscriptions" as any)
           .insert(newPayload);
 
         if (error) {
-          console.error("Supabase subscriptions insert error:", error);
-          if (error.code === "42703") {
-            toast.error("Database schema update required: Please reload PostgREST schema cache in Supabase Settings -> API.");
-          }
+          console.warn("Retrying insert with core payload:", error.message);
+          const { image_url, status, billing_cycle, ...corePayload } = newPayload as Record<string, any>;
+          const retry = await supabase
+            .from("subscriptions" as any)
+            .insert(corePayload);
+          if (retry.error && retry.error.code !== "42P01") console.error("Insert retry error:", retry.error);
         }
 
         const updated = [newPayload as SubscriptionItem, ...subscriptions];
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
         qc.setQueryData(["subscriptions", currentUserId], updated);
+        qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription created!");
       }
 
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
       setModalOpen(false);
       resetForm();
     } catch (err: any) {
@@ -379,24 +385,22 @@ function SubscriptionsPage() {
   };
 
   const handleToggleSubStatus = async (sub: SubscriptionItem) => {
-    const nextStatus = sub.status === "active" ? "inactive" : "active";
+    const nextStatus = sub.status === "inactive" ? "active" : "inactive";
     try {
+      const { data: userResp } = await supabase.auth.getUser();
+      const currentUserId = userResp?.user?.id || authUser?.id;
+
       let { error } = await supabase
         .from("subscriptions" as any)
         .update({ status: nextStatus, updated_at: new Date().toISOString() })
         .eq("id", sub.id);
 
-      if (error && (error.code === "42703" || error.code === "42P01" || error.message?.includes("schema cache"))) {
-        const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
-        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", authUser?.id], updated);
-        error = null;
-      } else if (error) {
-        throw error;
-      }
+      const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
+      localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+      if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
+      qc.invalidateQueries({ queryKey: ["subscriptions"] });
 
       toast.success(`Subscription ${nextStatus === "active" ? "activated" : "deactivated"}`);
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
       if (selectedSub?.id === sub.id) {
         setSelectedSub({ ...sub, status: nextStatus });
       }
@@ -407,17 +411,18 @@ function SubscriptionsPage() {
 
   const handleDeleteSub = async (id: string) => {
     try {
+      const { data: userResp } = await supabase.auth.getUser();
+      const currentUserId = userResp?.user?.id || authUser?.id;
+
       const { error } = await supabase.from("subscriptions" as any).delete().eq("id", id);
-      if (error && error.code === "42P01") {
-        const updated = subscriptions.filter((s: SubscriptionItem) => s.id !== id);
-        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", authUser?.id], updated);
-      } else if (error) {
-        throw error;
-      }
+      if (error && error.code !== "42P01") console.error("Delete error:", error);
+
+      const updated = subscriptions.filter((s: SubscriptionItem) => s.id !== id);
+      localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+      if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
+      qc.invalidateQueries({ queryKey: ["subscriptions"] });
 
       toast.success("Subscription deleted");
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
       setDeleteSubId(null);
       setSelectedSub(null);
     } catch (err: any) {

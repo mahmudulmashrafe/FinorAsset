@@ -155,147 +155,9 @@ function AutomationPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
   const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
-  const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
-  const [selectedSub, setSelectedSub] = useState<any | null>(null);
 
-  // Tabs & Summary selection
-  const [activeTab, setActiveTab] = useState<"macros" | "subscriptions">("macros");
   const [showSummary, setShowSummary] = useState(false);
-
-  // Load subscriptions query
-  const { data: subscriptions = [] } = useQuery({
-    queryKey: ["subscriptions", authUser?.id],
-    enabled: !!authUser,
-    queryFn: async () => {
-      try {
-        return await api.listSubscriptions();
-      } catch (err: any) {
-        if (err.code === "42P01") return [];
-        throw err;
-      }
-    }
-  });
-
-  // Subscription form handlers
-  const [createSubOpen, setCreateSubOpen] = useState(false);
-  const [editingSub, setEditingSub] = useState<any | null>(null);
-  const [subName, setSubName] = useState("");
-  const [subAmount, setSubAmount] = useState(0);
-  const [subKind, setSubKind] = useState<"income" | "expense" | "transfer">("expense");
-  const [subAccountId, setSubAccountId] = useState("");
-  const [subToAccountId, setSubToAccountId] = useState("");
-  const [subCategoryId, setSubCategoryId] = useState("");
-  const [subNextDueDate, setSubNextDueDate] = useState(new Date().toISOString().split("T")[0]);
-  const [subNote, setSubNote] = useState("");
-  const [subIsSplit, setSubIsSplit] = useState(false);
-  const [subSplits, setSubSplits] = useState<any[]>([]);
-
-  // Sync editing subscription to form state
-  useEffect(() => {
-    if (editingSub) {
-      setSubName(editingSub.name);
-      setSubAmount(Number(editingSub.amount));
-      setSubKind(editingSub.kind);
-      setSubAccountId(editingSub.account_id || "");
-      setSubToAccountId(editingSub.to_account_id || "");
-      setSubCategoryId(editingSub.category_id || "");
-      setSubNextDueDate(editingSub.next_due_date);
-      setSubNote(editingSub.note || "");
-      setSubIsSplit(!!editingSub.is_split);
-      setSubSplits(Array.isArray(editingSub.splits) ? editingSub.splits : []);
-      setCreateSubOpen(true);
-    }
-  }, [editingSub]);
-
-  function resetSubForm() {
-    setSubName("");
-    setSubAmount(0);
-    setSubKind("expense");
-    setSubAccountId(accounts[0]?.id || "");
-    setSubToAccountId("");
-    setSubCategoryId("");
-    setSubNextDueDate(new Date().toISOString().split("T")[0]);
-    setSubNote("");
-    setSubIsSplit(false);
-    setSubSplits([]);
-    setEditingSub(null);
-  }
-
-  async function handleCreateSub(e: React.FormEvent) {
-    e.preventDefault();
-    if (!subName.trim()) return toast.error("Subscription name is required");
-    if (!subNextDueDate) return toast.error("Next due date is required");
-    
-    if (subIsSplit && subKind !== "transfer") {
-      const totalAllocated = subSplits.reduce((sum, s) => sum + s.amount, 0);
-      if (Math.abs(totalAllocated - Number(subAmount)) >= 0.01) {
-        return toast.error(`Total split amount (${fmtMoney(totalAllocated, currency)}) must match subscription amount (${fmtMoney(Number(subAmount), currency)})`);
-      }
-      for (const split of subSplits) {
-        if (!split.accountId) return toast.error("Please select an account for all splits");
-        if (!split.amount || split.amount <= 0) return toast.error("Split amounts must be positive");
-      }
-    } else {
-      if (!subAccountId) return toast.error("Please select an account");
-    }
-
-    if (subKind === "transfer" && !subToAccountId) return toast.error("Please select destination account");
-    if (subKind === "transfer" && subAccountId === subToAccountId) return toast.error("Source and destination accounts must differ");
-    if (subKind !== "transfer" && !subCategoryId) return toast.error("Please select a category");
-    if (!subAmount || Number(subAmount) <= 0) return toast.error("Please enter a valid amount");
-
-    if (!authUser) return toast.error("Not logged in");
-
-    const payload = {
-      user_id: authUser.id,
-      name: subName.trim(),
-      amount: Number(subAmount),
-      kind: subKind,
-      account_id: subAccountId || null,
-      to_account_id: subKind === "transfer" ? subToAccountId : null,
-      category_id: subKind !== "transfer" ? subCategoryId : null,
-      next_due_date: subNextDueDate,
-      note: subNote.trim() || null,
-      is_split: !!subIsSplit && subKind !== "transfer",
-      splits: (subIsSplit && subKind !== "transfer") ? subSplits : [],
-      updated_at: new Date().toISOString(),
-    };
-
-    let result;
-    if (editingSub) {
-      result = await supabase
-        .from("subscriptions")
-        .update(payload)
-        .eq("id", editingSub.id);
-    } else {
-      result = await supabase
-        .from("subscriptions")
-        .insert({
-          ...payload,
-          created_at: new Date().toISOString(),
-        });
-    }
-
-    if (result.error) {
-      toast.error(result.error.message);
-    } else {
-      toast.success(editingSub ? "Subscription updated!" : "Subscription created!");
-      resetSubForm();
-      setCreateSubOpen(false);
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
-    }
-  }
-
-  async function handleDeleteSub(id: string) {
-    const { error } = await supabase.from("subscriptions").delete().eq("id", id);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Subscription deleted successfully.");
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
-    }
-  }
 
   // Form states
   const [name, setName] = useState("");
@@ -628,90 +490,64 @@ function AutomationPage() {
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
       
-      {/* ── Top Bar Header: Only Toggle Buttons with Record Counts ── */}
-      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4">
-        <div className="flex items-center gap-1.5 overflow-x-auto thin-scroll">
-          <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 border rounded-md shrink-0 relative z-30">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveTab("macros");
-              }}
-              className={`h-6 px-2.5 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
-                activeTab === "macros"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              }`}
-            >
-              <span>Macros</span>
-              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
-                activeTab === "macros" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}>
-                {rules.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveTab("subscriptions");
-              }}
-              className={`h-6 px-2.5 text-[10px] sm:text-[11px] font-bold rounded cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 transition-all ${
-                activeTab === "subscriptions"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              }`}
-            >
-              <span>Subscriptions</span>
-              <span className={`text-[8px] sm:text-[9px] px-1 py-0 rounded-full font-bold ${
-                activeTab === "subscriptions" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}>
-                {subscriptions.length}
-              </span>
-            </button>
-          </div>
+      {/* ── Top Bar Header ── */}
+      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2.5 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4 flex items-center justify-between gap-2">
+        <div>
+          <h1 className="font-serif font-black text-lg sm:text-xl tracking-tight text-foreground flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-accent shrink-0" /> Macros & Automation
+          </h1>
+          <p className="text-[11px] text-muted-foreground hidden sm:block">Create 1-click transaction templates & shortcuts</p>
         </div>
+        <Button onClick={() => setCreateOpen(true)} size="sm" className="h-8 text-xs font-semibold rounded-full bg-accent text-accent-foreground gap-1.5 shrink-0 cursor-pointer">
+          <Plus className="h-3.5 w-3.5" /> + New Macro
+        </Button>
       </div>
 
-      {activeTab === "macros" ? (
-        rules.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4 mt-12">
-            <div className="h-12 w-12 rounded-full bg-accent/10 text-accent flex items-center justify-center">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold">No Shortcuts Yet</h3>
-              <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-                Automations allow you to record templates for recurring transactions (like rent, salary, or coffee) and log them with a single click.
-              </p>
-            </div>
-            <Button onClick={() => setCreateOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm">
-              Create your first macro
-            </Button>
+      {rules.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4 mt-12">
+          <div className="h-12 w-12 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+            <Sparkles className="h-6 w-6" />
           </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {rules.map((rule) => {
-              return (
-                <div 
-                  key={rule.id} 
-                  onClick={() => setSelectedRule(rule)}
-                  className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden h-[155px] cursor-pointer"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-serif text-base font-bold truncate pr-2 text-foreground group-hover:text-accent transition-colors">
-                        {rule.name}
-                      </h3>
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-semibold bg-muted text-muted-foreground">
-                        {rule.actions.length} action{rule.actions.length > 1 ? "s" : ""}
-                      </Badge>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1 truncate pr-2" title={(() => {
+          <div>
+            <h3 className="font-serif text-lg font-bold">No Shortcuts Yet</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+              Automations allow you to record templates for recurring transactions (like rent, salary, or coffee) and log them with a single click.
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm">
+            Create your first macro
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {rules.map((rule) => {
+            return (
+              <div 
+                key={rule.id} 
+                onClick={() => setSelectedRule(rule)}
+                className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden h-[155px] cursor-pointer"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-serif text-base font-bold truncate pr-2 text-foreground group-hover:text-accent transition-colors">
+                      {rule.name}
+                    </h3>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-semibold bg-muted text-muted-foreground">
+                      {rule.actions.length} action{rule.actions.length > 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1 truncate pr-2" title={(() => {
+                    const catNames = rule.actions
+                      .map(act => {
+                        if (act.kind === "transfer") return "🔄 Transfer";
+                        const cat = cats.find(c => c.id === act.category_id);
+                        return cat ? `${cat.icon} ${cat.name}` : "";
+                      })
+                      .filter(Boolean);
+                    const uniqueCats = Array.from(new Set(catNames));
+                    return uniqueCats.length > 0 ? uniqueCats.join(", ") : "Uncategorized";
+                  })()}>
+                    {(() => {
                       const catNames = rule.actions
                         .map(act => {
                           if (act.kind === "transfer") return "🔄 Transfer";
@@ -720,107 +556,40 @@ function AutomationPage() {
                         })
                         .filter(Boolean);
                       const uniqueCats = Array.from(new Set(catNames));
-                      return uniqueCats.length > 0 ? uniqueCats.join(", ") : "Uncategorized";
-                    })()}>
-                      {(() => {
-                        const catNames = rule.actions
-                          .map(act => {
-                            if (act.kind === "transfer") return "🔄 Transfer";
-                            const cat = cats.find(c => c.id === act.category_id);
-                            return cat ? `${cat.icon} ${cat.name}` : "";
-                          })
-                          .filter(Boolean);
-                        const uniqueCats = Array.from(new Set(catNames));
-                        return uniqueCats.length > 0 ? uniqueCats[0] : "Uncategorized";
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-auto pt-2 border-t" onClick={(e) => e.stopPropagation()}>
-                    {(() => {
-                      const macroTotal = rule.actions.reduce((sum, act) => sum + (act.kind === "income" ? Number(act.amount) : act.kind === "expense" ? -Number(act.amount) : 0), 0);
-                      const macroSign = macroTotal > 0 ? "+" : macroTotal < 0 ? "−" : "";
-                      const macroColor = macroTotal > 0 ? "text-[color:var(--success)]" : macroTotal < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
-                      return (
-                        <span className="text-xs text-muted-foreground">
-                          Total: <span className={`font-serif num font-bold text-sm block ${macroColor}`}>
-                            {macroSign}{fmtMoney(Math.abs(macroTotal), currency)}
-                          </span>
-                        </span>
-                      );
+                      return uniqueCats.length > 0 ? uniqueCats[0] : "Uncategorized";
                     })()}
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        onClick={() => executeAutomation(rule)}
-                        disabled={executingId === rule.id}
-                        className="gap-1 rounded-full cursor-pointer h-8 px-3 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
-                      >
-                        <Play className="h-3 w-3 fill-current shrink-0" />
-                        {executingId === rule.id ? "Running..." : "Trigger"}
-                      </Button>
-                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )
-      ) : (
-        subscriptions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4 mt-12">
-            <div className="h-12 w-12 rounded-full bg-accent/10 text-accent flex items-center justify-center">
-              <Plus className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold">No Subscriptions Yet</h3>
-              <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-                Subscriptions allow you to track monthly expenses (such as streaming, rent, software services) that automatically deduct cash if you have sufficient funds.
-              </p>
-            </div>
-            <Button onClick={() => setCreateSubOpen(true)} className="rounded-full cursor-pointer text-xs font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm">
-              Create your first subscription
-            </Button>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subscriptions.map((sub) => {
-              const isOverdue = new Date(sub.next_due_date) < new Date();
-              return (
-                <div
-                  key={sub.id}
-                  onClick={() => setSelectedSub(sub)}
-                  className="relative rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden h-[155px] cursor-pointer"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-serif text-base font-bold truncate pr-2 text-foreground">
-                        {sub.name}
-                      </h3>
-                      <Badge variant="outline" className={`capitalize text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-semibold ${isOverdue ? "bg-destructive/15 text-destructive border-destructive/20 animate-pulse" : "bg-success/15 text-success border-success/20"}`}>
-                        {isOverdue ? "Overdue" : "Active"}
-                      </Badge>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1 flex items-center justify-between">
-                      <span>Due: {new Date(sub.next_due_date).toLocaleDateString()}</span>
-                      {sub.last_payment_date && <span className="scale-90 opacity-80">Paid: {new Date(sub.last_payment_date).toLocaleDateString()}</span>}
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between mt-auto pt-2 border-t">
-                    <span className="text-xs text-muted-foreground">
-                      Amount: <span className="font-serif num font-bold text-foreground text-sm block">
-                        {fmtMoney(Number(sub.amount), currency)}
+                <div className="flex items-center justify-between mt-auto pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                  {(() => {
+                    const macroTotal = rule.actions.reduce((sum, act) => sum + (act.kind === "income" ? Number(act.amount) : act.kind === "expense" ? -Number(act.amount) : 0), 0);
+                    const macroSign = macroTotal > 0 ? "+" : macroTotal < 0 ? "−" : "";
+                    const macroColor = macroTotal > 0 ? "text-[color:var(--success)]" : macroTotal < 0 ? "text-[color:var(--destructive)]" : "text-foreground";
+                    return (
+                      <span className="text-xs text-muted-foreground">
+                        Total: <span className={`font-serif num font-bold text-sm block ${macroColor}`}>
+                          {macroSign}{fmtMoney(Math.abs(macroTotal), currency)}
+                        </span>
                       </span>
-                    </span>
+                    );
+                  })()}
 
-
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => executeAutomation(rule)}
+                      disabled={executingId === rule.id}
+                      className="gap-1 rounded-full cursor-pointer h-8 px-3 text-xs font-semibold shadow-sm bg-accent hover:bg-accent/90 text-accent-foreground"
+                    >
+                      <Play className="h-3 w-3 fill-current shrink-0" />
+                      {executingId === rule.id ? "Running..." : "Trigger"}
+                    </Button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Details Dialog */}
@@ -947,19 +716,14 @@ function AutomationPage() {
       {typeof document !== 'undefined' && createPortal(
         <Button 
           onClick={() => {
-            if (activeTab === "macros") {
-              setEditingRule(null);
-              setName("");
-              setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
-              setCreateOpen(true);
-            } else {
-              resetSubForm();
-              setCreateSubOpen(true);
-            }
+            setEditingRule(null);
+            setName("");
+            setActions([{ kind: "expense", account_id: "", category_id: "", amount: 0, note: "" }]);
+            setCreateOpen(true);
           }}
           size="icon"
           className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer"
-          title={activeTab === "macros" ? "Create Automation Macro" : "Create Subscription"}
+          title="Create Automation Macro"
         >
           <Plus className="h-5 w-5 md:h-6 md:w-6" />
         </Button>,
@@ -1191,288 +955,6 @@ function AutomationPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={createSubOpen} onOpenChange={(val) => {
-        setCreateSubOpen(val);
-        if (!val) resetSubForm();
-      }}>
-        <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[100] overflow-hidden">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle className="font-serif text-2xl">
-              {editingSub ? "Edit Subscription" : "New Subscription"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateSub} className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
-              <div className="space-y-1.5">
-                <Label htmlFor="sub-name" className="text-xs font-semibold">Subscription Name</Label>
-                <Input
-                  id="sub-name"
-                  value={subName}
-                  onChange={(e) => setSubName(e.target.value)}
-                  placeholder="e.g. Netflix, Gym, Office Rent"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Type</Label>
-                  <Select value={subKind} onValueChange={(v: any) => {
-                    setSubKind(v);
-                    setSubCategoryId("");
-                    setSubToAccountId("");
-                    setSubIsSplit(false);
-                    setSubSplits([]);
-                  }}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="z-[150]">
-                      <SelectItem value="expense">Expense</SelectItem>
-                      <SelectItem value="income">Income</SelectItem>
-                      <SelectItem value="transfer">Transfer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Amount</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    className="h-8 text-xs"
-                    value={subAmount || ""}
-                    onChange={(e) => {
-                      const amt = Number(e.target.value);
-                      setSubAmount(amt);
-                      if (subSplits.length <= 1) {
-                        setSubSplits([{ accountId: subAccountId || accounts[0]?.id || "", amount: amt }]);
-                      }
-                    }}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-
-              {subKind !== "transfer" && (
-                <div className="flex items-center justify-between border-y py-1.5 my-1 bg-muted/20 px-2 rounded-lg">
-                  <Label className="text-xs font-semibold">Split across multiple accounts</Label>
-                  <Switch
-                    checked={subIsSplit}
-                    onCheckedChange={(checked) => {
-                      setSubIsSplit(checked);
-                      setSubSplits(checked ? [{ accountId: subAccountId || accounts[0]?.id || "", amount: subAmount }] : []);
-                    }}
-                  />
-                </div>
-              )}
-
-              {subIsSplit && subKind !== "transfer" ? (
-                <div className="space-y-2 border-t pt-2 mt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Account Splits</span>
-                    <button
-                      type="button"
-                      onClick={() => setSubSplits([...subSplits, { accountId: accounts[0]?.id || "", amount: 0 }])}
-                      className="text-xs text-accent hover:underline cursor-pointer"
-                    >
-                      + Add Account Split
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {subSplits.map((split, sIdx) => {
-                      return (
-                        <div key={sIdx} className="flex gap-2 items-center">
-                          <Select
-                            value={split.accountId || "none"}
-                            onValueChange={(val) => {
-                              const next = [...subSplits];
-                              next[sIdx].accountId = val === "none" ? "" : val;
-                              setSubSplits(next);
-                            }}
-                          >
-                            <SelectTrigger className="flex-1 h-8 text-xs bg-background">
-                              <SelectValue placeholder="Select account" />
-                            </SelectTrigger>
-                            <SelectContent className="z-[160]">
-                              {(!split.accountId || split.accountId === "none") && (
-                                <SelectItem value="none">Select account...</SelectItem>
-                              )}
-                              {accounts.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>
-                                  {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            type="number"
-                            step="any"
-                            className="w-24 h-8 text-xs bg-background"
-                            value={split.amount || ""}
-                            onChange={(e) => {
-                              const next = [...subSplits];
-                              next[sIdx].amount = Number(e.target.value) || 0;
-                              setSubSplits(next);
-                            }}
-                            placeholder="0.00"
-                          />
-                          {subSplits.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = [...subSplits];
-                                next.splice(sIdx, 1);
-                                setSubSplits(next);
-                              }}
-                              className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground flex justify-between px-1">
-                    <span>Allocated: {fmtMoney(subSplits.reduce((sum, s) => sum + s.amount, 0), currency)} / {fmtMoney(Number(subAmount) || 0, currency)}</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold">Category</Label>
-                    <Select value={subCategoryId || ""} onValueChange={setSubCategoryId}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[150]">
-                        {cats.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.icon} {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold">
-                      {subKind === "transfer" ? "Source Account" : "Account"}
-                    </Label>
-                    <Select value={subAccountId} onValueChange={(val) => {
-                      setSubAccountId(val);
-                      if (subSplits.length <= 1) {
-                        setSubSplits([{ accountId: val, amount: subAmount }]);
-                      }
-                    }}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select account" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[150]">
-                        {accounts.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {subKind === "transfer" ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Destination Account</Label>
-                      <Select value={subToAccountId || ""} onValueChange={setSubToAccountId}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent className="z-[150]">
-                          {accounts.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
-                              {a.name} ({fmtMoney(balances.get(a.id) ?? 0, currency)})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Category</Label>
-                      <Select value={subCategoryId || ""} onValueChange={setSubCategoryId}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent className="z-[150]">
-                          {cats.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.icon} {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Next Due Date</Label>
-                  <Input
-                    type="date"
-                    className="h-8 text-xs"
-                    value={subNextDueDate}
-                    onChange={(e) => setSubNextDueDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Optional Note</Label>
-                <Input
-                  className="h-8 text-xs"
-                  value={subNote}
-                  onChange={(e) => setSubNote(e.target.value)}
-                  placeholder="e.g. Netflix Premium Plan"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="p-4 border-t flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setCreateSubOpen(false)} className="rounded-full text-xs font-semibold cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
-                {editingSub ? "Update Subscription" : "Save Subscription"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Subscription Deletion Confirmation AlertDialog */}
-      <AlertDialog open={!!deleteSubId} onOpenChange={(open) => !open && setDeleteSubId(null)}>
-        <AlertDialogContent className="z-[110]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-serif">Delete Subscription?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this subscription? This action will permanently remove it from your records and stop future auto-deductions.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (deleteSubId) {
-                  handleDeleteSub(deleteSubId);
-                  setDeleteSubId(null);
-                }
-              }} 
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* Macro Deletion Confirmation AlertDialog */}
       <AlertDialog open={!!deleteRuleId} onOpenChange={(open) => !open && setDeleteRuleId(null)}>
         <AlertDialogContent className="z-[110]">
@@ -1498,146 +980,6 @@ function AutomationPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Subscription Details Dialog */}
-      <Dialog open={!!selectedSub} onOpenChange={(val) => { if (!val) setSelectedSub(null); }}>
-        <DialogContent className="max-w-md z-[100] max-h-[90vh] sm:max-h-[600px] flex flex-col p-0 overflow-hidden">
-          {/* Static Header */}
-          <DialogHeader className="p-6 pb-3 border-b">
-            <div className="flex items-center justify-between gap-3">
-              <DialogTitle className="font-serif text-2xl flex items-center gap-2 text-foreground truncate">
-                <Sparkles className="h-5.5 w-5.5 text-accent shrink-0" /> <span className="truncate">{selectedSub?.name}</span>
-              </DialogTitle>
-              {selectedSub && (
-                <Badge variant="outline" className={`capitalize text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-semibold ${new Date(selectedSub.next_due_date) < new Date() ? "bg-destructive/15 text-destructive border-destructive/20 animate-pulse" : "bg-success/15 text-success border-success/20"}`}>
-                  {new Date(selectedSub.next_due_date) < new Date() ? "Overdue" : "Active"}
-                </Badge>
-              )}
-            </div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mt-1.5">
-              Subscription Settings
-            </div>
-          </DialogHeader>
-
-          {/* Scrollable Middle Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 thin-scroll">
-            <div className="text-xs space-y-3 bg-muted/40 p-4 rounded-2xl border border-border/60">
-              <div className="flex items-center justify-between gap-1 border-b pb-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Payment Amount</span>
-                <span className="font-serif num font-black text-base text-foreground">
-                  {selectedSub && fmtMoney(Number(selectedSub.amount), currency)}
-                </span>
-              </div>
-
-              <div className="text-xs text-muted-foreground space-y-2 mt-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-foreground/80 w-28 shrink-0">Account:</span>
-                  <span className="truncate flex items-center gap-1.5">
-                    {selectedSub?.is_split ? (
-                      <span className="italic text-muted-foreground">Multiple Accounts (Split)</span>
-                    ) : (
-                      <>
-                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: accountMap.get(selectedSub?.account_id)?.color || "#888" }} />
-                        {accountMap.get(selectedSub?.account_id)?.name || "No Account Selected"}
-                      </>
-                    )}
-                  </span>
-                </div>
-
-                {selectedSub?.to_account_id && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-foreground/80 w-28 shrink-0">Destination:</span>
-                    <span className="truncate flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full shrink-0" style={{ background: accountMap.get(selectedSub.to_account_id)?.color || "#888" }} />
-                      {accountMap.get(selectedSub.to_account_id)?.name || "Deleted Account"}
-                    </span>
-                  </div>
-                )}
-
-                {!selectedSub?.is_split && selectedSub?.category_id && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-foreground/80 w-28 shrink-0">Category:</span>
-                    <span className="truncate">
-                      {catMap.get(selectedSub.category_id)?.icon} {catMap.get(selectedSub.category_id)?.name || "Deleted Category"}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-foreground/80 w-28 shrink-0">Next Payment Due:</span>
-                  <span className="font-medium text-foreground">
-                    {selectedSub && new Date(selectedSub.next_due_date).toLocaleDateString()}
-                  </span>
-                </div>
-
-                {selectedSub?.last_payment_date && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-foreground/80 w-28 shrink-0">Last Payment Date:</span>
-                    <span className="font-medium text-foreground">
-                      {new Date(selectedSub.last_payment_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-
-                {selectedSub?.note && (
-                  <div className="text-[10px] italic text-muted-foreground border-t pt-2 mt-2">
-                    "{selectedSub.note}"
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* If Split, show splits details */}
-            {selectedSub?.is_split && (
-              <div className="space-y-2">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Account Splits</span>
-                <div className="space-y-2">
-                  {((Array.isArray(selectedSub.splits) ? selectedSub.splits : []) as any[]).map((split, idx) => {
-                    const acc = accountMap.get(split?.accountId);
-                    return (
-                      <div key={idx} className="flex items-center justify-between text-xs p-2.5 bg-background border rounded-lg">
-                        <span className="flex items-center gap-1.5 truncate">
-                          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: acc?.color || "#888" }} />
-                          {acc?.name || "Deleted Account"}
-                        </span>
-                        <span className="font-semibold num font-serif">{fmtMoney(Number(split?.amount), currency)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Static Footer */}
-          <DialogFooter className="p-6 pt-3 border-t flex flex-row items-center justify-end gap-2 bg-card mt-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (selectedSub) {
-                  setEditingSub(selectedSub);
-                  setSelectedSub(null);
-                }
-              }}
-              className="gap-1.5 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (selectedSub) {
-                  setDeleteSubId(selectedSub.id);
-                  setSelectedSub(null);
-                }
-              }}
-              className="gap-1.5 rounded-full cursor-pointer h-9 px-4 text-xs font-semibold"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
