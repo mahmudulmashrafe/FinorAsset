@@ -96,23 +96,67 @@ function EnvelopesPage() {
   const accMap = new Map(accounts.map(a => [a.id, a]));
   const catMap = new Map(cats.map(c => [c.id, c]));
 
-  // Calculate locked money per account across all envelope allocations
-  const lockedPerAccount = new Map<string, number>();
-  allocations.forEach((alloc) => {
-    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
-    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+  // Calculate spent amounts per envelope from transactions
+  const spentPerEnvelope = new Map<string, number>();
+  const spentPerEnvelopeAccount = new Map<string, number>();
+
+  txns.forEach((t) => {
+    const noteStr = t.note ?? "";
+    const match = noteStr.match(/ENV_([^\s\-:;,\n]+)/i);
+    if (match) {
+      const envTag = match[1].toLowerCase();
+      const matchedEnv = envelopes.find(
+        (e) => e.name.toLowerCase() === envTag || e.id.toLowerCase().startsWith(envTag)
+      );
+
+      if (matchedEnv) {
+        const amt = Number(t.amount);
+        const prevSpent = spentPerEnvelope.get(matchedEnv.id) ?? 0;
+
+        if (t.kind === "expense") {
+          spentPerEnvelope.set(matchedEnv.id, prevSpent + amt);
+          if (t.account_id) {
+            const accKey = `${matchedEnv.id}:${t.account_id}`;
+            spentPerEnvelopeAccount.set(accKey, (spentPerEnvelopeAccount.get(accKey) ?? 0) + amt);
+          }
+        } else if (t.kind === "income") {
+          spentPerEnvelope.set(matchedEnv.id, prevSpent - amt);
+          if (t.account_id) {
+            const accKey = `${matchedEnv.id}:${t.account_id}`;
+            spentPerEnvelopeAccount.set(accKey, (spentPerEnvelopeAccount.get(accKey) ?? 0) - amt);
+          }
+        }
+      }
+    }
   });
 
-  // Calculate total allocated funds per envelope
-  const allocatedPerEnvelope = new Map<string, number>();
+  // Calculate total allocated/locked raw funds per envelope
+  const rawAllocatedPerEnvelope = new Map<string, number>();
   const allocationsByEnvelope = new Map<string, EnvelopeAllocation[]>();
   allocations.forEach((alloc) => {
-    const prev = allocatedPerEnvelope.get(alloc.envelope_id) ?? 0;
-    allocatedPerEnvelope.set(alloc.envelope_id, prev + Number(alloc.amount));
+    const prev = rawAllocatedPerEnvelope.get(alloc.envelope_id) ?? 0;
+    rawAllocatedPerEnvelope.set(alloc.envelope_id, prev + Number(alloc.amount));
 
     const list = allocationsByEnvelope.get(alloc.envelope_id) ?? [];
     list.push(alloc);
     allocationsByEnvelope.set(alloc.envelope_id, list);
+  });
+
+  // Calculate NET available envelope balance (locked minus spent)
+  const allocatedPerEnvelope = new Map<string, number>();
+  envelopes.forEach((env) => {
+    const rawLocked = rawAllocatedPerEnvelope.get(env.id) ?? 0;
+    const spent = spentPerEnvelope.get(env.id) ?? 0;
+    allocatedPerEnvelope.set(env.id, Math.max(0, rawLocked - spent));
+  });
+
+  // Calculate locked money per account (raw locked minus spent from envelope allocations)
+  const lockedPerAccount = new Map<string, number>();
+  allocations.forEach((alloc) => {
+    const spentFromAlloc = spentPerEnvelopeAccount.get(`${alloc.envelope_id}:${alloc.account_id}`) ?? 0;
+    const remainingInAlloc = Math.max(0, Number(alloc.amount) - spentFromAlloc);
+    const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
+    lockedPerAccount.set(alloc.account_id, prev + remainingInAlloc);
   });
 
   // View and summary states (matching Loans page)
@@ -908,6 +952,8 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
           {selectedEnvelope && (() => {
             const envId = selectedEnvelope.id;
             const envAllocs = allocationsByEnvelope.get(envId) ?? [];
+            const rawAllocated = rawAllocatedPerEnvelope.get(envId) ?? 0;
+            const spentAmt = spentPerEnvelope.get(envId) ?? 0;
             const currentAllocated = allocatedPerEnvelope.get(envId) ?? 0;
             const target = Number(selectedEnvelope.target_amount);
 
@@ -932,13 +978,23 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
             return (
               <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
                 {/* Envelope Status Banner & Transact Button */}
-                <div className="p-3.5 rounded-xl border bg-muted/40 space-y-2.5">
+                <div className="p-3.5 rounded-xl border bg-muted/40 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground uppercase font-bold text-[10px]">Target Budget</span>
                     <span className="font-serif num font-black text-sm">{fmtMoney(target, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground uppercase font-bold text-[10px]">Currently Locked</span>
+                    <span className="text-muted-foreground uppercase font-bold text-[10px]">Locked Funds</span>
+                    <span className="font-serif num font-bold text-xs text-muted-foreground">{fmtMoney(rawAllocated, currency)}</span>
+                  </div>
+                  {spentAmt > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground uppercase font-bold text-[10px]">Spent from Envelope</span>
+                      <span className="font-serif num font-bold text-xs text-destructive">−{fmtMoney(spentAmt, currency)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t">
+                    <span className="text-foreground font-bold uppercase text-[10px]">Remaining Balance</span>
                     <span className="font-serif num font-black text-sm text-emerald-600">{fmtMoney(currentAllocated, currency)}</span>
                   </div>
 
@@ -949,7 +1005,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       setSelectedEnvelope(null);
                       setTransactEnv(envToTransact);
                     }}
-                    className="w-full h-8 text-xs font-bold gap-1.5 rounded-lg bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shadow-xs"
+                    className="w-full h-8 text-xs font-bold gap-1.5 rounded-lg bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shadow-xs mt-2"
                   >
                     <Receipt className="h-3.5 w-3.5" />
                     <span>Transact / Spend from {selectedEnvelope.name}</span>

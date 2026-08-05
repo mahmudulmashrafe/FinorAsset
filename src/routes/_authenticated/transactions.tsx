@@ -130,6 +130,7 @@ function TxnsPage() {
   const { data: txns = [] } = useQuery({ queryKey: ["transactions"], queryFn: () => api.listTransactions(1000) });
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: api.listAccounts });
   const { data: cats = [] } = useQuery({ queryKey: ["categories"], queryFn: api.listCategories });
+  const { data: envelopes = [] } = useQuery({ queryKey: ["envelopes"], queryFn: async () => { try { return await api.listEnvelopes(); } catch { return []; } } });
   const { currency } = useUserProfile();
 
   const [q, setQ] = useState("");
@@ -1462,10 +1463,13 @@ function TxnsPage() {
                             {(() => {
                               const envMatch = (t.note ?? "").match(/ENV_([^\s\-:;,\n]+)/);
                               if (envMatch) {
+                                const envTag = envMatch[1];
+                                const matchedEnv = envelopes.find(e => e.name.toLowerCase() === envTag.toLowerCase() || e.id.toLowerCase().startsWith(envTag.toLowerCase()));
+                                const displayName = matchedEnv?.name || envTag;
                                 return (
                                   <span className="inline-flex items-center gap-1 font-bold text-accent">
                                     <span>✉️</span>
-                                    <span>ENV_{envMatch[1]}</span>
+                                    <span>ENV_{displayName}</span>
                                   </span>
                                 );
                               }
@@ -1833,7 +1837,10 @@ function TxnsPage() {
                       {(() => {
                         const envMatch = (t.note ?? "").match(/ENV_([^\s\-:;,\n]+)/);
                         if (envMatch) {
-                          return <span className="font-bold text-accent">✉️ ENV_{envMatch[1]}</span>;
+                          const envTag = envMatch[1];
+                          const matchedEnv = envelopes.find(e => e.name.toLowerCase() === envTag.toLowerCase() || e.id.toLowerCase().startsWith(envTag.toLowerCase()));
+                          const displayName = matchedEnv?.name || envTag;
+                          return <span className="font-bold text-accent">✉️ ENV_{displayName}</span>;
                         }
                         return `${acc?.name || "—"} ${t.to_account_id ? `→ ${accMap.get(t.to_account_id)?.name}` : ""}`;
                       })()}

@@ -280,11 +280,47 @@ export function TransactionDialog({
 
   const balances = computeAccountBalances(accounts, txns);
 
-  // Compute locked envelope funds per account
+  // Calculate spent amounts per envelope from transactions
+  const spentPerEnvelope = new Map<string, number>();
+  const spentPerEnvelopeAccount = new Map<string, number>();
+
+  txns.forEach((t) => {
+    const noteStr = t.note ?? "";
+    const match = noteStr.match(/ENV_([^\s\-:;,\n]+)/i);
+    if (match) {
+      const envTag = match[1].toLowerCase();
+      const matchedEnv = envelopes.find(
+        (e) => e.name.toLowerCase() === envTag || e.id.toLowerCase().startsWith(envTag)
+      );
+
+      if (matchedEnv) {
+        const amt = Number(t.amount);
+        const prevSpent = spentPerEnvelope.get(matchedEnv.id) ?? 0;
+
+        if (t.kind === "expense") {
+          spentPerEnvelope.set(matchedEnv.id, prevSpent + amt);
+          if (t.account_id) {
+            const accKey = `${matchedEnv.id}:${t.account_id}`;
+            spentPerEnvelopeAccount.set(accKey, (spentPerEnvelopeAccount.get(accKey) ?? 0) + amt);
+          }
+        } else if (t.kind === "income") {
+          spentPerEnvelope.set(matchedEnv.id, prevSpent - amt);
+          if (t.account_id) {
+            const accKey = `${matchedEnv.id}:${t.account_id}`;
+            spentPerEnvelopeAccount.set(accKey, (spentPerEnvelopeAccount.get(accKey) ?? 0) - amt);
+          }
+        }
+      }
+    }
+  });
+
+  // Compute effective locked envelope funds per account (raw locked minus spent from envelope)
   const lockedPerAccount = new Map<string, number>();
   envelopeAllocations.forEach((alloc) => {
+    const spentFromAlloc = spentPerEnvelopeAccount.get(`${alloc.envelope_id}:${alloc.account_id}`) ?? 0;
+    const remainingInAlloc = Math.max(0, Number(alloc.amount) - spentFromAlloc);
     const prev = lockedPerAccount.get(alloc.account_id) ?? 0;
-    lockedPerAccount.set(alloc.account_id, prev + Number(alloc.amount));
+    lockedPerAccount.set(alloc.account_id, prev + remainingInAlloc);
   });
 
   // Pre-fill form when editing or set defaults for new
@@ -517,7 +553,10 @@ export function TransactionDialog({
       let finalNoteStr = note ? note.trim() : "";
       if (sourceType === "envelope" && selectedEnvelopeVal) {
         const parts = selectedEnvelopeVal.split(":");
-        const envName = parts[1];
+        const envId = parts[1];
+        const rawEnvName = parts[2];
+        const matchedEnv = envelopes.find(e => e.id === envId || e.name === rawEnvName);
+        const envName = matchedEnv?.name || (rawEnvName && rawEnvName.length < 30 ? rawEnvName : defaultEnvelopeName || "");
         if (envName && !finalNoteStr.includes(`ENV_${envName}`)) {
           finalNoteStr = finalNoteStr ? `ENV_${envName} - ${finalNoteStr}` : `ENV_${envName}`;
         }
@@ -556,7 +595,10 @@ export function TransactionDialog({
       let finalNoteStr = note ? note.trim() : "";
       if (sourceType === "envelope" && selectedEnvelopeVal) {
         const parts = selectedEnvelopeVal.split(":");
-        const envName = parts[1];
+        const envId = parts[1];
+        const rawEnvName = parts[2];
+        const matchedEnv = envelopes.find(e => e.id === envId || e.name === rawEnvName);
+        const envName = matchedEnv?.name || (rawEnvName && rawEnvName.length < 30 ? rawEnvName : defaultEnvelopeName || "");
         if (envName && !finalNoteStr.includes(`ENV_${envName}`)) {
           finalNoteStr = finalNoteStr ? `ENV_${envName} - ${finalNoteStr}` : `ENV_${envName}`;
         }
@@ -666,12 +708,14 @@ export function TransactionDialog({
   });
   const envelopeOptions = envelopes.map((env) => {
     const envAllocs = envelopeAllocations.filter((a) => a.envelope_id === env.id);
-    const allocated = envAllocs.reduce((sum, a) => sum + Number(a.amount), 0);
+    const totalLockedRaw = envAllocs.reduce((sum, a) => sum + Number(a.amount), 0);
+    const totalSpent = spentPerEnvelope.get(env.id) ?? 0;
+    const availableInEnv = Math.max(0, totalLockedRaw - totalSpent);
     const mainAcc = accounts.find((a) => a.id === envAllocs[0]?.account_id);
     const accText = mainAcc ? ` · ${mainAcc.name}` : "";
     return {
-      value: `env:${env.id}:${envAllocs[0]?.account_id || ""}`,
-      label: `${env.icon || "✉️"} ${env.name} (✉️ ${fmtMoney(allocated, currency)} locked envelope${accText})`,
+      value: `env:${env.id}:${env.name}:${envAllocs[0]?.account_id || ""}`,
+      label: `${env.icon || "✉️"} ${env.name} (✉️ ${fmtMoney(availableInEnv, currency)} available${accText})`,
       icon: <span>{env.icon || "✉️"}</span>,
     };
   });
