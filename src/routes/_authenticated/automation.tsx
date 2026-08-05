@@ -931,11 +931,31 @@ function AutomationPage() {
               </div>
             </div>
 
-            <DialogFooter className="p-4 border-t flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="rounded-full text-xs font-semibold cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-full cursor-pointer text-xs font-semibold bg-primary hover:bg-[#2c2826] text-primary-foreground">
-                {editingRule ? "Update Macro" : "Save Macro"}
-              </Button>
+            <DialogFooter className="p-4 border-t border-border/40 shrink-0 flex flex-row items-center justify-between gap-2 bg-background/40 backdrop-blur-md">
+              {editingRule ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => {
+                    const idToDel = editingRule.id;
+                    setCreateOpen(false);
+                    setTimeout(() => setDeleteRuleId(idToDel), 100);
+                  }}
+                  className="h-9 text-xs font-semibold cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="h-9 text-xs font-semibold cursor-pointer">
+                  Cancel
+                </Button>
+                <Button type="submit" className="h-9 text-xs font-semibold bg-accent text-accent-foreground cursor-pointer">
+                  Save
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>

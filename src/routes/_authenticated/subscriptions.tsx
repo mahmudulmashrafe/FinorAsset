@@ -1060,13 +1060,32 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t shrink-0 flex items-center justify-end gap-2 bg-card">
-            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="h-9 text-xs">
-              Cancel
-            </Button>
-            <Button onClick={handleSaveSub} disabled={saving} className="h-9 text-xs bg-accent text-accent-foreground font-semibold">
-              {saving ? "Saving…" : editingSub ? "Update Subscription" : "Save Subscription"}
-            </Button>
+          <DialogFooter className="p-4 border-t border-border/40 shrink-0 flex flex-row items-center justify-between gap-2 bg-background/40 backdrop-blur-md">
+            {editingSub ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  const idToDel = editingSub.id;
+                  setModalOpen(false);
+                  setTimeout(() => handleDeleteSub(idToDel), 100);
+                }}
+                disabled={saving}
+                className="h-9 text-xs cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="h-9 text-xs cursor-pointer">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveSub} disabled={saving} className="h-9 text-xs bg-accent text-accent-foreground font-semibold cursor-pointer">
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
