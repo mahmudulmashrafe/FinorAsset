@@ -720,7 +720,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                         <div className="text-right">
                           <span className="text-[8px] uppercase font-bold text-muted-foreground block leading-none">Next Date</span>
                           <span className="text-[10px] font-semibold text-foreground">
-                            {new Date(sub.next_due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            {new Date(sub.next_due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
                         </div>
                       </div>
@@ -1035,7 +1035,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                     <div className="flex items-center justify-between border-b pb-2">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground">Start Date</span>
                       <span className="font-semibold text-foreground">
-                        {new Date(selectedSub.start_date).toLocaleDateString()}
+                        {new Date(selectedSub.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
                   )}
@@ -1043,7 +1043,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Next Billing Date</span>
                     <span className="font-semibold text-foreground">
-                      {new Date(selectedSub.next_due_date).toLocaleDateString()}
+                      {new Date(selectedSub.next_due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>
 
