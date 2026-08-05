@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Trash2, Plus, Sparkles, Pencil, RefreshCw, AlertTriangle, 
@@ -62,6 +63,34 @@ export interface SubscriptionItem {
 
 
 
+
+function calculateNextDueDate(
+  cycle: "daily" | "weekly" | "monthly" | "quarterly" | "yearly",
+  fromDateStr?: string
+): string {
+  const base = fromDateStr ? new Date(fromDateStr) : new Date();
+  const validBase = isNaN(base.getTime()) ? new Date() : base;
+  const d = new Date(validBase);
+
+  switch (cycle) {
+    case "daily":
+      d.setDate(d.getDate() + 1);
+      break;
+    case "weekly":
+      d.setDate(d.getDate() + 7);
+      break;
+    case "monthly":
+      d.setMonth(d.getMonth() + 1);
+      break;
+    case "quarterly":
+      d.setMonth(d.getMonth() + 3);
+      break;
+    case "yearly":
+      d.setFullYear(d.getFullYear() + 1);
+      break;
+  }
+  return d.toISOString().split("T")[0];
+}
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -193,7 +222,7 @@ function SubscriptionsPage() {
     setSubName("");
     setSubAmount("0");
     setSubCycle("monthly");
-    setSubNextDate(new Date().toISOString().split("T")[0]);
+    setSubNextDate(calculateNextDueDate("monthly"));
     setSubAccountId("none");
     setSubCategoryId("none");
     setSubStatus("active");
@@ -205,6 +234,12 @@ function SubscriptionsPage() {
       { accountId: "none", amount: "" },
       { accountId: "none", amount: "" }
     ]);
+  };
+
+  const handleCycleChange = (val: "monthly" | "yearly" | "weekly" | "daily" | "quarterly") => {
+    setSubCycle(val);
+    const calculatedDate = calculateNextDueDate(val, new Date().toISOString().split("T")[0]);
+    setSubNextDate(calculatedDate);
   };
 
   const openCreateModal = () => {
@@ -540,11 +575,11 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
 
             <Button
               onClick={openCreateModal}
-              size="sm"
-              className="h-6 px-2 text-[10px] sm:text-[11px] font-bold gap-1 rounded-md bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shrink-0 shadow-xs"
+              size="icon"
+              className="h-6 w-6 rounded-md bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shrink-0 shadow-xs"
+              title="Add Subscription"
             >
-              <Plus className="h-3 w-3" />
-              <span>Add Subscription</span>
+              <Plus className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -709,7 +744,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Billing Cycle</Label>
-                <Select value={subCycle} onValueChange={(val: any) => setSubCycle(val)}>
+                <Select value={subCycle} onValueChange={(val: any) => handleCycleChange(val)}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="Cycle" />
                   </SelectTrigger>
@@ -1176,6 +1211,18 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Floatable Add Subscription Trigger — portaled to body to escape transform ancestor */}
+      {typeof document !== 'undefined' && createPortal(
+        <Button 
+          onClick={openCreateModal} 
+          size="icon" 
+          className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg border border-accent/20 flex items-center justify-center cursor-pointer" 
+          title="Add Subscription"
+        >
+          <Plus className="h-5 w-5 md:h-6 md:w-6" />
+        </Button>,
+        document.body
+      )}
     </div>
   );
 }
