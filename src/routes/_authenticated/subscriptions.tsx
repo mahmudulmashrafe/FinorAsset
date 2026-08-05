@@ -602,21 +602,12 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
             </div>
           </div>
 
-          {/* Right: Summary & Add Button */}
+          {/* Right: Summary */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-muted/30 text-xs">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-muted/30 text-xs">
               <span className="text-[10px] uppercase font-bold text-muted-foreground">Monthly:</span>
               <span className="font-serif num font-black text-foreground">{fmtMoney(totalMonthlyCommitment, currency)}</span>
             </div>
-
-            <Button
-              onClick={openCreateModal}
-              size="icon"
-              className="h-6 w-6 rounded-md bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shrink-0 shadow-xs"
-              title="Add Subscription"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
       )}
