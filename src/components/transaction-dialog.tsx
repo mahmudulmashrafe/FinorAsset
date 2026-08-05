@@ -619,14 +619,14 @@ export function TransactionDialog({
           for (const split of splits) {
             const rawBal = balances.get(split.accountId) ?? 0;
             const lockedAmt = lockedPerAccount.get(split.accountId) ?? 0;
-            const availableUnlocked = rawBal - lockedAmt;
-            if (availableUnlocked < split.amount) {
+            const availableToCheck = sourceType === "envelope" ? rawBal : (rawBal - lockedAmt);
+            if (availableToCheck < split.amount) {
               const accName = accounts.find(a => a.id === split.accountId)?.name || "selected account";
               setSaving(false);
-              if (lockedAmt > 0) {
-                return toast.error(`Insufficient unlocked funds in ${accName}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableUnlocked, currency)}`);
+              if (sourceType !== "envelope" && lockedAmt > 0) {
+                return toast.error(`Insufficient unlocked funds in ${accName}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableToCheck, currency)}`);
               } else {
-                return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(rawBal, currency)}, required: ${fmtMoney(split.amount, currency)}`);
+                return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(availableToCheck, currency)}, required: ${fmtMoney(split.amount, currency)}`);
               }
             }
           }
@@ -653,17 +653,48 @@ export function TransactionDialog({
         if (kind === "expense" || kind === "transfer") {
           const rawBal = balances.get(accountId) ?? 0;
           const lockedAmt = lockedPerAccount.get(accountId) ?? 0;
-          let availableUnlocked = rawBal - lockedAmt;
-          if (editingTransaction && (editingTransaction as any).account_id === accountId && (editingTransaction as any).kind === kind) {
-            availableUnlocked += Number((editingTransaction as any).amount);
-          }
-          if (availableUnlocked < parsed.data.amount) {
-            const accName = accounts.find(a => a.id === accountId)?.name || "selected account";
-            setSaving(false);
-            if (lockedAmt > 0) {
-              return toast.error(`Insufficient unlocked funds in ${accName}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableUnlocked, currency)}`);
-            } else {
-              return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(rawBal, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+
+          if (sourceType === "envelope" && selectedEnvelopeVal) {
+            // When spending from an envelope, check envelope remaining balance and total account balance
+            const parts = selectedEnvelopeVal.split(":");
+            const envId = parts[1];
+            const rawEnvName = parts[2];
+            const matchedEnv = envelopes.find(e => e.id === envId || e.name === rawEnvName);
+
+            const totalLockedRaw = envelopeAllocations
+              .filter(a => a.envelope_id === matchedEnv?.id)
+              .reduce((sum, a) => sum + Number(a.amount), 0);
+            const totalSpent = spentPerEnvelope.get(matchedEnv?.id || "") ?? 0;
+            const availableInEnv = Math.max(0, totalLockedRaw - totalSpent);
+
+            if (parsed.data.amount > availableInEnv) {
+              setSaving(false);
+              return toast.error(`Insufficient funds in envelope "${matchedEnv?.name || 'Selected Envelope'}". Available in envelope: ${fmtMoney(availableInEnv, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+            }
+
+            let effectiveRawBal = rawBal;
+            if (editingTransaction && (editingTransaction as any).account_id === accountId && (editingTransaction as any).kind === kind) {
+              effectiveRawBal += Number((editingTransaction as any).amount);
+            }
+            if (parsed.data.amount > effectiveRawBal) {
+              setSaving(false);
+              const accName = accounts.find(a => a.id === accountId)?.name || "selected account";
+              return toast.error(`Insufficient total balance in ${accName}. Account balance: ${fmtMoney(effectiveRawBal, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+            }
+          } else {
+            // Regular account transaction: must have enough free unlocked cash
+            let availableUnlocked = rawBal - lockedAmt;
+            if (editingTransaction && (editingTransaction as any).account_id === accountId && (editingTransaction as any).kind === kind) {
+              availableUnlocked += Number((editingTransaction as any).amount);
+            }
+            if (availableUnlocked < parsed.data.amount) {
+              const accName = accounts.find(a => a.id === accountId)?.name || "selected account";
+              setSaving(false);
+              if (lockedAmt > 0) {
+                return toast.error(`Insufficient unlocked funds in ${accName}. Total balance: ${fmtMoney(rawBal, currency)}, locked in envelopes: ${fmtMoney(lockedAmt, currency)}, available unlocked: ${fmtMoney(availableUnlocked, currency)}`);
+              } else {
+                return toast.error(`Insufficient funds in ${accName}. Available: ${fmtMoney(rawBal, currency)}, required: ${fmtMoney(parsed.data.amount, currency)}`);
+              }
             }
           }
         }
