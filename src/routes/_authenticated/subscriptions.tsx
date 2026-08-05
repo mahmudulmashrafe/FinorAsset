@@ -320,20 +320,30 @@ function SubscriptionsPage() {
         setUploadingImage(false);
       }
 
-      const payload: Record<string, any> = {
+      // --- Build the DB payload with ONLY columns that exist in Supabase schema ---
+      // DB columns: id, user_id, name, amount, kind, category_id, account_id,
+      //   to_account_id, note, is_split, splits, next_due_date,
+      //   last_payment_date, created_at, updated_at
+      // NOT in DB: billing_cycle, status, image_url (stored in localStorage only)
+
+      const dbPayload: Record<string, any> = {
         name: subName.trim(),
         amount: numAmt,
         kind: "expense",
-        billing_cycle: subCycle,
         next_due_date: subNextDate,
         account_id: subIsSplit ? null : subAccountId === "none" ? null : subAccountId,
         category_id: subIsSplit ? null : subCategoryId === "none" ? null : subCategoryId,
-        status: subStatus,
-        image_url: uploadedUrl || null,
         note: subNote.trim() || null,
         is_split: subIsSplit,
-        splits: subIsSplit ? subSplits.filter(s => s.accountId !== "none" && Number(s.amount) > 0).map(s => ({ accountId: s.accountId, amount: Number(s.amount) })) : null,
+        splits: subIsSplit ? subSplits.filter(s => s.accountId !== "none" && Number(s.amount) > 0).map(s => ({ accountId: s.accountId, amount: Number(s.amount) })) : [],
         updated_at: new Date().toISOString(),
+      };
+
+      // UI-only fields (stored in localStorage, not sent to DB)
+      const uiFields = {
+        billing_cycle: subCycle,
+        status: subStatus,
+        image_url: uploadedUrl || null,
       };
 
       const { data: userResp } = await supabase.auth.getUser();
@@ -341,27 +351,17 @@ function SubscriptionsPage() {
       if (!currentUserId) throw new Error("Unauthenticated");
 
       if (editingSub) {
-        const fullItem = { ...editingSub, ...payload };
-        let { error } = await supabase
+        // Merge all fields for local/UI state
+        const fullItem: SubscriptionItem = { ...editingSub, ...dbPayload, ...uiFields } as any;
+
+        const { error } = await supabase
           .from("subscriptions" as any)
-          .update(payload)
+          .update(dbPayload)
           .eq("id", editingSub.id);
 
         if (error) {
-          console.warn("Retrying update with minimalist core payload:", error.message);
-          const corePayload = {
-            name: payload.name,
-            amount: payload.amount,
-            next_due_date: payload.next_due_date,
-            account_id: payload.account_id,
-            category_id: payload.category_id,
-            note: payload.note,
-          };
-          const retry = await supabase
-            .from("subscriptions" as any)
-            .update(corePayload)
-            .eq("id", editingSub.id);
-          if (retry.error && retry.error.code !== "42P01") console.error("Update retry error:", retry.error);
+          console.error("Supabase update error:", error.message);
+          // Still update localStorage so UI reflects changes
         }
 
         const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? fullItem : s);
@@ -375,30 +375,24 @@ function SubscriptionsPage() {
         }
       } else {
         const newId = generateId();
-        const newPayload = { ...payload, id: newId, user_id: currentUserId, created_at: new Date().toISOString() };
-        let { error } = await supabase
+        const insertPayload = {
+          ...dbPayload,
+          id: newId,
+          user_id: currentUserId,
+          created_at: new Date().toISOString(),
+        };
+
+        const { error } = await supabase
           .from("subscriptions" as any)
-          .insert(newPayload);
+          .insert(insertPayload);
 
         if (error) {
-          console.warn("Retrying insert with minimalist core payload:", error.message);
-          const corePayload = {
-            id: newId,
-            user_id: currentUserId,
-            name: payload.name,
-            amount: payload.amount,
-            next_due_date: payload.next_due_date,
-            account_id: payload.account_id,
-            category_id: payload.category_id,
-            note: payload.note,
-          };
-          const retry = await supabase
-            .from("subscriptions" as any)
-            .insert(corePayload);
-          if (retry.error && retry.error.code !== "42P01") console.error("Insert retry error:", retry.error);
+          console.error("Supabase insert error:", error.message);
+          // Still save to localStorage so UI reflects new sub
         }
 
-        const updated = [newPayload as SubscriptionItem, ...subscriptions];
+        const fullItem: SubscriptionItem = { ...insertPayload, ...uiFields } as any;
+        const updated = [fullItem, ...subscriptions];
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
         qc.setQueryData(["subscriptions"], updated);
         if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
@@ -421,11 +415,7 @@ function SubscriptionsPage() {
       const { data: userResp } = await supabase.auth.getUser();
       const currentUserId = userResp?.user?.id || authUser?.id;
 
-      let { error } = await supabase
-        .from("subscriptions" as any)
-        .update({ status: nextStatus, updated_at: new Date().toISOString() })
-        .eq("id", sub.id);
-
+      // status column doesn't exist in DB — only update localStorage
       const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
       localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
       qc.setQueryData(["subscriptions"], updated);
@@ -487,9 +477,15 @@ function SubscriptionsPage() {
   }, 0);
 
   // Filter transactions linked to selected sub
+  // Matches: "Auto-Paid: SubName", "Subscription: SubName", or note containing the sub name
   const linkedTxns = selectedSub ? txns.filter((t) => {
-    const noteStr = t.note ?? "";
-    return noteStr.includes(`Subscription: ${selectedSub.name}`) || (t as any).subscription_id === selectedSub.id;
+    const noteStr = (t.note ?? "").toLowerCase();
+    const subNameLower = selectedSub.name.toLowerCase();
+    return (
+      noteStr.includes(`auto-paid: ${subNameLower}`) ||
+      noteStr.includes(`subscription: ${subNameLower}`) ||
+      noteStr.includes(subNameLower)
+    );
   }) : [];
 
   const handleDeleteLinkedTxn = async (txnId: string) => {
