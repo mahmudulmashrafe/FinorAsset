@@ -53,7 +53,7 @@ export function SearchableSelect({
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            className={cn("w-full min-w-0 justify-between font-normal bg-background h-9 px-2.5 text-xs rounded-md border text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden", triggerClassName)}
+            className={cn("w-full min-w-0 justify-between font-normal bg-background/50 h-9.5 px-3 text-xs rounded-xl border border-border/60 text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden hover:bg-background/70 transition-all shadow-2xs", triggerClassName)}
           >
             <span className="flex items-center gap-1.5 truncate min-w-0 flex-1">
               {selectedOption ? (
@@ -72,8 +72,8 @@ export function SearchableSelect({
             <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50 text-muted-foreground" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[220px] max-w-[90vw] p-0 z-[200]">
-          <div className="p-2 border-b border-border">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[220px] max-w-[90vw] p-0 z-[200] rounded-2xl border border-border/60 bg-popover/90 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-border/40 bg-background/30">
             <Input
               placeholder={searchPlaceholder}
               value={search}
