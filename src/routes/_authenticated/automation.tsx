@@ -489,20 +489,6 @@ function AutomationPage() {
 
   return (
     <div className="w-full relative min-h-[60vh] pb-10 space-y-6">
-      
-      {/* ── Top Bar Header ── */}
-      <div className="sticky top-[96px] md:top-[80px] -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 py-2.5 bg-background/95 backdrop-blur-md border-b shadow-sm z-20 mb-4 flex items-center justify-between gap-2">
-        <div>
-          <h1 className="font-serif font-black text-lg sm:text-xl tracking-tight text-foreground flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-accent shrink-0" /> Macros & Automation
-          </h1>
-          <p className="text-[11px] text-muted-foreground hidden sm:block">Create 1-click transaction templates & shortcuts</p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)} size="sm" className="h-8 text-xs font-semibold rounded-full bg-accent text-accent-foreground gap-1.5 shrink-0 cursor-pointer">
-          <Plus className="h-3.5 w-3.5" /> + New Macro
-        </Button>
-      </div>
-
       {rules.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card/40 p-12 text-center max-w-xl mx-auto flex flex-col items-center gap-4 mt-12">
           <div className="h-12 w-12 rounded-full bg-accent/10 text-accent flex items-center justify-center">

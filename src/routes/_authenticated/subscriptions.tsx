@@ -101,8 +101,7 @@ function SubscriptionsPage() {
   });
 
   const { data: subscriptions = [], isLoading } = useQuery({
-    queryKey: ["subscriptions", authUser?.id],
-    enabled: !!authUser,
+    queryKey: ["subscriptions"],
     queryFn: async () => {
       let remoteSubs: SubscriptionItem[] = [];
       try {
@@ -110,7 +109,7 @@ function SubscriptionsPage() {
         const { data, error } = await supabase
           .from("subscriptions" as any)
           .select("*")
-          .order("next_due_date", { ascending: true });
+          .order("created_at", { ascending: false });
 
         if (error) {
           if (error.code === "42P01") {
@@ -349,7 +348,8 @@ function SubscriptionsPage() {
 
         const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? fullItem : s);
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", currentUserId], updated);
+        qc.setQueryData(["subscriptions"], updated);
+        if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
         qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription updated!");
       } else {
@@ -370,7 +370,8 @@ function SubscriptionsPage() {
 
         const updated = [newPayload as SubscriptionItem, ...subscriptions];
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", currentUserId], updated);
+        qc.setQueryData(["subscriptions"], updated);
+        if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
         qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription created!");
       }
@@ -397,6 +398,7 @@ function SubscriptionsPage() {
 
       const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
       localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+      qc.setQueryData(["subscriptions"], updated);
       if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
       qc.invalidateQueries({ queryKey: ["subscriptions"] });
 
@@ -419,6 +421,7 @@ function SubscriptionsPage() {
 
       const updated = subscriptions.filter((s: SubscriptionItem) => s.id !== id);
       localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+      qc.setQueryData(["subscriptions"], updated);
       if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
       qc.invalidateQueries({ queryKey: ["subscriptions"] });
 
