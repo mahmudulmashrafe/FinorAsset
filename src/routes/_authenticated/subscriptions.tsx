@@ -279,10 +279,19 @@ function SubscriptionsPage() {
       if (!authUser) throw new Error("Unauthenticated");
 
       if (editingSub) {
-        const { error } = await supabase
+        let { error } = await supabase
           .from("subscriptions" as any)
           .update(payload)
           .eq("id", editingSub.id);
+
+        if (error && (error.code === "42703" || error.message?.includes("status"))) {
+          const { status, ...payloadWithoutStatus } = payload;
+          const retry = await supabase
+            .from("subscriptions" as any)
+            .update(payloadWithoutStatus)
+            .eq("id", editingSub.id);
+          error = retry.error;
+        }
 
         if (error) {
           if (error.code === "42P01") {
@@ -296,13 +305,22 @@ function SubscriptionsPage() {
         toast.success("Subscription updated!");
       } else {
         const newId = generateId();
-        const { error } = await supabase
+        const newPayload = { ...payload, id: newId, user_id: authUser.id, created_at: new Date().toISOString() };
+        let { error } = await supabase
           .from("subscriptions" as any)
-          .insert({ ...payload, id: newId, user_id: authUser.id, created_at: new Date().toISOString() });
+          .insert(newPayload);
+
+        if (error && (error.code === "42703" || error.message?.includes("status"))) {
+          const { status, ...payloadWithoutStatus } = newPayload as Record<string, any>;
+          const retry = await supabase
+            .from("subscriptions" as any)
+            .insert(payloadWithoutStatus);
+          error = retry.error;
+        }
 
         if (error) {
           if (error.code === "42P01") {
-            const updated = [{ ...payload, id: newId, user_id: authUser.id, created_at: new Date().toISOString() }, ...subscriptions];
+            const updated = [newPayload, ...subscriptions];
             localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
             qc.setQueryData(["subscriptions", authUser.id], updated);
           } else {
@@ -325,12 +343,17 @@ function SubscriptionsPage() {
   const handleToggleSubStatus = async (sub: SubscriptionItem) => {
     const nextStatus = sub.status === "active" ? "inactive" : "active";
     try {
-      const { error } = await supabase
+      let { error } = await supabase
         .from("subscriptions" as any)
         .update({ status: nextStatus, updated_at: new Date().toISOString() })
         .eq("id", sub.id);
 
-      if (error && error.code === "42P01") {
+      if (error && (error.code === "42703" || error.message?.includes("status"))) {
+        const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
+        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+        qc.setQueryData(["subscriptions", authUser?.id], updated);
+        error = null;
+      } else if (error && error.code === "42P01") {
         const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
         qc.setQueryData(["subscriptions", authUser?.id], updated);
