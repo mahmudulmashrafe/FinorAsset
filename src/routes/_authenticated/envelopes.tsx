@@ -839,7 +839,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
       {/* Add / Edit Envelope Dialog */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 z-[95] rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 z-[95] rounded-2xl md:rounded-3xl overflow-hidden border border-white/50 dark:border-white/20 bg-white/35 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl">
           <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
             <DialogTitle className="font-serif text-xl font-black">
               {editingEnvelope ? "Edit Envelope" : "New Envelope"}
@@ -968,7 +968,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
       {/* Envelope Details & Fund Allocation Modal */}
       <Dialog open={!!selectedEnvelope} onOpenChange={(val) => { if (!val) setSelectedEnvelope(null); }}>
-        <DialogContent className="max-w-md z-[100] max-h-[90vh] flex flex-col p-0 rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl">
+        <DialogContent className="max-w-md z-[100] max-h-[90vh] flex flex-col p-0 rounded-2xl md:rounded-3xl overflow-hidden border border-white/50 dark:border-white/20 bg-white/35 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl">
           <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
             <DialogTitle className="font-serif text-xl flex items-center gap-2">
               {selectedEnvelope?.image_url ? (
