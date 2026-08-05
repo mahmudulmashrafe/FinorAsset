@@ -461,7 +461,13 @@ function SubscriptionsPage() {
             <p>Please copy the SQL below and run it in <strong>Supabase Dashboard → SQL Editor</strong>:</p>
           </div>
           <pre className="p-4 bg-card border rounded-lg text-[10px] font-mono overflow-auto max-h-52 text-foreground/80 thin-scroll">
-{`CREATE TABLE IF NOT EXISTS public.subscriptions (
+{`-- Add missing columns to existing subscriptions table (if table exists)
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS billing_cycle TEXT NOT NULL DEFAULT 'monthly';
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+-- Create subscriptions table (if starting fresh)
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
