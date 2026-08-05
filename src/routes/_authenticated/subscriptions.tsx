@@ -98,7 +98,9 @@ function SubscriptionsPage() {
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ["subscriptions", authUser?.id],
+    enabled: !!authUser,
     queryFn: async () => {
+      let remoteSubs: SubscriptionItem[] = [];
       try {
         setDbError(false);
         const { data, error } = await supabase
@@ -114,7 +116,7 @@ function SubscriptionsPage() {
           }
           throw error;
         }
-        return data as any as SubscriptionItem[];
+        remoteSubs = (data as any as SubscriptionItem[]) || [];
       } catch (err: any) {
         if (err?.code === "42P01") {
           setDbError(true);
@@ -123,8 +125,21 @@ function SubscriptionsPage() {
         }
         throw err;
       }
-    },
-    enabled: !!authUser,
+
+      const localStr = localStorage.getItem("finorasset_subscriptions");
+      const localSubs: SubscriptionItem[] = localStr ? JSON.parse(localStr) : [];
+      const localMap = new Map(localSubs.map((s) => [s.id, s]));
+
+      return remoteSubs.map((s) => {
+        const localItem = localMap.get(s.id);
+        return {
+          ...s,
+          image_url: (s as any).image_url || localItem?.image_url || null,
+          status: (s as any).status || localItem?.status || "active",
+          billing_cycle: (s as any).billing_cycle || localItem?.billing_cycle || "monthly",
+        };
+      });
+    }
   });
 
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
