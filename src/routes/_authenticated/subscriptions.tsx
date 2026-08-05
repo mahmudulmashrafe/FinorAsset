@@ -71,6 +71,15 @@ function stripMissingColumn(payload: Record<string, any>, errorMessage: string):
   return payload;
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
 function SubscriptionsPage() {
   const qc = useQueryClient();
   const { currency, authUser } = useUserProfile();
@@ -255,19 +264,26 @@ function SubscriptionsPage() {
       let uploadedUrl = subImageUrl;
       if (subImageFile && authUser) {
         setUploadingImage(true);
-        const fileExt = subImageFile.name.split(".").pop();
-        const filePath = `${authUser.id}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from("warranties")
-          .upload(filePath, subImageFile);
+        try {
+          const fileExt = subImageFile.name.split(".").pop();
+          const filePath = `${authUser.id}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from("warranties")
+            .upload(filePath, subImageFile);
 
-        if (uploadError) {
-          console.error("Storage upload error:", uploadError);
-        } else {
-          const { data: pubData } = supabase.storage.from("warranties").getPublicUrl(filePath);
-          if (pubData?.publicUrl) {
-            uploadedUrl = pubData.publicUrl;
+          if (uploadError) {
+            console.error("Storage upload error, using DataURL fallback:", uploadError);
+            uploadedUrl = await readFileAsDataUrl(subImageFile);
+          } else {
+            const { data: pubData } = supabase.storage.from("warranties").getPublicUrl(filePath);
+            if (pubData?.publicUrl) {
+              uploadedUrl = pubData.publicUrl;
+            } else {
+              uploadedUrl = await readFileAsDataUrl(subImageFile);
+            }
           }
+        } catch {
+          uploadedUrl = await readFileAsDataUrl(subImageFile);
         }
         setUploadingImage(false);
       }
@@ -290,6 +306,7 @@ function SubscriptionsPage() {
       if (!authUser) throw new Error("Unauthenticated");
 
       if (editingSub) {
+        const fullItem = { ...editingSub, ...payload };
         let { error } = await supabase
           .from("subscriptions" as any)
           .update(payload)
@@ -297,26 +314,15 @@ function SubscriptionsPage() {
 
         if (error && (error.code === "42703" || error.message?.includes("schema cache"))) {
           const cleanedPayload = stripMissingColumn(payload, error.message || "");
-          const retry = await supabase
+          await supabase
             .from("subscriptions" as any)
             .update(cleanedPayload)
             .eq("id", editingSub.id);
-
-          if (!retry.error) {
-            const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? { ...s, ...payload } : s);
-            localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-            qc.setQueryData(["subscriptions", authUser.id], updated);
-            error = null;
-          } else {
-            error = retry.error;
-          }
         }
 
-        if (error) {
-          const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? { ...s, ...payload } : s);
-          localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-          qc.setQueryData(["subscriptions", authUser.id], updated);
-        }
+        const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? fullItem : s);
+        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+        qc.setQueryData(["subscriptions", authUser.id], updated);
         toast.success("Subscription updated!");
       } else {
         const newId = generateId();
@@ -327,25 +333,14 @@ function SubscriptionsPage() {
 
         if (error && (error.code === "42703" || error.message?.includes("schema cache"))) {
           const cleanedPayload = stripMissingColumn(newPayload, error.message || "");
-          const retry = await supabase
+          await supabase
             .from("subscriptions" as any)
             .insert(cleanedPayload);
-
-          if (!retry.error) {
-            const updated = [newPayload, ...subscriptions];
-            localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-            qc.setQueryData(["subscriptions", authUser.id], updated);
-            error = null;
-          } else {
-            error = retry.error;
-          }
         }
 
-        if (error) {
-          const updated = [newPayload, ...subscriptions];
-          localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-          qc.setQueryData(["subscriptions", authUser.id], updated);
-        }
+        const updated = [newPayload as SubscriptionItem, ...subscriptions];
+        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+        qc.setQueryData(["subscriptions", authUser.id], updated);
         toast.success("Subscription created!");
       }
 
