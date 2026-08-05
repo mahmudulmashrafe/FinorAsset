@@ -323,7 +323,7 @@ function MobileBottomNav() {
   const mobileItems = items.filter(it => it.mobile);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-14 border-t border-white/30 dark:border-white/10 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-2xl md:hidden flex items-center justify-around px-1 pb-safe shadow-lg overflow-x-auto thin-scroll">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-14 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-1 pb-safe shadow-md overflow-x-auto thin-scroll">
       {mobileItems.map((it) => {
         const isActive = path === it.url;
         return (
@@ -1000,16 +1000,10 @@ function Layout() {
       </Sidebar>
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background min-h-svh relative z-10">
-        {/* Ambient Glassmorphic Glow Mesh Orbs Background Layer */}
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute -top-[15%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent blur-3xl opacity-75 dark:opacity-50 animate-pulse duration-10000" />
-          <div className="absolute top-[25%] -right-[15%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tl from-cyan-500/20 via-blue-500/10 to-transparent blur-3xl opacity-70 dark:opacity-40" />
-          <div className="absolute -bottom-[15%] left-[20%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-purple-500/15 via-amber-500/10 to-transparent blur-3xl opacity-60 dark:opacity-35" />
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 bg-background min-h-svh">
 
-        {/* Top bar — cleaner, with centered greeting & full glass vibe */}
-        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b border-white/30 dark:border-white/10 px-4 md:px-6 bg-white/45 dark:bg-zinc-950/45 backdrop-blur-2xl sticky top-0 z-30 h-24 md:h-20 gap-1 md:gap-0 shadow-xs">
+        {/* Top bar — cleaner, with centered greeting */}
+        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-30 h-24 md:h-20 gap-1 md:gap-0">
           
           {/* Mobile Layout (Logo row + Greeting row) */}
           <div className="md:hidden flex flex-col w-full">

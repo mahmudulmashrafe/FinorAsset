@@ -53,7 +53,7 @@ export function SearchableSelect({
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            className={cn("w-full min-w-0 justify-between font-normal glass-input h-9.5 px-3 text-xs rounded-xl border text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden hover:opacity-90 transition-all shadow-2xs", triggerClassName)}
+            className={cn("w-full min-w-0 justify-between font-normal bg-background/50 h-9.5 px-3 text-xs rounded-xl border border-border/60 text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden hover:bg-background/70 transition-all shadow-2xs", triggerClassName)}
           >
             <span className="flex items-center gap-1.5 truncate min-w-0 flex-1">
               {selectedOption ? (
