@@ -47,7 +47,7 @@ export interface SubscriptionItem {
   user_id: string;
   name: string;
   amount: number;
-  billing_cycle: "monthly" | "yearly" | "weekly" | "daily" | "quarterly";
+  billing_cycle: string;
   start_date?: string | null;
   next_due_date: string;
   account_id: string | null;
@@ -62,33 +62,57 @@ export interface SubscriptionItem {
   updated_at: string;
 }
 
+function parseBillingCycle(cycleStr: string): {
+  cycle: "monthly" | "yearly" | "weekly" | "daily" | "quarterly" | "custom";
+  count: number;
+  unit: "days" | "weeks" | "months" | "years";
+} {
+  const normalized = (cycleStr || "monthly").toLowerCase().trim();
+  if (["monthly", "yearly", "weekly", "daily", "quarterly"].includes(normalized)) {
+    return {
+      cycle: normalized as any,
+      count: 1,
+      unit: normalized === "daily" ? "days" : normalized === "weekly" ? "weeks" : normalized === "yearly" ? "years" : "months",
+    };
+  }
 
+  const match = normalized.match(/(\d+)\s*(day|week|month|year)/);
+  if (match) {
+    const num = Math.max(1, parseInt(match[1]) || 1);
+    const uStr = match[2];
+    const unit = uStr.startsWith("day") ? "days" : uStr.startsWith("week") ? "weeks" : uStr.startsWith("year") ? "years" : "months";
+    return { cycle: "custom", count: num, unit };
+  }
 
+  return { cycle: "custom", count: 1, unit: "months" };
+}
 
 function calculateNextDueDate(
-  cycle: "daily" | "weekly" | "monthly" | "quarterly" | "yearly",
-  fromDateStr?: string
+  cycle: string,
+  fromDateStr?: string,
+  customCount: number = 1,
+  customUnit: "days" | "weeks" | "months" | "years" = "days"
 ): string {
   const base = fromDateStr ? new Date(fromDateStr) : new Date();
   const validBase = isNaN(base.getTime()) ? new Date() : base;
   const d = new Date(validBase);
 
-  switch (cycle) {
-    case "daily":
-      d.setDate(d.getDate() + 1);
-      break;
-    case "weekly":
-      d.setDate(d.getDate() + 7);
-      break;
-    case "monthly":
-      d.setMonth(d.getMonth() + 1);
-      break;
-    case "quarterly":
-      d.setMonth(d.getMonth() + 3);
-      break;
-    case "yearly":
-      d.setFullYear(d.getFullYear() + 1);
-      break;
+  if (cycle === "daily") {
+    d.setDate(d.getDate() + 1);
+  } else if (cycle === "weekly") {
+    d.setDate(d.getDate() + 7);
+  } else if (cycle === "monthly") {
+    d.setMonth(d.getMonth() + 1);
+  } else if (cycle === "quarterly") {
+    d.setMonth(d.getMonth() + 3);
+  } else if (cycle === "yearly") {
+    d.setFullYear(d.getFullYear() + 1);
+  } else if (cycle === "custom" || cycle.startsWith("every ")) {
+    const count = Math.max(1, customCount);
+    if (customUnit === "days") d.setDate(d.getDate() + count);
+    else if (customUnit === "weeks") d.setDate(d.getDate() + count * 7);
+    else if (customUnit === "months") d.setMonth(d.getMonth() + count);
+    else if (customUnit === "years") d.setFullYear(d.getFullYear() + count);
   }
   return d.toISOString().split("T")[0];
 }
@@ -199,7 +223,9 @@ function SubscriptionsPage() {
   // Subscription Form Inputs
   const [subName, setSubName] = useState("");
   const [subAmount, setSubAmount] = useState("0");
-  const [subCycle, setSubCycle] = useState<"monthly" | "yearly" | "weekly" | "daily" | "quarterly">("monthly");
+  const [subCycle, setSubCycle] = useState<"monthly" | "yearly" | "weekly" | "daily" | "quarterly" | "custom">("monthly");
+  const [customCount, setCustomCount] = useState<number>(1);
+  const [customUnit, setCustomUnit] = useState<"days" | "weeks" | "months" | "years">("months");
   const [subStartDate, setSubStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [subNextDate, setSubNextDate] = useState(calculateNextDueDate("monthly"));
   const [subAccountId, setSubAccountId] = useState("none");
@@ -224,9 +250,11 @@ function SubscriptionsPage() {
     setSubName("");
     setSubAmount("0");
     setSubCycle("monthly");
+    setCustomCount(1);
+    setCustomUnit("months");
     const today = new Date().toISOString().split("T")[0];
     setSubStartDate(today);
-    setSubNextDate(calculateNextDueDate("monthly", today));
+    setSubNextDate(calculateNextDueDate("monthly", today, 1, "months"));
     setSubAccountId("none");
     setSubCategoryId("none");
     setSubStatus("active");
@@ -243,15 +271,24 @@ function SubscriptionsPage() {
   const handleStartDateChange = (val: string) => {
     setSubStartDate(val);
     if (val) {
-      const calculatedDate = calculateNextDueDate(subCycle, val);
+      const calculatedDate = calculateNextDueDate(subCycle, val, customCount, customUnit);
       setSubNextDate(calculatedDate);
     }
   };
 
-  const handleCycleChange = (val: "monthly" | "yearly" | "weekly" | "daily" | "quarterly") => {
+  const handleCycleChange = (val: "monthly" | "yearly" | "weekly" | "daily" | "quarterly" | "custom") => {
     setSubCycle(val);
     const baseDate = subStartDate || new Date().toISOString().split("T")[0];
-    const calculatedDate = calculateNextDueDate(val, baseDate);
+    const calculatedDate = calculateNextDueDate(val, baseDate, customCount, customUnit);
+    setSubNextDate(calculatedDate);
+  };
+
+  const handleCustomChange = (count: number, unit: "days" | "weeks" | "months" | "years") => {
+    const validCount = Math.max(1, count);
+    setCustomCount(validCount);
+    setCustomUnit(unit);
+    const baseDate = subStartDate || new Date().toISOString().split("T")[0];
+    const calculatedDate = calculateNextDueDate("custom", baseDate, validCount, unit);
     setSubNextDate(calculatedDate);
   };
 
@@ -264,10 +301,14 @@ function SubscriptionsPage() {
     setEditingSub(sub);
     setSubName(sub.name);
     setSubAmount(String(sub.amount));
-    setSubCycle(sub.billing_cycle || "monthly");
+    const parsed = parseBillingCycle(sub.billing_cycle);
+    setSubCycle(parsed.cycle);
+    setCustomCount(parsed.count);
+    setCustomUnit(parsed.unit);
+
     const start = sub.start_date || sub.created_at?.split("T")[0] || new Date().toISOString().split("T")[0];
     setSubStartDate(start);
-    setSubNextDate(sub.next_due_date || calculateNextDueDate(sub.billing_cycle || "monthly", start));
+    setSubNextDate(sub.next_due_date || calculateNextDueDate(parsed.cycle, start, parsed.count, parsed.unit));
     setSubAccountId(sub.account_id || "none");
     setSubCategoryId(sub.category_id || "none");
     setSubStatus(sub.status === "active" ? "active" : "inactive");
@@ -337,12 +378,14 @@ function SubscriptionsPage() {
         setUploadingImage(false);
       }
 
+      const finalCycle = subCycle === "custom" ? `every ${customCount} ${customUnit}` : subCycle;
+
       // Build payload with ALL fields — these all exist in the Supabase table
       const payload = {
         name: subName.trim(),
         amount: numAmt,
         kind: "expense" as const,
-        billing_cycle: subCycle,
+        billing_cycle: finalCycle,
         start_date: subStartDate || null,
         next_due_date: subNextDate,
         account_id: subIsSplit ? null : subAccountId === "none" ? null : subAccountId,
@@ -469,10 +512,18 @@ function SubscriptionsPage() {
   // Calculate monthly commitment
   const totalMonthlyCommitment = activeSubs.reduce((acc: number, sub: SubscriptionItem) => {
     const amt = Number(sub.amount);
-    if (sub.billing_cycle === "yearly") return acc + amt / 12;
-    if (sub.billing_cycle === "weekly") return acc + amt * 4.33;
-    if (sub.billing_cycle === "daily") return acc + amt * 30;
-    if (sub.billing_cycle === "quarterly") return acc + amt / 3;
+    const parsed = parseBillingCycle(sub.billing_cycle);
+    if (parsed.cycle === "yearly") return acc + amt / 12;
+    if (parsed.cycle === "weekly") return acc + amt * 4.33;
+    if (parsed.cycle === "daily") return acc + amt * 30;
+    if (parsed.cycle === "quarterly") return acc + amt / 3;
+    if (parsed.cycle === "custom") {
+      const { count, unit } = parsed;
+      if (unit === "days") return acc + (amt / count) * 30;
+      if (unit === "weeks") return acc + (amt / count) * 4.33;
+      if (unit === "months") return acc + amt / count;
+      if (unit === "years") return acc + amt / (count * 12);
+    }
     return acc + amt;
   }, 0);
 
@@ -782,6 +833,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                     <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="quarterly">Quarterly</SelectItem>
                     <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -799,6 +851,34 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                 </Select>
               </div>
             </div>
+
+            {/* Custom Cycle Inputs */}
+            {subCycle === "custom" && (
+              <div className="p-3 rounded-lg border bg-muted/30 space-y-1.5 animate-in fade-in-50">
+                <Label className="text-xs font-semibold">Repeat Every</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={customCount}
+                    onChange={(e) => handleCustomChange(parseInt(e.target.value) || 1, customUnit)}
+                    disabled={saving}
+                    className="h-9 w-24 text-xs text-center font-bold"
+                  />
+                  <Select value={customUnit} onValueChange={(val: any) => handleCustomChange(customCount, val)}>
+                    <SelectTrigger className="h-9 text-xs flex-1">
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[110]">
+                      <SelectItem value="days">Days</SelectItem>
+                      <SelectItem value="weeks">Weeks</SelectItem>
+                      <SelectItem value="months">Months</SelectItem>
+                      <SelectItem value="years">Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
