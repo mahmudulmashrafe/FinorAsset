@@ -382,8 +382,10 @@ export function TransactionDialog({
       setEventDate(new Date().toISOString().slice(0, 10));
       if (defaultSourceType === "envelope" && defaultEnvelopeId && defaultEnvelopeName) {
         setSourceType("envelope");
-        setSelectedEnvelopeVal(`${defaultEnvelopeId}:${defaultEnvelopeName}:${defaultAccountId || ""}`);
-        if (defaultAccountId) setAccountId(defaultAccountId);
+        const envAllocAcc = envelopeAllocations.find(a => a.envelope_id === defaultEnvelopeId)?.account_id;
+        const targetAcc = defaultAccountId || envAllocAcc || accounts[0]?.id || "";
+        setSelectedEnvelopeVal(`env:${defaultEnvelopeId}:${defaultEnvelopeName}:${targetAcc}`);
+        if (targetAcc) setAccountId(targetAcc);
       } else {
         setSourceType("account");
         setSelectedEnvelopeVal("");
@@ -1115,17 +1117,30 @@ export function TransactionDialog({
               </div>
 
               {sourceType === "envelope" && kind !== "transfer" ? (
-                <SearchableSelect
-                  options={envelopeOptions}
-                  value={selectedEnvelopeVal}
-                  onValueChange={(val) => {
-                    setSelectedEnvelopeVal(val);
-                    const parts = val.split(":");
-                    if (parts[2]) setAccountId(parts[2]);
-                  }}
-                  placeholder="Select Source Envelope"
-                  searchPlaceholder="Search Envelopes..."
-                />
+                <div className="space-y-1.5">
+                  <SearchableSelect
+                    options={envelopeOptions}
+                    value={selectedEnvelopeVal}
+                    onValueChange={(val) => {
+                      setSelectedEnvelopeVal(val);
+                      const parts = val.split(":");
+                      const envId = parts[1];
+                      const envAllocs = envelopeAllocations.filter((a) => a.envelope_id === envId);
+                      const targetAccId = envAllocs[0]?.account_id || (parts[3] && parts[3].length > 20 ? parts[3] : "") || accountId || accounts[0]?.id || "";
+                      if (targetAccId) {
+                        setAccountId(targetAccId);
+                      }
+                    }}
+                    placeholder="Select Source Envelope"
+                    searchPlaceholder="Search Envelopes..."
+                  />
+                  {accountId && (
+                    <div className="text-[11px] text-muted-foreground flex items-center justify-between bg-muted/40 p-2 rounded-lg border">
+                      <span>Funding Account: <strong className="text-foreground font-semibold">{accounts.find(a => a.id === accountId)?.name || "Selected Account"}</strong></span>
+                      <span className="font-serif num font-bold text-emerald-600">({fmtMoney(balances.get(accountId) ?? 0, currency)} balance)</span>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <SearchableSelect
                   options={accountOptions}
