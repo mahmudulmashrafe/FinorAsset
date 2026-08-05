@@ -123,8 +123,8 @@ const NoOverlayDialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, onOpenAutoFocus, ...props }, ref) => (
   <DialogPortal>
-    {/* Heavy backdrop blur overlay */}
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 dark:bg-black/70 backdrop-blur-xl transition-all duration-200" />
+    {/* Light dimming overlay */}
+    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/25 dark:bg-black/40 transition-all duration-200" />
     <DialogPrimitive.Content
       ref={ref}
       onOpenAutoFocus={(e) => {
