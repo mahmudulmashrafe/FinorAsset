@@ -319,19 +319,35 @@ function EnvelopesPage() {
       }
 
       if (editingEnvelope) {
-        const { error } = await supabase
-          .from("envelopes" as any)
-          .update({
-            name: name.trim(),
-            target_amount: numTarget,
-            icon,
-            color,
-            image_url: finalImageUrl || null,
-            note: note.trim() || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editingEnvelope.id);
-        if (error) throw error;
+        try {
+          const { error } = await supabase
+            .from("envelopes" as any)
+            .update({
+              name: name.trim(),
+              target_amount: numTarget,
+              icon,
+              color,
+              image_url: finalImageUrl || null,
+              note: note.trim() || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", editingEnvelope.id);
+          if (error) throw error;
+        } catch {
+          // Retry without updated_at if column missing in Supabase schema cache
+          const { error } = await supabase
+            .from("envelopes" as any)
+            .update({
+              name: name.trim(),
+              target_amount: numTarget,
+              icon,
+              color,
+              image_url: finalImageUrl || null,
+              note: note.trim() || null,
+            })
+            .eq("id", editingEnvelope.id);
+          if (error) throw error;
+        }
         toast.success("Envelope updated!");
       } else {
         const { error } = await supabase.from("envelopes" as any).insert({
@@ -371,9 +387,9 @@ function EnvelopesPage() {
     }
   }
 
-  // Allocate / Lock funds into envelope
+  // Allocate funds into envelope
   async function handleAddAllocation(envId: string) {
-    if (!allocAccountId) return toast.error("Please select an account to lock funds from");
+    if (!allocAccountId) return toast.error("Please select an account to allocate funds from");
     const amt = Number(allocAmount);
     if (isNaN(amt) || amt <= 0) return toast.error("Please enter a valid allocation amount");
 
@@ -383,7 +399,7 @@ function EnvelopesPage() {
 
     if (amt > availableToLock) {
       const acc = accMap.get(allocAccountId);
-      return toast.error(`Cannot lock ${fmtMoney(amt, currency)}. Available unlocked in ${acc?.name || "account"}: ${fmtMoney(availableToLock, currency)}`);
+      return toast.error(`Cannot allocate ${fmtMoney(amt, currency)}. Available unallocated in ${acc?.name || "account"}: ${fmtMoney(availableToLock, currency)}`);
     }
 
     setAllocating(true);
@@ -395,7 +411,7 @@ function EnvelopesPage() {
       });
       if (error) throw error;
 
-      toast.success(`Locked ${fmtMoney(amt, currency)} into envelope!`);
+      toast.success(`Allocated ${fmtMoney(amt, currency)} to envelope!`);
       qc.invalidateQueries({ queryKey: ["envelope_allocations"] });
       setAllocAmount("");
       setAllocAccountId("");
@@ -544,12 +560,12 @@ function EnvelopesPage() {
             </div>
 
             <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-              <span className="text-muted-foreground uppercase text-[9px]">Locked:</span>
+              <span className="text-muted-foreground uppercase text-[9px]">Allocated:</span>
               <span className="font-serif num font-black text-emerald-600">{fmtMoney(totalAllocated, currency)}</span>
             </div>
 
             <div className="h-6 px-2.5 text-[11px] font-bold rounded-md bg-muted/60 border flex items-center gap-1.5">
-              <span className="text-muted-foreground uppercase text-[9px]">Unallocated:</span>
+              <span className="text-muted-foreground uppercase font-bold text-[9px]">Unallocated:</span>
               <span className={`font-serif num font-black ${totalUnallocated > 0 ? "text-amber-500" : "text-foreground"}`}>
                 {fmtMoney(totalUnallocated, currency)}
               </span>
@@ -584,7 +600,7 @@ function EnvelopesPage() {
               </div>
 
               <div className="bg-background px-2 py-2 rounded-xl border shadow-xs flex flex-col justify-center text-center">
-                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Locked</span>
+                <span className="text-[8px] uppercase tracking-wider text-muted-foreground block font-bold mb-0.5 truncate">Allocated</span>
                 <span className="font-serif num text-[11px] font-bold text-emerald-600 truncate">
                   {fmtMoney(totalAllocated, currency)}
                 </span>
@@ -760,7 +776,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       {/* Progress Tracker & Pointer Knob */}
                       <div className="mt-2 space-y-1">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Locked Funds</span>
+                          <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Allocated Funds</span>
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none ${badgeColorClass}`}>
                             {envAllocs.length} Source{envAllocs.length === 1 ? "" : "s"}
                           </span>
@@ -778,24 +794,39 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                         </div>
                       </div>
 
-                      {/* Transact / Spend Action */}
+                      {/* Transact & Edit Actions */}
                       <div className="flex items-center justify-between pt-1.5 border-t mt-1.5">
                         <span className="text-[10px] text-muted-foreground truncate">
                           Available: <strong className="font-serif num font-bold text-emerald-600">{fmtMoney(allocated, currency)}</strong>
                         </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTransactEnv(env);
-                          }}
-                          className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shrink-0 shadow-2xs"
-                          title="Spend from envelope"
-                        >
-                          <Receipt className="h-3 w-3" />
-                          <span>Transact</span>
-                        </Button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(env);
+                            }}
+                            className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer shrink-0"
+                            title="Edit envelope"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTransactEnv(env);
+                            }}
+                            className="h-6 px-2 text-[10px] font-bold gap-1 rounded-md bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shrink-0 shadow-2xs"
+                            title="Spend from envelope"
+                          >
+                            <Receipt className="h-3 w-3" />
+                            <span>Transact</span>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -963,7 +994,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
               const available = rawBal - locked;
               let label = `${a.name} (${fmtMoney(rawBal, currency)})`;
               if (locked > 0) {
-                label = `${a.name} (${fmtMoney(available, currency)} avail · 🔒 ${fmtMoney(locked, currency)})`;
+                label = `${a.name} (${fmtMoney(available, currency)} avail · 📌 ${fmtMoney(locked, currency)} allocated)`;
               } else {
                 label = `${a.name} (${fmtMoney(available, currency)} avail)`;
               }
@@ -984,7 +1015,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                     <span className="font-serif num font-black text-sm">{fmtMoney(target, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground uppercase font-bold text-[10px]">Locked Funds</span>
+                    <span className="text-muted-foreground uppercase font-bold text-[10px]">Allocated Funds</span>
                     <span className="font-serif num font-bold text-xs text-muted-foreground">{fmtMoney(rawAllocated, currency)}</span>
                   </div>
                   {spentAmt > 0 && (
@@ -1012,11 +1043,11 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                   </Button>
                 </div>
 
-                {/* Lock Money Form */}
+                {/* Allocate Money Form */}
                 <div className="space-y-3 p-3.5 rounded-xl border bg-card">
                   <h4 className="font-serif font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5 text-accent" />
-                    Lock Funds from Account
+                    <Layers className="h-3.5 w-3.5 text-accent" />
+                    Allocate Funds from Account
                   </h4>
 
                   <div className="space-y-2">
@@ -1024,7 +1055,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       options={accountOptions}
                       value={allocAccountId}
                       onValueChange={setAllocAccountId}
-                      placeholder="Select account to lock from"
+                      placeholder="Select account to allocate from"
                       searchPlaceholder="Search account..."
                     />
 
@@ -1032,7 +1063,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       <Input
                         type="number"
                         step="0.01"
-                        placeholder="Amount to lock"
+                        placeholder="Amount to allocate"
                         value={allocAmount}
                         onChange={(e) => setAllocAmount(e.target.value)}
                         className="h-9 text-xs"
@@ -1045,21 +1076,21 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                         className="h-9 px-3 text-xs font-bold gap-1 cursor-pointer shrink-0"
                       >
                         {allocating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                        <span>Lock</span>
+                        <span>Allocate</span>
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* List of Accounts Supplying Locked Funds */}
+                {/* List of Accounts Supplying Allocated Funds */}
                 <div className="space-y-2">
                   <h4 className="font-serif font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                    <span>Locked Fund Sources ({envAllocs.length})</span>
+                    <span>Allocated Fund Sources ({envAllocs.length})</span>
                   </h4>
 
                   {envAllocs.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic py-3 text-center border rounded-xl bg-muted/20">
-                      No account funds locked in this envelope yet.
+                      No account funds allocated to this envelope yet.
                     </p>
                   ) : (
                     <div className="space-y-1.5">
@@ -1204,7 +1235,9 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
               onClick={() => {
                 const env = selectedEnvelope;
                 setSelectedEnvelope(null);
-                if (env) handleEdit(env);
+                setTimeout(() => {
+                  if (env) handleEdit(env);
+                }, 100);
               }}
               className="cursor-pointer text-xs h-8 ml-auto"
             >
