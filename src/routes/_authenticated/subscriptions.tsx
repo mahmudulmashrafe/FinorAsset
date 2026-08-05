@@ -360,10 +360,20 @@ function SubscriptionsPage() {
       if (!currentUserId) throw new Error("Unauthenticated");
 
       if (editingSub) {
-        const { error } = await supabase
+        let { error } = await supabase
           .from("subscriptions")
           .update(payload)
           .eq("id", editingSub.id);
+
+        if (error && error.message?.includes("Could not find the 'start_date' column")) {
+          const fallbackPayload = { ...payload };
+          delete (fallbackPayload as any).start_date;
+          const retry = await supabase
+            .from("subscriptions")
+            .update(fallbackPayload)
+            .eq("id", editingSub.id);
+          error = retry.error;
+        }
 
         if (error) throw error;
 
@@ -374,15 +384,25 @@ function SubscriptionsPage() {
         }
       } else {
         const newId = generateId();
+        const insertPayload = {
+          ...payload,
+          id: newId,
+          user_id: currentUserId,
+          created_at: new Date().toISOString(),
+        };
 
-        const { error } = await supabase
+        let { error } = await supabase
           .from("subscriptions")
-          .insert({
-            ...payload,
-            id: newId,
-            user_id: currentUserId,
-            created_at: new Date().toISOString(),
-          });
+          .insert(insertPayload);
+
+        if (error && error.message?.includes("Could not find the 'start_date' column")) {
+          const fallbackPayload = { ...insertPayload };
+          delete (fallbackPayload as any).start_date;
+          const retry = await supabase
+            .from("subscriptions")
+            .insert(fallbackPayload);
+          error = retry.error;
+        }
 
         if (error) throw error;
 
