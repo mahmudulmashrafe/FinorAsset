@@ -64,6 +64,10 @@ function stripMissingColumn(payload: Record<string, any>, errorMessage: string):
   const match = errorMessage.match(/Could not find the '([^']+)' column/);
   if (match && match[1]) {
     const missingCol = match[1];
+    // Keep essential columns in payload
+    if (["image_url", "status", "billing_cycle"].includes(missingCol)) {
+      return payload;
+    }
     const copy = { ...payload };
     delete copy[missingCol];
     return copy;
