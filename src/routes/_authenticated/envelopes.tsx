@@ -1148,7 +1148,14 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                             const amtColor = t.kind === "income" ? "text-emerald-600" : t.kind === "expense" ? "text-destructive" : "";
 
                             return (
-                              <div key={t.id} className="p-2.5 rounded-xl border bg-card text-xs flex items-center justify-between gap-2">
+                              <div
+                                key={t.id}
+                                onClick={() => {
+                                  setSelectedEnvelope(null);
+                                  setTimeout(() => setEditingTxn(t), 100);
+                                }}
+                                className="p-2.5 rounded-xl border bg-card text-xs flex items-center justify-between gap-2 cursor-pointer hover:bg-accent/5 transition-colors"
+                              >
                                 <div className="min-w-0 flex-1 space-y-0.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-bold text-accent inline-flex items-center gap-1">
@@ -1172,7 +1179,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                   <span className={`font-serif num font-black text-sm ${amtColor}`}>
                                     {sign}{fmtMoney(Number(t.amount), currency)}
                                   </span>
@@ -1181,7 +1188,10 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => setEditingTxn(t)}
+                                      onClick={() => {
+                                        setSelectedEnvelope(null);
+                                        setTimeout(() => setEditingTxn(t), 100);
+                                      }}
                                       className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                                       title="Edit transaction"
                                     >
@@ -1191,7 +1201,10 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => setDeleteTxnId(t.id)}
+                                      onClick={() => {
+                                        setSelectedEnvelope(null);
+                                        setTimeout(() => setDeleteTxnId(t.id), 100);
+                                      }}
                                       className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                                       title="Delete transaction"
                                     >
