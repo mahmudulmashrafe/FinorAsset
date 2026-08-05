@@ -132,14 +132,24 @@ function SubscriptionsPage() {
       const localStr = localStorage.getItem("finorasset_subscriptions");
       const localSubs: SubscriptionItem[] = localStr ? JSON.parse(localStr) : [];
       const localMap = new Map(localSubs.map((s) => [s.id, s]));
+      const remoteMap = new Map(remoteSubs.map((s) => [s.id, s]));
+      const combined = [...remoteSubs];
+      localSubs.forEach((l) => {
+        if (!remoteMap.has(l.id)) {
+          combined.push(l);
+        }
+      });
 
-      return remoteSubs.map((s) => {
+      return combined.map((s) => {
         const localItem = localMap.get(s.id);
         return {
           ...s,
-          image_url: (s as any).image_url || localItem?.image_url || null,
-          status: (s as any).status || localItem?.status || "active",
-          billing_cycle: (s as any).billing_cycle || localItem?.billing_cycle || "monthly",
+          image_url: localItem?.image_url || (s as any).image_url || null,
+          status: localItem?.status || (s as any).status || "active",
+          billing_cycle: localItem?.billing_cycle || (s as any).billing_cycle || "monthly",
+          note: localItem?.note || (s as any).note || null,
+          is_split: localItem?.is_split ?? (s as any).is_split ?? false,
+          splits: localItem?.splits || (s as any).splits || null,
         };
       });
     }
