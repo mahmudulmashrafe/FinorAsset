@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign, ShieldCheck, Mail } from "lucide-react";
+import { LayoutDashboard, Receipt, Wallet, PiggyBank, BarChart3, LogOut, User, Tag, Plus, ChevronDown, Settings, ChevronUp, Cpu, CircleDollarSign, ShieldCheck, Mail, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { api, fmtMoney, computeAccountBalances } from "@/lib/finance";
@@ -44,6 +44,7 @@ const items = [
   { title: "Budgets",      url: "/budgets",      icon: PiggyBank,        mobile: false },
   { title: "Loans",        url: "/loans",        icon: CircleDollarSign, mobile: false },
   { title: "Warranty",     url: "/warranties",   icon: ShieldCheck,      mobile: true },
+  { title: "Subscriptions",url: "/subscriptions",icon: RefreshCw,        mobile: false },
   { title: "Automation",   url: "/automation",   icon: Cpu,              mobile: true },
   { title: "Stats",        url: "/stats",        icon: BarChart3,        mobile: false },
 ] as const;
@@ -183,6 +184,16 @@ function ProfileDropdownContent({
             <div>
               <p className="font-medium text-xs">Loans</p>
               <p className="text-[10px] text-muted-foreground">Borrowed & lent money</p>
+            </div>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild className="flex items-center gap-3 cursor-pointer py-2">
+          <Link to="/subscriptions" className="w-full flex items-center gap-3">
+            <RefreshCw className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="font-medium text-xs">Subscriptions</p>
+              <p className="text-[10px] text-muted-foreground">Recurring bills & services</p>
             </div>
           </Link>
         </DropdownMenuItem>
