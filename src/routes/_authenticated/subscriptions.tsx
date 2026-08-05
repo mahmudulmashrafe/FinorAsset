@@ -60,6 +60,17 @@ export interface SubscriptionItem {
   updated_at: string;
 }
 
+function stripMissingColumn(payload: Record<string, any>, errorMessage: string): Record<string, any> {
+  const match = errorMessage.match(/Could not find the '([^']+)' column/);
+  if (match && match[1]) {
+    const missingCol = match[1];
+    const copy = { ...payload };
+    delete copy[missingCol];
+    return copy;
+  }
+  return payload;
+}
+
 function SubscriptionsPage() {
   const qc = useQueryClient();
   const { currency, authUser } = useUserProfile();
@@ -284,23 +295,27 @@ function SubscriptionsPage() {
           .update(payload)
           .eq("id", editingSub.id);
 
-        if (error && (error.code === "42703" || error.message?.includes("status"))) {
-          const { status, ...payloadWithoutStatus } = payload;
+        if (error && (error.code === "42703" || error.message?.includes("schema cache"))) {
+          const cleanedPayload = stripMissingColumn(payload, error.message || "");
           const retry = await supabase
             .from("subscriptions" as any)
-            .update(payloadWithoutStatus)
+            .update(cleanedPayload)
             .eq("id", editingSub.id);
-          error = retry.error;
-        }
 
-        if (error) {
-          if (error.code === "42P01") {
+          if (!retry.error) {
             const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? { ...s, ...payload } : s);
             localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
             qc.setQueryData(["subscriptions", authUser.id], updated);
+            error = null;
           } else {
-            throw error;
+            error = retry.error;
           }
+        }
+
+        if (error) {
+          const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? { ...s, ...payload } : s);
+          localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+          qc.setQueryData(["subscriptions", authUser.id], updated);
         }
         toast.success("Subscription updated!");
       } else {
@@ -310,22 +325,26 @@ function SubscriptionsPage() {
           .from("subscriptions" as any)
           .insert(newPayload);
 
-        if (error && (error.code === "42703" || error.message?.includes("status"))) {
-          const { status, ...payloadWithoutStatus } = newPayload as Record<string, any>;
+        if (error && (error.code === "42703" || error.message?.includes("schema cache"))) {
+          const cleanedPayload = stripMissingColumn(newPayload, error.message || "");
           const retry = await supabase
             .from("subscriptions" as any)
-            .insert(payloadWithoutStatus);
-          error = retry.error;
-        }
+            .insert(cleanedPayload);
 
-        if (error) {
-          if (error.code === "42P01") {
+          if (!retry.error) {
             const updated = [newPayload, ...subscriptions];
             localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
             qc.setQueryData(["subscriptions", authUser.id], updated);
+            error = null;
           } else {
-            throw error;
+            error = retry.error;
           }
+        }
+
+        if (error) {
+          const updated = [newPayload, ...subscriptions];
+          localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
+          qc.setQueryData(["subscriptions", authUser.id], updated);
         }
         toast.success("Subscription created!");
       }
@@ -348,15 +367,11 @@ function SubscriptionsPage() {
         .update({ status: nextStatus, updated_at: new Date().toISOString() })
         .eq("id", sub.id);
 
-      if (error && (error.code === "42703" || error.message?.includes("status"))) {
+      if (error && (error.code === "42703" || error.code === "42P01" || error.message?.includes("schema cache"))) {
         const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
         localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
         qc.setQueryData(["subscriptions", authUser?.id], updated);
         error = null;
-      } else if (error && error.code === "42P01") {
-        const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
-        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions", authUser?.id], updated);
       } else if (error) {
         throw error;
       }
