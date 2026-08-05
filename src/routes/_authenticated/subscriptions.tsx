@@ -108,8 +108,7 @@ function SubscriptionsPage() {
         setDbError(false);
         const { data, error } = await supabase
           .from("subscriptions" as any)
-          .select("*")
-          .order("created_at", { ascending: false });
+          .select("*");
 
         if (error) {
           if (error.code === "42P01") {
@@ -120,6 +119,7 @@ function SubscriptionsPage() {
           throw error;
         }
         remoteSubs = (data as any as SubscriptionItem[]) || [];
+        remoteSubs.sort((a, b) => new Date(b.created_at || b.next_due_date || 0).getTime() - new Date(a.created_at || a.next_due_date || 0).getTime());
       } catch (err: any) {
         if (err?.code === "42P01") {
           setDbError(true);
@@ -313,6 +313,7 @@ function SubscriptionsPage() {
       const payload: Record<string, any> = {
         name: subName.trim(),
         amount: numAmt,
+        kind: "expense",
         billing_cycle: subCycle,
         next_due_date: subNextDate,
         account_id: subIsSplit ? null : subAccountId === "none" ? null : subAccountId,
@@ -337,8 +338,15 @@ function SubscriptionsPage() {
           .eq("id", editingSub.id);
 
         if (error) {
-          console.warn("Retrying update with core payload:", error.message);
-          const { image_url, status, billing_cycle, ...corePayload } = payload;
+          console.warn("Retrying update with minimalist core payload:", error.message);
+          const corePayload = {
+            name: payload.name,
+            amount: payload.amount,
+            next_due_date: payload.next_due_date,
+            account_id: payload.account_id,
+            category_id: payload.category_id,
+            note: payload.note,
+          };
           const retry = await supabase
             .from("subscriptions" as any)
             .update(corePayload)
@@ -352,6 +360,9 @@ function SubscriptionsPage() {
         if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
         qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription updated!");
+        if (selectedSub?.id === editingSub.id) {
+          setSelectedSub(fullItem);
+        }
       } else {
         const newId = generateId();
         const newPayload = { ...payload, id: newId, user_id: currentUserId, created_at: new Date().toISOString() };
@@ -360,8 +371,17 @@ function SubscriptionsPage() {
           .insert(newPayload);
 
         if (error) {
-          console.warn("Retrying insert with core payload:", error.message);
-          const { image_url, status, billing_cycle, ...corePayload } = newPayload as Record<string, any>;
+          console.warn("Retrying insert with minimalist core payload:", error.message);
+          const corePayload = {
+            id: newId,
+            user_id: currentUserId,
+            name: payload.name,
+            amount: payload.amount,
+            next_due_date: payload.next_due_date,
+            account_id: payload.account_id,
+            category_id: payload.category_id,
+            note: payload.note,
+          };
           const retry = await supabase
             .from("subscriptions" as any)
             .insert(corePayload);
