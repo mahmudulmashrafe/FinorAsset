@@ -368,13 +368,16 @@ function SubscriptionsPage() {
     }
   };
 
+  // Helper to check active status (defaults to true if status is null or active)
+  const isSubActive = (s: SubscriptionItem) => !s.status || s.status.toLowerCase() === "active";
+
   // Filter Subscriptions
-  const activeSubs = subscriptions.filter((s: SubscriptionItem) => s.status === "active");
-  const inactiveSubs = subscriptions.filter((s: SubscriptionItem) => s.status !== "active");
+  const activeSubs = subscriptions.filter(isSubActive);
+  const inactiveSubs = subscriptions.filter((s: SubscriptionItem) => !isSubActive(s));
 
   const displayedSubs = subscriptions.filter((s: SubscriptionItem) => {
-    if (subView === "active") return s.status === "active";
-    if (subView === "inactive") return s.status !== "active";
+    if (subView === "active") return isSubActive(s);
+    if (subView === "inactive") return !isSubActive(s);
     return true;
   });
 
@@ -547,7 +550,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
           {!isLoading && displayedSubs.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {displayedSubs.map((sub: SubscriptionItem) => {
-                const isActive = sub.status === "active";
+                const isActive = isSubActive(sub);
                 const isOverdue = isActive && new Date(sub.next_due_date) < new Date();
                 const acc = sub.account_id ? accountMap.get(sub.account_id) : null;
                 const cat = sub.category_id ? catMap.get(sub.category_id) : null;
@@ -556,73 +559,82 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                   <div
                     key={sub.id}
                     onClick={() => setSelectedSub(sub)}
-                    className="relative rounded-2xl border bg-card p-4.5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden cursor-pointer min-h-[145px]"
+                    className="relative rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all flex h-36 group overflow-hidden cursor-pointer w-full"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          {sub.image_url ? (
-                            <img src={sub.image_url} alt="" className="h-10 w-10 rounded-xl object-cover border shrink-0 bg-background" />
-                          ) : (
-                            <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0 font-serif font-black text-sm">
-                              {sub.name.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-serif font-bold text-base truncate text-foreground leading-snug">{sub.name}</h3>
-                            <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 capitalize mt-0.5 truncate">
-                              <span>{sub.billing_cycle}</span>
-                              {cat && (
-                                <>
-                                  <span>•</span>
-                                  <span className="truncate">{cat.name}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <Badge
-                          variant="outline"
-                          className={`capitalize text-[9px] px-2 py-0.5 leading-none shrink-0 font-bold ${
-                            !isActive
-                              ? "bg-muted text-muted-foreground border-muted-foreground/30"
-                              : isOverdue
-                              ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse"
-                              : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
-                          }`}
-                        >
-                          {!isActive ? "Inactive" : isOverdue ? "Overdue" : "Active"}
-                        </Badge>
-                      </div>
-
-                      {acc && !sub.is_split && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1">
-                          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: acc.color }} />
-                          <span className="truncate font-medium">{acc.name}</span>
-                        </div>
-                      )}
-
-                      {sub.is_split && (
-                        <div className="text-[10px] text-muted-foreground italic pt-1">
-                          Split across multiple accounts
+                    {/* Left 1/3 Column for Custom Logo / Image */}
+                    <div className="w-1/3 shrink-0 h-full relative overflow-hidden bg-muted/40 border-r flex items-center justify-center">
+                      {sub.image_url ? (
+                        <img
+                          src={sub.image_url}
+                          alt={sub.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-accent/10 text-accent">
+                          <span className="font-serif font-black text-xl sm:text-2xl tracking-wider">
+                            {sub.name.slice(0, 2).toUpperCase()}
+                          </span>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t">
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-muted-foreground block">Cost</span>
-                        <span className="font-serif num font-black text-foreground text-base">
-                          {fmtMoney(Number(sub.amount), currency)}
-                        </span>
+                    {/* Right 2/3 Column for Details */}
+                    <div className="w-2/3 p-3.5 flex flex-col justify-between min-w-0">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-start justify-between gap-1.5 min-w-0">
+                          <h3 className="font-serif font-bold text-sm sm:text-base truncate text-foreground leading-snug flex-1">{sub.name}</h3>
+                          <Badge
+                            variant="outline"
+                            className={`capitalize text-[9px] px-1.5 py-0.5 leading-none shrink-0 font-bold ${
+                              !isActive
+                                ? "bg-muted text-muted-foreground border-muted-foreground/30"
+                                : isOverdue
+                                ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse"
+                                : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                            }`}
+                          >
+                            {!isActive ? "Inactive" : isOverdue ? "Overdue" : "Active"}
+                          </Badge>
+                        </div>
+
+                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 capitalize truncate">
+                          <span>{sub.billing_cycle}</span>
+                          {cat && (
+                            <>
+                              <span>•</span>
+                              <span className="truncate">{cat.name}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {acc && !sub.is_split && (
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-0.5 truncate">
+                            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: acc.color }} />
+                            <span className="truncate">{acc.name}</span>
+                          </div>
+                        )}
+
+                        {sub.is_split && (
+                          <div className="text-[9px] text-muted-foreground italic truncate">
+                            Split accounts
+                          </div>
+                        )}
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[9px] uppercase font-bold text-muted-foreground block">Next Date</span>
-                        <span className="text-xs font-semibold text-foreground">
-                          {new Date(sub.next_due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
+                      <div className="flex items-center justify-between pt-1.5 border-t mt-1">
+                        <div>
+                          <span className="text-[8px] uppercase font-bold text-muted-foreground block leading-none">Cost</span>
+                          <span className="font-serif num font-black text-foreground text-sm">
+                            {fmtMoney(Number(sub.amount), currency)}
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[8px] uppercase font-bold text-muted-foreground block leading-none">Next Date</span>
+                          <span className="text-[10px] font-semibold text-foreground">
+                            {new Date(sub.next_due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
