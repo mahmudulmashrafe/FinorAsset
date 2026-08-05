@@ -320,6 +320,7 @@ export type Database = {
           note: string | null
           is_split: boolean
           splits: Json
+          start_date: string | null
           next_due_date: string
           last_payment_date: string | null
           billing_cycle: string | null
@@ -340,6 +341,7 @@ export type Database = {
           note?: string | null
           is_split?: boolean
           splits?: Json
+          start_date?: string | null
           next_due_date: string
           last_payment_date?: string | null
           billing_cycle?: string | null
@@ -360,6 +362,7 @@ export type Database = {
           note?: string | null
           is_split?: boolean
           splits?: Json
+          start_date?: string | null
           next_due_date?: string
           last_payment_date?: string | null
           billing_cycle?: string | null

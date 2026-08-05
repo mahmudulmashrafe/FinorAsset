@@ -48,6 +48,7 @@ export interface SubscriptionItem {
   name: string;
   amount: number;
   billing_cycle: "monthly" | "yearly" | "weekly" | "daily" | "quarterly";
+  start_date?: string | null;
   next_due_date: string;
   account_id: string | null;
   category_id: string | null;
@@ -199,7 +200,8 @@ function SubscriptionsPage() {
   const [subName, setSubName] = useState("");
   const [subAmount, setSubAmount] = useState("0");
   const [subCycle, setSubCycle] = useState<"monthly" | "yearly" | "weekly" | "daily" | "quarterly">("monthly");
-  const [subNextDate, setSubNextDate] = useState(new Date().toISOString().split("T")[0]);
+  const [subStartDate, setSubStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [subNextDate, setSubNextDate] = useState(calculateNextDueDate("monthly"));
   const [subAccountId, setSubAccountId] = useState("none");
   const [subCategoryId, setSubCategoryId] = useState("none");
   const [subStatus, setSubStatus] = useState<"active" | "inactive">("active");
@@ -222,7 +224,9 @@ function SubscriptionsPage() {
     setSubName("");
     setSubAmount("0");
     setSubCycle("monthly");
-    setSubNextDate(calculateNextDueDate("monthly"));
+    const today = new Date().toISOString().split("T")[0];
+    setSubStartDate(today);
+    setSubNextDate(calculateNextDueDate("monthly", today));
     setSubAccountId("none");
     setSubCategoryId("none");
     setSubStatus("active");
@@ -236,9 +240,18 @@ function SubscriptionsPage() {
     ]);
   };
 
+  const handleStartDateChange = (val: string) => {
+    setSubStartDate(val);
+    if (val) {
+      const calculatedDate = calculateNextDueDate(subCycle, val);
+      setSubNextDate(calculatedDate);
+    }
+  };
+
   const handleCycleChange = (val: "monthly" | "yearly" | "weekly" | "daily" | "quarterly") => {
     setSubCycle(val);
-    const calculatedDate = calculateNextDueDate(val, new Date().toISOString().split("T")[0]);
+    const baseDate = subStartDate || new Date().toISOString().split("T")[0];
+    const calculatedDate = calculateNextDueDate(val, baseDate);
     setSubNextDate(calculatedDate);
   };
 
@@ -252,7 +265,9 @@ function SubscriptionsPage() {
     setSubName(sub.name);
     setSubAmount(String(sub.amount));
     setSubCycle(sub.billing_cycle || "monthly");
-    setSubNextDate(sub.next_due_date || new Date().toISOString().split("T")[0]);
+    const start = sub.start_date || sub.created_at?.split("T")[0] || new Date().toISOString().split("T")[0];
+    setSubStartDate(start);
+    setSubNextDate(sub.next_due_date || calculateNextDueDate(sub.billing_cycle || "monthly", start));
     setSubAccountId(sub.account_id || "none");
     setSubCategoryId(sub.category_id || "none");
     setSubStatus(sub.status === "active" ? "active" : "inactive");
@@ -328,6 +343,7 @@ function SubscriptionsPage() {
         amount: numAmt,
         kind: "expense" as const,
         billing_cycle: subCycle,
+        start_date: subStartDate || null,
         next_due_date: subNextDate,
         account_id: subIsSplit ? null : subAccountId === "none" ? null : subAccountId,
         category_id: subIsSplit ? null : subCategoryId === "none" ? null : subCategoryId,
@@ -727,7 +743,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2.5">
               <div className="space-y-1.5">
                 <Label htmlFor="sub-amount" className="text-xs font-semibold">Amount ({currency})</Label>
                 <Input
@@ -739,6 +755,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                   value={subAmount}
                   onChange={(e) => setSubAmount(e.target.value)}
                   disabled={saving}
+                  className="h-9 text-xs"
                 />
               </div>
 
@@ -757,9 +774,34 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Status</Label>
+                <Select value={subStatus} onValueChange={(val: any) => setSubStatus(val)}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[110]">
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="sub-start-date" className="text-xs font-semibold">Start Date</Label>
+                <Input
+                  id="sub-start-date"
+                  type="date"
+                  value={subStartDate}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  disabled={saving}
+                  className="h-9 text-xs"
+                />
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="sub-date" className="text-xs font-semibold">Next Billing Date</Label>
                 <Input
@@ -770,19 +812,6 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                   disabled={saving}
                   className="h-9 text-xs"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Status</Label>
-                <Select value={subStatus} onValueChange={(val: any) => setSubStatus(val)}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[110]">
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive / Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
@@ -990,6 +1019,15 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Billing Cycle</span>
                     <span className="font-semibold text-foreground capitalize">{selectedSub.billing_cycle}</span>
                   </div>
+
+                  {selectedSub.start_date && (
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Start Date</span>
+                      <span className="font-semibold text-foreground">
+                        {new Date(selectedSub.start_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Next Billing Date</span>
