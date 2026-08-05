@@ -52,8 +52,8 @@ const NoOverlayDialogContent = forwardRef<
   ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
-    {/* Light dimming overlay */}
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/25 dark:bg-black/40 transition-all duration-200" />
+    {/* Medium backdrop blur overlay */}
+    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 dark:bg-black/55 backdrop-blur-md transition-all duration-200" />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
