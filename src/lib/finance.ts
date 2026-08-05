@@ -177,7 +177,7 @@ export const api = {
     return data as Loan[];
   },
   async listSubscriptions() {
-    const { data, error } = await supabase.from("subscriptions").select("*").order("created_at");
+    const { data, error } = await supabase.from("subscriptions").select("*").order("next_due_date", { ascending: true });
     if (error) throw error;
     return data as Subscription[];
   },

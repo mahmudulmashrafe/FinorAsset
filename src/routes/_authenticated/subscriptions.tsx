@@ -149,7 +149,8 @@ function SubscriptionsPage() {
         setDbError(false);
         const { data, error } = await supabase
           .from("subscriptions")
-          .select("*");
+          .select("*")
+          .order("next_due_date", { ascending: true });
 
         if (error) {
           if (error.code === "42P01") {
@@ -159,13 +160,22 @@ function SubscriptionsPage() {
           throw error;
         }
         const subs = (data || []) as any as SubscriptionItem[];
-        // Default missing fields
-        return subs.map(s => ({
+        const mapped = subs.map(s => ({
           ...s,
           status: s.status || "active",
           billing_cycle: s.billing_cycle || "monthly",
           image_url: s.image_url || null,
         }));
+
+        // Guarantee strict sort order: next_due_date ascending (closest upcoming due date first)
+        mapped.sort((a, b) => {
+          const dateA = new Date(a.next_due_date || "9999-12-31").getTime();
+          const dateB = new Date(b.next_due_date || "9999-12-31").getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return a.name.localeCompare(b.name);
+        });
+
+        return mapped;
       } catch (err: any) {
         if (err?.code === "42P01") {
           setDbError(true);
