@@ -839,7 +839,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
       {/* Add / Edit Envelope Dialog */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 z-[95] rounded-2xl md:rounded-3xl overflow-hidden border border-white/30 dark:border-white/15 bg-white/15 dark:bg-black/25 backdrop-blur-xl shadow-2xl">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 z-[95] rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl">
           <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
             <DialogTitle className="font-serif text-xl font-black">
               {editingEnvelope ? "Edit Envelope" : "New Envelope"}
@@ -968,7 +968,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
       {/* Envelope Details & Fund Allocation Modal */}
       <Dialog open={!!selectedEnvelope} onOpenChange={(val) => { if (!val) setSelectedEnvelope(null); }}>
-        <DialogContent className="max-w-md z-[100] max-h-[90vh] flex flex-col p-0 rounded-2xl md:rounded-3xl overflow-hidden border border-white/30 dark:border-white/15 bg-white/15 dark:bg-black/25 backdrop-blur-xl shadow-2xl">
+        <DialogContent className="max-w-md z-[100] max-h-[90vh] flex flex-col p-0 rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl">
           <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
             <DialogTitle className="font-serif text-xl flex items-center gap-2">
               {selectedEnvelope?.image_url ? (
@@ -1028,19 +1028,6 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                     <span className="text-foreground font-bold uppercase text-[10px]">Remaining Balance</span>
                     <span className="font-serif num font-black text-sm text-emerald-600">{fmtMoney(currentAllocated, currency)}</span>
                   </div>
-
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const envToTransact = selectedEnvelope;
-                      setSelectedEnvelope(null);
-                      setTransactEnv(envToTransact);
-                    }}
-                    className="w-full h-8 text-xs font-bold gap-1.5 rounded-lg bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shadow-xs mt-2"
-                  >
-                    <Receipt className="h-3.5 w-3.5" />
-                    <span>Transact / Spend from {selectedEnvelope.name}</span>
-                  </Button>
                 </div>
 
                 {/* Allocate Money Form */}

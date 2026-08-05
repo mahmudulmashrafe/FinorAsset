@@ -57,7 +57,7 @@ const NoOverlayDialogContent = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-white/30 dark:border-white/15 bg-white/15 dark:bg-black/25 backdrop-blur-xl p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl md:rounded-3xl overflow-hidden",
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl md:rounded-3xl overflow-hidden",
         className,
       )}
       {...props}
@@ -763,7 +763,7 @@ export function TransactionDialog({
   });
 
   const dialogContent = (
-    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[620px] p-0 z-[99] overflow-hidden border border-white/30 dark:border-white/15 bg-white/15 dark:bg-black/25 backdrop-blur-xl shadow-2xl rounded-2xl md:rounded-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
+    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[620px] p-0 z-[99] overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl rounded-2xl md:rounded-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
       <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
         <DialogTitle className="font-serif">
           {isEditEvent ? "Edit Event" : isEditSingle ? "Edit transaction" : txnMode === "event" ? "New Event (Grouped Records)" : "New transaction"}
