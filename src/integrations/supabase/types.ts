@@ -322,6 +322,9 @@ export type Database = {
           splits: Json
           next_due_date: string
           last_payment_date: string | null
+          billing_cycle: string | null
+          status: string | null
+          image_url: string | null
           created_at: string
           updated_at: string
         }
@@ -339,6 +342,9 @@ export type Database = {
           splits?: Json
           next_due_date: string
           last_payment_date?: string | null
+          billing_cycle?: string | null
+          status?: string | null
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -356,6 +362,9 @@ export type Database = {
           splits?: Json
           next_due_date?: string
           last_payment_date?: string | null
+          billing_cycle?: string | null
+          status?: string | null
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }

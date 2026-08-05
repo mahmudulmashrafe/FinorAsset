@@ -60,20 +60,8 @@ export interface SubscriptionItem {
   updated_at: string;
 }
 
-function stripMissingColumn(payload: Record<string, any>, errorMessage: string): Record<string, any> {
-  const match = errorMessage.match(/Could not find the '([^']+)' column/);
-  if (match && match[1]) {
-    const missingCol = match[1];
-    // Keep essential columns in payload
-    if (["image_url", "status", "billing_cycle"].includes(missingCol)) {
-      return payload;
-    }
-    const copy = { ...payload };
-    delete copy[missingCol];
-    return copy;
-  }
-  return payload;
-}
+
+
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -103,55 +91,34 @@ function SubscriptionsPage() {
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ["subscriptions"],
     queryFn: async () => {
-      let remoteSubs: SubscriptionItem[] = [];
       try {
         setDbError(false);
         const { data, error } = await supabase
-          .from("subscriptions" as any)
+          .from("subscriptions")
           .select("*");
 
         if (error) {
           if (error.code === "42P01") {
             setDbError(true);
-            const local = localStorage.getItem("finorasset_subscriptions");
-            return local ? JSON.parse(local) : [];
+            return [];
           }
           throw error;
         }
-        remoteSubs = (data as any as SubscriptionItem[]) || [];
-        remoteSubs.sort((a, b) => new Date(b.created_at || b.next_due_date || 0).getTime() - new Date(a.created_at || a.next_due_date || 0).getTime());
+        const subs = (data || []) as any as SubscriptionItem[];
+        // Default missing fields
+        return subs.map(s => ({
+          ...s,
+          status: s.status || "active",
+          billing_cycle: s.billing_cycle || "monthly",
+          image_url: s.image_url || null,
+        }));
       } catch (err: any) {
         if (err?.code === "42P01") {
           setDbError(true);
-          const local = localStorage.getItem("finorasset_subscriptions");
-          return local ? JSON.parse(local) : [];
+          return [];
         }
         throw err;
       }
-
-      const localStr = localStorage.getItem("finorasset_subscriptions");
-      const localSubs: SubscriptionItem[] = localStr ? JSON.parse(localStr) : [];
-      const localMap = new Map(localSubs.map((s) => [s.id, s]));
-      const remoteMap = new Map(remoteSubs.map((s) => [s.id, s]));
-      const combined = [...remoteSubs];
-      localSubs.forEach((l) => {
-        if (!remoteMap.has(l.id)) {
-          combined.push(l);
-        }
-      });
-
-      return combined.map((s) => {
-        const localItem = localMap.get(s.id);
-        return {
-          ...s,
-          image_url: localItem?.image_url || (s as any).image_url || null,
-          status: localItem?.status || (s as any).status || "active",
-          billing_cycle: localItem?.billing_cycle || (s as any).billing_cycle || "monthly",
-          note: localItem?.note || (s as any).note || null,
-          is_split: localItem?.is_split ?? (s as any).is_split ?? false,
-          splits: localItem?.splits || (s as any).splits || null,
-        };
-      });
     }
   });
 
@@ -320,30 +287,21 @@ function SubscriptionsPage() {
         setUploadingImage(false);
       }
 
-      // --- Build the DB payload with ONLY columns that exist in Supabase schema ---
-      // DB columns: id, user_id, name, amount, kind, category_id, account_id,
-      //   to_account_id, note, is_split, splits, next_due_date,
-      //   last_payment_date, created_at, updated_at
-      // NOT in DB: billing_cycle, status, image_url (stored in localStorage only)
-
-      const dbPayload: Record<string, any> = {
+      // Build payload with ALL fields — these all exist in the Supabase table
+      const payload = {
         name: subName.trim(),
         amount: numAmt,
-        kind: "expense",
+        kind: "expense" as const,
+        billing_cycle: subCycle,
         next_due_date: subNextDate,
         account_id: subIsSplit ? null : subAccountId === "none" ? null : subAccountId,
         category_id: subIsSplit ? null : subCategoryId === "none" ? null : subCategoryId,
+        status: subStatus,
+        image_url: uploadedUrl || null,
         note: subNote.trim() || null,
         is_split: subIsSplit,
         splits: subIsSplit ? subSplits.filter(s => s.accountId !== "none" && Number(s.amount) > 0).map(s => ({ accountId: s.accountId, amount: Number(s.amount) })) : [],
         updated_at: new Date().toISOString(),
-      };
-
-      // UI-only fields (stored in localStorage, not sent to DB)
-      const uiFields = {
-        billing_cycle: subCycle,
-        status: subStatus,
-        image_url: uploadedUrl || null,
       };
 
       const { data: userResp } = await supabase.auth.getUser();
@@ -351,53 +309,34 @@ function SubscriptionsPage() {
       if (!currentUserId) throw new Error("Unauthenticated");
 
       if (editingSub) {
-        // Merge all fields for local/UI state
-        const fullItem: SubscriptionItem = { ...editingSub, ...dbPayload, ...uiFields } as any;
-
         const { error } = await supabase
-          .from("subscriptions" as any)
-          .update(dbPayload)
+          .from("subscriptions")
+          .update(payload)
           .eq("id", editingSub.id);
 
-        if (error) {
-          console.error("Supabase update error:", error.message);
-          // Still update localStorage so UI reflects changes
-        }
+        if (error) throw error;
 
-        const updated = subscriptions.map((s: SubscriptionItem) => s.id === editingSub.id ? fullItem : s);
-        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions"], updated);
-        if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
-        qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription updated!");
+        qc.invalidateQueries({ queryKey: ["subscriptions"] });
         if (selectedSub?.id === editingSub.id) {
-          setSelectedSub(fullItem);
+          setSelectedSub({ ...editingSub, ...payload } as any);
         }
       } else {
         const newId = generateId();
-        const insertPayload = {
-          ...dbPayload,
-          id: newId,
-          user_id: currentUserId,
-          created_at: new Date().toISOString(),
-        };
 
         const { error } = await supabase
-          .from("subscriptions" as any)
-          .insert(insertPayload);
+          .from("subscriptions")
+          .insert({
+            ...payload,
+            id: newId,
+            user_id: currentUserId,
+            created_at: new Date().toISOString(),
+          });
 
-        if (error) {
-          console.error("Supabase insert error:", error.message);
-          // Still save to localStorage so UI reflects new sub
-        }
+        if (error) throw error;
 
-        const fullItem: SubscriptionItem = { ...insertPayload, ...uiFields } as any;
-        const updated = [fullItem, ...subscriptions];
-        localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-        qc.setQueryData(["subscriptions"], updated);
-        if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
-        qc.invalidateQueries({ queryKey: ["subscriptions"] });
         toast.success("Subscription created!");
+        qc.invalidateQueries({ queryKey: ["subscriptions"] });
       }
 
       setModalOpen(false);
@@ -412,17 +351,15 @@ function SubscriptionsPage() {
   const handleToggleSubStatus = async (sub: SubscriptionItem) => {
     const nextStatus = sub.status === "inactive" ? "active" : "inactive";
     try {
-      const { data: userResp } = await supabase.auth.getUser();
-      const currentUserId = userResp?.user?.id || authUser?.id;
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ status: nextStatus, updated_at: new Date().toISOString() })
+        .eq("id", sub.id);
 
-      // status column doesn't exist in DB — only update localStorage
-      const updated = subscriptions.map((s: SubscriptionItem) => s.id === sub.id ? { ...s, status: nextStatus } : s);
-      localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-      qc.setQueryData(["subscriptions"], updated);
-      if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
+      if (error) throw error;
 
       toast.success(`Subscription ${nextStatus === "active" ? "activated" : "deactivated"}`);
+      qc.invalidateQueries({ queryKey: ["subscriptions"] });
       if (selectedSub?.id === sub.id) {
         setSelectedSub({ ...sub, status: nextStatus });
       }
@@ -433,19 +370,11 @@ function SubscriptionsPage() {
 
   const handleDeleteSub = async (id: string) => {
     try {
-      const { data: userResp } = await supabase.auth.getUser();
-      const currentUserId = userResp?.user?.id || authUser?.id;
-
-      const { error } = await supabase.from("subscriptions" as any).delete().eq("id", id);
-      if (error && error.code !== "42P01") console.error("Delete error:", error);
-
-      const updated = subscriptions.filter((s: SubscriptionItem) => s.id !== id);
-      localStorage.setItem("finorasset_subscriptions", JSON.stringify(updated));
-      qc.setQueryData(["subscriptions"], updated);
-      if (currentUserId) qc.setQueryData(["subscriptions", currentUserId], updated);
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
+      const { error } = await supabase.from("subscriptions").delete().eq("id", id);
+      if (error) throw error;
 
       toast.success("Subscription deleted");
+      qc.invalidateQueries({ queryKey: ["subscriptions"] });
       setDeleteSubId(null);
       setSelectedSub(null);
     } catch (err: any) {
