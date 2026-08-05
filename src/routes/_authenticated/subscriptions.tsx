@@ -5,7 +5,7 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Trash2, Plus, Sparkles, Pencil, RefreshCw, AlertTriangle, 
-  CreditCard, CheckCircle2, XCircle, Calendar, Receipt, Power
+  CreditCard, CheckCircle2, XCircle, Calendar, Receipt, Power, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -831,38 +831,37 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
             )}
 
             {/* Logo / Image Upload */}
-            <div className="space-y-1.5 pt-1 border-t">
+            <div className="space-y-1.5 pt-2 border-t">
               <Label className="text-xs font-semibold">Custom Logo / Image (Optional)</Label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-2">
                 {subImageUrl || subImageFile ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 p-2 bg-muted/30 border rounded-xl">
                     <img
                       src={subImageFile ? URL.createObjectURL(subImageFile) : subImageUrl}
-                      alt="Logo"
-                      className="h-10 w-10 rounded-xl object-cover border bg-background"
+                      alt="Logo Preview"
+                      className="h-12 w-12 rounded-xl object-cover border bg-background shrink-0"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setSubImageUrl(""); setSubImageFile(null); }}
-                      className="h-8 text-xs text-destructive hover:bg-destructive/10"
-                    >
-                      Remove Logo
-                    </Button>
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <span className="text-xs font-bold truncate">{subImageFile ? subImageFile.name : "Custom Logo Attached"}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setSubImageUrl(""); setSubImageFile(null); }}
+                        className="h-7 text-[10px] text-destructive hover:bg-destructive/10 w-fit cursor-pointer"
+                      >
+                        Remove Logo
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="h-8 text-xs"
-                      disabled={saving || uploadingImage}
-                    >
-                      {uploadingImage ? "Uploading…" : "Upload Logo"}
-                    </Button>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:bg-accent/5 transition-colors flex flex-col items-center justify-center gap-1.5 bg-muted/20"
+                  >
+                    <Upload className="h-5 w-5 text-accent" />
+                    <span className="text-xs font-semibold text-foreground">Click here to upload custom logo or image</span>
+                    <span className="text-[10px] text-muted-foreground">PNG, JPG, SVG or WebP</span>
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -979,6 +978,40 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
                       </span>
                     </div>
                   )}
+
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Logo / Picture</span>
+                    {selectedSub.image_url ? (
+                      <div className="flex items-center gap-2">
+                        <img src={selectedSub.image_url} alt="" className="h-7 w-7 rounded-md object-cover border shrink-0 bg-background" />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const subToEdit = selectedSub;
+                            setSelectedSub(null);
+                            openEditModal(subToEdit);
+                          }}
+                          className="h-6 text-[10px] px-2 cursor-pointer"
+                        >
+                          Change Logo
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const subToEdit = selectedSub;
+                          setSelectedSub(null);
+                          openEditModal(subToEdit);
+                        }}
+                        className="h-6 text-[10px] px-2 gap-1 cursor-pointer"
+                      >
+                        <Upload className="h-3 w-3" /> Upload Logo
+                      </Button>
+                    )}
+                  </div>
 
                   {selectedSub.note && (
                     <div className="text-[11px] italic text-muted-foreground pt-1">
