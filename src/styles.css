@@ -145,7 +145,7 @@
   --sidebar-ring: oklch(0.72 0.16 55);
 }
 
-/* ── Pure Transparent Glass Blur for ALL Form Dialogs & Modals ── */
+/* ── Pure Transparent Glass Blur for ALL Form Dialogs, Headers, Footers, & Internal Boxes ── */
 [role="dialog"],
 [role="alertdialog"],
 .frosted-glass-form {
@@ -153,6 +153,36 @@
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border-color: var(--frosted-border) !important;
+}
+
+/* Form Top Bar (Header) & Bottom Bar (Footer) Transparent Glass */
+[role="dialog"] header,
+[role="dialog"] footer,
+[role="dialog"] [class*="border-b"],
+[role="dialog"] [class*="border-t"],
+[role="alertdialog"] header,
+[role="alertdialog"] footer {
+  background-color: var(--frosted-box-bg) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-color: var(--frosted-border) !important;
+}
+
+/* Form Internal Sub-Boxes, Cards & Field Containers */
+[role="dialog"] .bg-card,
+[role="dialog"] .bg-muted,
+[role="dialog"] .bg-muted\/40,
+[role="dialog"] .bg-muted\/30,
+[role="dialog"] .bg-muted\/20,
+[role="dialog"] .bg-muted\/10,
+[role="dialog"] .bg-background,
+[role="alertdialog"] .bg-card,
+[role="alertdialog"] .bg-muted,
+[role="alertdialog"] .bg-background {
+  background-color: var(--frosted-box-bg) !important;
+  border-color: var(--frosted-border) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 @layer base {
