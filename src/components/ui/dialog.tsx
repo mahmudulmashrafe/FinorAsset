@@ -61,14 +61,14 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div data-slot="dialog-header" className={cn("flex flex-col space-y-1.5 text-center sm:text-left bg-transparent backdrop-blur-md border-b border-white/20 dark:border-white/10 p-4 shrink-0", className)} {...props} />
+  <div data-slot="dialog-header" className={cn("flex flex-col space-y-1.5 text-center sm:text-left border-b p-4 shrink-0", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     data-slot="dialog-footer"
-    className={cn("flex flex-row items-center justify-between gap-2 bg-transparent backdrop-blur-md border-t border-white/20 dark:border-white/10 p-4 shrink-0", className)}
+    className={cn("flex flex-row items-center justify-between gap-2 border-t p-4 shrink-0", className)}
     {...props}
   />
 );

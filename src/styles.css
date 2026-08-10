@@ -145,68 +145,50 @@
   --sidebar-ring: oklch(0.72 0.16 55);
 }
 
-/* ── Pure Transparent Glass Blur for ALL Form Dialogs, Headers, Footers, & Internal Boxes ── */
-[role="dialog"],
-[role="alertdialog"],
-.frosted-glass-form {
+/* ══════════════════════════════════════════════════════════════════════════════
+   Glass Blur — applied to ALL form dialogs and EVERY element inside them.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Dialog container itself: translucent + heavy blur */
+:is([role="dialog"], [role="alertdialog"]) {
   background-color: var(--frosted-bg) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border-color: var(--frosted-border) !important;
 }
 
-/* Form Top Bar (Header) & Bottom Bar (Footer) Transparent Glass Blur */
-[role="dialog"] [data-slot="dialog-header"],
-[role="dialog"] [data-slot="dialog-footer"],
-[role="dialog"] .dialog-header,
-[role="dialog"] .dialog-footer,
-[role="dialog"] header,
-[role="dialog"] footer,
-[role="dialog"] [class*="border-b"],
-[role="dialog"] [class*="border-t"],
-[role="alertdialog"] [data-slot="dialog-header"],
-[role="alertdialog"] [data-slot="dialog-footer"],
-[role="alertdialog"] header,
-[role="alertdialog"] footer {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-color: var(--frosted-border) !important;
+/* 2. Kill ALL solid backgrounds inside dialogs — catch every bg-background,
+      bg-card, bg-muted, bg-popover variant (including opacity modifiers like
+      bg-background/40, bg-card/90, bg-muted/10 etc.) */
+:is([role="dialog"], [role="alertdialog"]) [class*="bg-background"],
+:is([role="dialog"], [role="alertdialog"]) [class*="bg-card"],
+:is([role="dialog"], [role="alertdialog"]) [class*="bg-muted"],
+:is([role="dialog"], [role="alertdialog"]) [class*="bg-popover"],
+:is([role="dialog"], [role="alertdialog"]) [class*="bg-white"] {
+  background-color: transparent !important;
 }
 
-.dark [role="dialog"] [data-slot="dialog-header"],
-.dark [role="dialog"] [data-slot="dialog-footer"],
-.dark [role="dialog"] .dialog-header,
-.dark [role="dialog"] .dialog-footer,
-.dark [role="dialog"] header,
-.dark [role="dialog"] footer,
-.dark [role="dialog"] [class*="border-b"],
-.dark [role="dialog"] [class*="border-t"],
-.dark [role="alertdialog"] [data-slot="dialog-header"],
-.dark [role="alertdialog"] [data-slot="dialog-footer"],
-.dark [role="alertdialog"] header,
-.dark [role="alertdialog"] footer {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+/* 3. Header bar (title) — subtle glass tint so it's visually distinct */
+:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-header"] {
+  background-color: rgba(255, 255, 255, 0.18) !important;
   border-color: var(--frosted-border) !important;
 }
+:is(.dark) :is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-header"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
 
-/* Form Internal Sub-Boxes, Cards & Field Containers */
-[role="dialog"] .bg-card,
-[role="dialog"] .bg-muted,
-[role="dialog"] .bg-muted\/40,
-[role="dialog"] .bg-muted\/30,
-[role="dialog"] .bg-muted\/20,
-[role="dialog"] .bg-muted\/10,
-[role="dialog"] .bg-background,
-[role="alertdialog"] .bg-card,
-[role="alertdialog"] .bg-muted,
-[role="alertdialog"] .bg-background {
-  background-color: var(--frosted-box-bg) !important;
+/* 4. Footer bar (delete / cancel / save) — same subtle glass tint */
+:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-footer"] {
+  background-color: rgba(255, 255, 255, 0.18) !important;
   border-color: var(--frosted-border) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+}
+:is(.dark) :is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-footer"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 5. Inner section boxes — faint glass tint */
+:is([role="dialog"], [role="alertdialog"]) .rounded-xl[class*="border"] {
+  border-color: var(--frosted-border) !important;
 }
 
 @layer base {
