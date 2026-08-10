@@ -763,15 +763,15 @@ export function TransactionDialog({
   });
 
   const dialogContent = (
-    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[620px] p-0 z-[99] overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl rounded-2xl md:rounded-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
-      <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
+    <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[620px] p-0 z-[99] overflow-hidden border border-white/40 dark:border-white/15 bg-background/80 dark:bg-card/75 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] rounded-2xl md:rounded-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
+      <DialogHeader className="p-4 border-b border-white/20 dark:border-white/10 shrink-0 bg-transparent backdrop-blur-md">
         <DialogTitle className="font-serif">
           {isEditEvent ? "Edit Event" : isEditSingle ? "Edit transaction" : txnMode === "event" ? "New Event (Grouped Records)" : "New transaction"}
         </DialogTitle>
       </DialogHeader>
 
       {!isEdit && (
-        <div className="px-4 py-2 border-b bg-muted/10 flex items-center gap-2 shrink-0">
+        <div className="px-4 py-2 border-b border-white/20 dark:border-white/10 bg-transparent backdrop-blur-md flex items-center gap-2 shrink-0">
           <Button
             type="button"
             variant={txnMode === "single" ? "default" : "outline"}
@@ -1206,7 +1206,7 @@ export function TransactionDialog({
         </div>
       </div>
 
-      <DialogFooter className="p-4 border-t border-border/40 flex flex-row items-center justify-between sm:justify-between gap-2 shrink-0 bg-background/40 backdrop-blur-md">
+      <DialogFooter className="p-4 border-t border-white/20 dark:border-white/10 flex flex-row items-center justify-between sm:justify-between gap-2 shrink-0 bg-transparent backdrop-blur-md">
         {isEditSingle && editingTransaction && onDelete ? (
           <Button
             variant="destructive"

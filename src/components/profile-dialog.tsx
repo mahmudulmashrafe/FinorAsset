@@ -259,7 +259,7 @@ export function ProfileDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl flex flex-col max-h-[85vh] p-0 z-[90] overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b shrink-0 bg-background z-10">
+        <DialogHeader className="p-6 pb-4 border-b border-white/20 dark:border-white/10 shrink-0 bg-transparent backdrop-blur-md z-10">
           <DialogTitle className="font-serif text-3xl">Profile Settings</DialogTitle>
         </DialogHeader>
 

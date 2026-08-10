@@ -263,7 +263,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md flex flex-col max-h-[90vh] sm:max-h-[600px] p-0 z-[90] overflow-hidden">
-        <DialogHeader className="p-4 border-b">
+        <DialogHeader className="p-4 border-b border-white/20 dark:border-white/10 shrink-0 bg-transparent backdrop-blur-md">
           <DialogTitle className="font-serif">{isEdit ? "Edit account" : "New account"}</DialogTitle>
         </DialogHeader>
 
@@ -403,7 +403,7 @@ function AccountFormDialog({ open, onOpenChange, defaultCurrency, editingAccount
           </div>
         </div>
 
-        <DialogFooter className="p-4 border-t gap-2 flex-row justify-between sm:justify-between items-center shrink-0">
+        <DialogFooter className="p-4 border-t border-white/20 dark:border-white/10 gap-2 flex-row justify-between sm:justify-between items-center shrink-0 bg-transparent backdrop-blur-md">
           {isEdit && onDelete && editingAccount ? (
             <Button
               type="button"
@@ -713,7 +713,7 @@ function AccountTransactionsDialog({
           </DialogContent>
         </Dialog>
 
-        <DialogHeader className="p-4 border-b flex flex-row items-center justify-between gap-3 space-y-0 bg-card">
+        <DialogHeader className="p-4 border-b border-white/20 dark:border-white/10 flex flex-row items-center justify-between gap-3 space-y-0 bg-transparent backdrop-blur-md">
           <div className="flex items-center gap-3 min-w-0">
             {(account as any).image_url ? (
               <img src={(account as any).image_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0 border border-border/40" />

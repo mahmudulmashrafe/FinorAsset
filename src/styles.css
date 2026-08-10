@@ -155,14 +155,38 @@
   border-color: var(--frosted-border) !important;
 }
 
-/* Form Top Bar (Header) & Bottom Bar (Footer) Transparent Glass */
+/* Form Top Bar (Header) & Bottom Bar (Footer) Transparent Glass Blur */
+[role="dialog"] [data-slot="dialog-header"],
+[role="dialog"] [data-slot="dialog-footer"],
+[role="dialog"] .dialog-header,
+[role="dialog"] .dialog-footer,
 [role="dialog"] header,
 [role="dialog"] footer,
 [role="dialog"] [class*="border-b"],
 [role="dialog"] [class*="border-t"],
+[role="alertdialog"] [data-slot="dialog-header"],
+[role="alertdialog"] [data-slot="dialog-footer"],
 [role="alertdialog"] header,
 [role="alertdialog"] footer {
-  background-color: var(--frosted-box-bg) !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-color: var(--frosted-border) !important;
+}
+
+.dark [role="dialog"] [data-slot="dialog-header"],
+.dark [role="dialog"] [data-slot="dialog-footer"],
+.dark [role="dialog"] .dialog-header,
+.dark [role="dialog"] .dialog-footer,
+.dark [role="dialog"] header,
+.dark [role="dialog"] footer,
+.dark [role="dialog"] [class*="border-b"],
+.dark [role="dialog"] [class*="border-t"],
+.dark [role="alertdialog"] [data-slot="dialog-header"],
+.dark [role="alertdialog"] [data-slot="dialog-footer"],
+.dark [role="alertdialog"] header,
+.dark [role="alertdialog"] footer {
+  background-color: rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
   border-color: var(--frosted-border) !important;

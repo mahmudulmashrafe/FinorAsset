@@ -263,7 +263,7 @@ export function CategoryFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <NoOverlayDialogContent className="max-w-md max-h-[90vh] sm:max-h-[600px] flex flex-col p-0 z-[100] overflow-hidden">
-        <DialogHeader className="p-4 border-b shrink-0 bg-background">
+        <DialogHeader className="p-4 border-b border-white/20 dark:border-white/10 shrink-0 bg-transparent backdrop-blur-md">
           <DialogTitle className="font-serif">{isEdit ? "Edit Category" : "New Category"}</DialogTitle>
         </DialogHeader>
 
@@ -385,7 +385,7 @@ export function CategoryFormDialog({
           </div>
         </div>
 
-        <DialogFooter className="p-4 border-t flex flex-row items-center justify-between sm:justify-between shrink-0 bg-background w-full">
+        <DialogFooter className="p-4 border-t border-white/20 dark:border-white/10 flex flex-row items-center justify-between sm:justify-between shrink-0 bg-transparent backdrop-blur-md w-full">
           {isEdit && onDelete && editingCategory ? (
             <Button 
               type="button" 
