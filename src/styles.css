@@ -146,39 +146,48 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   Glass Blur — applied to ALL form dialogs and EVERY element inside them.
+   Glass Blur — applied to ALL floating UI: dialogs, dropdowns, selects,
+   popovers (date pickers), and notification menus across the entire app.
+
+   Targeted roles:
+     [role="dialog"]      → Dialogs + Popovers (date picker, SearchableSelect)
+     [role="alertdialog"]  → Confirmation dialogs
+     [role="menu"]         → DropdownMenu (profile, notification bell, etc.)
+     [role="listbox"]      → Select dropdowns (account, category, duration, etc.)
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* 1. Dialog container itself: main frosted liquid glass blur surface */
-:is([role="dialog"], [role="alertdialog"]) {
+/* — Shorthand selector for ALL glass targets — */
+/* 1. Glass container: frosted translucent blur surface */
+:is([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]) {
   background-color: var(--frosted-bg) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border-color: var(--frosted-border) !important;
 }
 
-/* 2. Remove nested backdrop-filters inside dialogs to prevent browser flattening/opaque glitches */
+/* 2. Kill nested backdrop-filters to prevent browser compositing flattening */
 :is([role="dialog"], [role="alertdialog"]) * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-/* 3. Force 100% background transparency on ALL dialog headers, footers, sub-bars,
-      and containers so the main dialog glass blur shows continuously through the whole form,
-      EXCEPT interactive switches/toggles and their thumbs. */
-:is([role="dialog"], [role="alertdialog"]) :is(
+/* 3. Force transparent backgrounds on ALL solid-bg elements inside glass containers
+      so the frosted blur shows through continuously.
+      Excludes: switches, switch children, buttons with explicit bg-primary/accent. */
+:is([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]) :is(
   [data-slot="dialog-header"],
   [data-slot="dialog-footer"],
+  [data-slot="calendar"],
   [class*="bg-background"],
   [class*="bg-card"],
   [class*="bg-muted"],
   [class*="bg-popover"],
   [class*="bg-white"]
-):not([role="switch"]):not([role="switch"] *) {
+):not([role="switch"]):not([role="switch"] *):not(button[class*="bg-primary"]):not(button[class*="bg-accent"]):not(button[class*="bg-destructive"]) {
   background-color: transparent !important;
 }
 
-/* 4. Preserve Switch toggle track & thumb styling inside dialogs */
+/* 4. Preserve Switch toggle track & thumb styling inside glass containers */
 :is([role="dialog"], [role="alertdialog"]) [role="switch"] {
   background-color: rgba(255, 255, 255, 0.25) !important;
   border: 1px solid var(--frosted-border) !important;
@@ -196,15 +205,17 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
 }
 
-/* 5. Glass border separators for Top Bar (Header), Bottom Bar (Footer), & Sub-bars */
-:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-header"],
-:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-footer"],
-:is([role="dialog"], [role="alertdialog"]) [class*="border-b"],
-:is([role="dialog"], [role="alertdialog"]) [class*="border-t"] {
+/* 5. Glass border separators for headers, footers, and sub-bars */
+:is([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]) :is(
+  [data-slot="dialog-header"],
+  [data-slot="dialog-footer"],
+  [class*="border-b"],
+  [class*="border-t"]
+) {
   border-color: var(--frosted-border) !important;
 }
 
-/* 5. Kind Selector (Expense / Income / Transfer) — clear glass active indicator mark */
+/* 6. Kind Selector (Expense / Income / Transfer) — glass active indicator */
 :is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="on"],
 :is([role="dialog"], [role="alertdialog"]) [data-slot="toggle-item"][data-state="on"] {
   background-color: rgba(255, 255, 255, 0.35) !important;
@@ -219,7 +230,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
   font-weight: 700 !important;
 }
-/* Inactive toggle items hover mark */
+/* Inactive toggle items hover */
 :is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="off"]:hover {
   background-color: rgba(255, 255, 255, 0.2) !important;
 }
@@ -227,10 +238,54 @@
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* 6. Inner section cards — subtle glass border */
+/* 7. Inner section cards — subtle glass border */
 :is([role="dialog"], [role="alertdialog"]) .rounded-xl[class*="border"] {
   border-color: var(--frosted-border) !important;
 }
+
+/* 8. Dropdown menu items: glass hover effect */
+:is([role="menu"]) [role="menuitem"]:hover,
+:is([role="menu"]) [role="menuitem"]:focus {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+}
+:is(.dark) :is([role="menu"]) [role="menuitem"]:hover,
+:is(.dark) :is([role="menu"]) [role="menuitem"]:focus {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 9. Select dropdown items: glass hover effect */
+:is([role="listbox"]) [role="option"]:hover,
+:is([role="listbox"]) [role="option"]:focus,
+:is([role="listbox"]) [role="option"][data-highlighted] {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+}
+:is(.dark) :is([role="listbox"]) [role="option"]:hover,
+:is(.dark) :is([role="listbox"]) [role="option"]:focus,
+:is(.dark) :is([role="listbox"]) [role="option"][data-highlighted] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 10. Calendar / Date Picker inside popovers — glass day cells */
+:is([role="dialog"]) [data-slot="calendar"] button[data-day]:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+:is(.dark) :is([role="dialog"]) [data-slot="calendar"] button[data-day]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+/* Selected day keeps accent color */
+:is([role="dialog"]) [data-slot="calendar"] button[data-selected-single="true"],
+:is([role="dialog"]) [data-slot="calendar"] button[data-range-start="true"],
+:is([role="dialog"]) [data-slot="calendar"] button[data-range-end="true"] {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+/* 11. Separator lines inside menus and selects */
+:is([role="menu"], [role="listbox"]) [class*="bg-muted"],
+:is([role="menu"], [role="listbox"]) [role="separator"] {
+  background-color: var(--frosted-border) !important;
+}
+
 
 @layer base {
   html {

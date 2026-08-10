@@ -40,7 +40,7 @@ export function NotificationBell({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-h-[350px] overflow-y-auto thin-scroll z-[150] p-1.5 rounded-xl border bg-background/95 backdrop-blur-md shadow-xl">
+      <DropdownMenuContent align="end" className="w-80 max-h-[350px] overflow-y-auto thin-scroll z-[150] p-1.5 rounded-xl shadow-xl">
         <div className="px-3 py-2 text-xs font-serif font-black text-foreground border-b border-border/40 flex items-center justify-between">
           <span>Notifications</span>
           {unreadCount > 0 && (
