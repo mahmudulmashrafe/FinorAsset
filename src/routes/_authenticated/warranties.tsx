@@ -803,7 +803,7 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
               <SelectTrigger className="h-6 text-[10px] sm:text-[11px] font-bold bg-muted/60 border rounded-md px-2 py-0 cursor-pointer min-w-[120px] max-w-[170px] truncate">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
-              <SelectContent className="z-[150]" position="popper" side="bottom" align="end" sideOffset={4}>
+              <SelectContent className="z-[150] max-h-60" position="popper" side="bottom" align="end" sideOffset={4} collisionPadding={{ top: 110, bottom: 20 }}>
                 <SelectItem value="all">Categories</SelectItem>
                 {effectiveWarrantyCats.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
