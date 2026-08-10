@@ -539,7 +539,7 @@ function EnvelopesPage() {
                 <Calendar className="h-3 w-3 text-accent shrink-0" />
                 <SelectValue placeholder="Reset Day" />
               </SelectTrigger>
-              <SelectContent className="z-[100]">
+              <SelectContent className="z-[100]" position="popper" side="bottom" align="end" sideOffset={4}>
                 <SelectItem value="1">Reset: 1st of month</SelectItem>
                 <SelectItem value="5">Reset: 5th of month</SelectItem>
                 <SelectItem value="10">Reset: 10th of month</SelectItem>
