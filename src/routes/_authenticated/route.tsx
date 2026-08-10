@@ -323,7 +323,7 @@ function MobileBottomNav() {
   const mobileItems = items.filter(it => it.mobile);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-14 border-t bg-background/95 backdrop-blur-md md:hidden flex items-center justify-around px-1 pb-safe shadow-md overflow-x-auto thin-scroll">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-14 border-t border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-150 md:hidden flex items-center justify-around px-1 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.06)] overflow-x-auto thin-scroll">
       {mobileItems.map((it) => {
         const isActive = path === it.url;
         return (
@@ -1000,10 +1000,10 @@ function Layout() {
       </Sidebar>
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background min-h-svh">
+      <div className="flex-1 flex flex-col min-w-0 min-h-svh">
 
         {/* Top bar — cleaner, with centered greeting */}
-        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-30 h-24 md:h-20 gap-1 md:gap-0">
+        <header className="relative flex flex-col justify-center md:flex-row md:items-center border-b border-white/20 dark:border-white/10 px-4 md:px-6 bg-white/40 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-150 sticky top-0 z-30 h-24 md:h-20 gap-1 md:gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           
           {/* Mobile Layout (Logo row + Greeting row) */}
           <div className="md:hidden flex flex-col w-full">
