@@ -798,27 +798,20 @@ CREATE POLICY "Allow users to delete own objects from warranties" ON storage.obj
           </div>
 
           {/* Right: Static Category Dropdown & Add Button (outside overflow-x-auto) */}
-          <div className="flex items-center gap-1.5 shrink-0 z-30 ml-auto">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-6 text-[10px] sm:text-[11px] font-bold bg-muted/60 border rounded-md px-2 py-0 cursor-pointer min-w-[120px] max-w-[170px] truncate">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent className="z-[150] max-h-60" position="popper" side="bottom" align="end" sideOffset={4} collisionPadding={{ top: 110, bottom: 20 }}>
-                <SelectItem value="all">Categories</SelectItem>
-                {effectiveWarrantyCats.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <div className="flex items-center gap-1.5 truncate">
-                      {c.image_url ? (
-                        <img src={c.image_url} alt="" className="h-3.5 w-3.5 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <span className="text-xs shrink-0">{c.icon}</span>
-                      )}
-                      <span className="truncate">{c.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-6 text-[10px] sm:text-[11px] font-bold bg-muted/60 border rounded-md px-1.5 py-0 cursor-pointer min-w-[100px] max-w-[160px] truncate appearance-none outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent text-foreground"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', paddingRight: '18px' }}
+            >
+              <option value="all">Categories</option>
+              {effectiveWarrantyCats.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon ? `${c.icon} ` : ""}{c.name}
+                </option>
+              ))}
+            </select>
 
             <Button
               type="button"
