@@ -149,7 +149,7 @@
    Glass Blur — applied to ALL form dialogs and EVERY element inside them.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* 1. Dialog container: translucent + heavy blur */
+/* 1. Dialog container itself: main frosted liquid glass blur surface */
 :is([role="dialog"], [role="alertdialog"]) {
   background-color: var(--frosted-bg) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
@@ -157,9 +157,17 @@
   border-color: var(--frosted-border) !important;
 }
 
-/* 2. Kill ALL solid backgrounds inside dialogs — catch bg-background,
-      bg-card, bg-muted, bg-popover, bg-white (inc. opacity variants) */
+/* 2. Remove nested backdrop-filters inside dialogs to prevent browser flattening/opaque glitches */
+:is([role="dialog"], [role="alertdialog"]) * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 3. Force 100% background transparency on ALL dialog headers, footers, sub-bars,
+      and containers so the main dialog glass blur shows continuously through the whole form */
 :is([role="dialog"], [role="alertdialog"]) :is(
+  [data-slot="dialog-header"],
+  [data-slot="dialog-footer"],
   [class*="bg-background"],
   [class*="bg-card"],
   [class*="bg-muted"],
@@ -169,59 +177,38 @@
   background-color: transparent !important;
 }
 
-/* 3. Header bar (title) — glass tint  ── HIGHER specificity than rule 2 ── */
-:is([role="dialog"], [role="alertdialog"]) > [data-slot="dialog-header"],
-:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-header"] {
-  background-color: rgba(255, 255, 255, 0.18) !important;
+/* 4. Glass border separators for Top Bar (Header), Bottom Bar (Footer), & Sub-bars */
+:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-header"],
+:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-footer"],
+:is([role="dialog"], [role="alertdialog"]) [class*="border-b"],
+:is([role="dialog"], [role="alertdialog"]) [class*="border-t"] {
   border-color: var(--frosted-border) !important;
 }
-:is(.dark) :is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-header"] {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
 
-/* 4. Footer bar (delete / cancel / save) — glass tint */
-:is([role="dialog"], [role="alertdialog"]) > [data-slot="dialog-footer"],
-:is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-footer"] {
-  background-color: rgba(255, 255, 255, 0.18) !important;
-  border-color: var(--frosted-border) !important;
-}
-:is(.dark) :is([role="dialog"], [role="alertdialog"]) [data-slot="dialog-footer"] {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-/* 5. ALL sub-bar divs with border-b/border-t inside dialogs — glass tint
-      (covers mode selector, kind selector, and any other section dividers) */
-:is([role="dialog"], [role="alertdialog"]) > div[class*="border-b"],
-:is([role="dialog"], [role="alertdialog"]) > div[class*="border-t"] {
-  background-color: rgba(255, 255, 255, 0.12) !important;
-  border-color: var(--frosted-border) !important;
-}
-:is(.dark) :is([role="dialog"], [role="alertdialog"]) > div[class*="border-b"],
-:is(.dark) :is([role="dialog"], [role="alertdialog"]) > div[class*="border-t"] {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-}
-
-/* 6. ToggleGroup items inside dialogs — glass active state
-      (Expense / Income / Transfer kind selector) */
-:is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="on"] {
+/* 5. Kind Selector (Expense / Income / Transfer) — clear glass active indicator mark */
+:is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="on"],
+:is([role="dialog"], [role="alertdialog"]) [data-slot="toggle-item"][data-state="on"] {
   background-color: rgba(255, 255, 255, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  font-weight: 700 !important;
 }
-:is(.dark) :is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="on"] {
-  background-color: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-}
-/* Hover state for inactive toggle items */
-:is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="off"]:hover {
+:is(.dark) :is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="on"],
+:is(.dark) :is([role="dialog"], [role="alertdialog"]) [data-slot="toggle-item"][data-state="on"] {
   background-color: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  font-weight: 700 !important;
+}
+/* Inactive toggle items hover mark */
+:is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="off"]:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }
 :is(.dark) :is([role="dialog"], [role="alertdialog"]) [role="radio"][data-state="off"]:hover {
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* 7. Inner section boxes — frosted border */
+/* 6. Inner section cards — subtle glass border */
 :is([role="dialog"], [role="alertdialog"]) .rounded-xl[class*="border"] {
   border-color: var(--frosted-border) !important;
 }

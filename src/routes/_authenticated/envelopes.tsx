@@ -840,7 +840,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
       {/* Add / Edit Envelope Dialog */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 z-[95] rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl">
-          <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
+          <DialogHeader className="p-4 border-b border-border/40 shrink-0">
             <DialogTitle className="font-serif text-xl font-black">
               {editingEnvelope ? "Edit Envelope" : "New Envelope"}
             </DialogTitle>
@@ -955,7 +955,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-border/40 flex flex-row items-center justify-between shrink-0 bg-background/40 backdrop-blur-md">
+          <DialogFooter className="p-4 border-t border-border/40 flex flex-row items-center justify-between shrink-0">
             <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }} disabled={saving} className="cursor-pointer">
               Cancel
             </Button>
@@ -969,7 +969,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
       {/* Envelope Details & Fund Allocation Modal */}
       <Dialog open={!!selectedEnvelope} onOpenChange={(val) => { if (!val) setSelectedEnvelope(null); }}>
         <DialogContent className="max-w-md z-[100] max-h-[90vh] flex flex-col p-0 rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-background/90 dark:bg-card/90 backdrop-blur-2xl shadow-2xl">
-          <DialogHeader className="p-4 border-b border-border/40 shrink-0 bg-background/40 backdrop-blur-md">
+          <DialogHeader className="p-4 border-b border-border/40 shrink-0">
             <DialogTitle className="font-serif text-xl flex items-center gap-2">
               {selectedEnvelope?.image_url ? (
                 <img src={selectedEnvelope.image_url} alt="" className="h-8 w-8 rounded-full object-cover border border-border/60" />
@@ -1218,7 +1218,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
             );
           })()}
 
-          <DialogFooter className="p-3 border-t border-border/40 shrink-0 flex flex-row items-center justify-between bg-background/40 backdrop-blur-md">
+          <DialogFooter className="p-3 border-t border-border/40 shrink-0 flex flex-row items-center justify-between">
             {selectedEnvelope && (
               <Button
                 variant="destructive"

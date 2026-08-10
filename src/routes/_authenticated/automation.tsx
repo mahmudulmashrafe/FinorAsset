@@ -931,7 +931,7 @@ function AutomationPage() {
               </div>
             </div>
 
-            <DialogFooter className="p-4 border-t border-border/40 shrink-0 flex flex-row items-center justify-between gap-2 bg-background/40 backdrop-blur-md">
+            <DialogFooter className="p-4 border-t border-border/40 shrink-0 flex flex-row items-center justify-between gap-2">
               {editingRule ? (
                 <Button
                   type="button"

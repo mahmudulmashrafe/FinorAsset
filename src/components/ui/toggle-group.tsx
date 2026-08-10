@@ -38,6 +38,7 @@ const ToggleGroupItem = React.forwardRef<
   return (
     <ToggleGroupPrimitive.Item
       ref={ref}
+      data-slot="toggle-item"
       className={cn(
         toggleVariants({
           variant: context.variant || variant,
