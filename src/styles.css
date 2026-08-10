@@ -57,9 +57,9 @@
 :root {
   --radius: 0.5rem;
 
-  --frosted-bg: rgba(255, 255, 255, 0.78);
-  --frosted-border: rgba(255, 255, 255, 0.45);
-  --frosted-box-bg: rgba(255, 255, 255, 0.4);
+  --frosted-bg: rgba(255, 255, 255, 0.35);
+  --frosted-border: rgba(255, 255, 255, 0.5);
+  --frosted-box-bg: rgba(255, 255, 255, 0.25);
 
   /* Warm editorial — cream + charcoal + amber */
   --background: oklch(0.974 0.012 80);
@@ -110,9 +110,9 @@
 }
 
 .dark {
-  --frosted-bg: rgba(20, 20, 25, 0.78);
-  --frosted-border: rgba(255, 255, 255, 0.14);
-  --frosted-box-bg: rgba(255, 255, 255, 0.06);
+  --frosted-bg: rgba(18, 18, 22, 0.45);
+  --frosted-border: rgba(255, 255, 255, 0.15);
+  --frosted-box-bg: rgba(255, 255, 255, 0.05);
 
   --background: oklch(0.16 0.012 50);
   --foreground: oklch(0.95 0.012 80);
@@ -145,13 +145,13 @@
   --sidebar-ring: oklch(0.72 0.16 55);
 }
 
-/* ── Guaranteed Frosted Glass for ALL Form Dialogs & Modals ── */
+/* ── Pure Transparent Glass Blur for ALL Form Dialogs & Modals ── */
 [role="dialog"],
 [role="alertdialog"],
 .frosted-glass-form {
   background-color: var(--frosted-bg) !important;
-  backdrop-filter: blur(28px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border-color: var(--frosted-border) !important;
 }
 
