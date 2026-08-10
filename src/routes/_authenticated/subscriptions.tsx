@@ -1127,7 +1127,7 @@ CREATE POLICY "own subscriptions" ON public.subscriptions FOR ALL USING (auth.ui
 
             return (
               <div className="flex-1 overflow-y-auto p-5 space-y-4 thin-scroll">
-                <div className="space-y-3 bg-muted/40 p-4 rounded-xl border border-border/60 text-xs">
+                <div className="space-y-3 bg-white/20 dark:bg-white/5 backdrop-blur-md p-4 rounded-xl border border-white/20 dark:border-white/10 text-xs">
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Amount</span>
                     <span className="font-serif num font-black text-lg text-foreground">

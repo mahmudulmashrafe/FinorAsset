@@ -1008,8 +1008,8 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
 
             return (
               <div className="flex-1 overflow-y-auto p-4 space-y-4 thin-scroll">
-                {/* Envelope Status Banner & Transact Button */}
-                <div className="p-3.5 rounded-xl border bg-muted/40 space-y-2">
+                {/* Envelope Status Banner */}
+                <div className="p-3.5 rounded-xl border border-white/20 dark:border-white/10 bg-white/20 dark:bg-white/5 backdrop-blur-md space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground uppercase font-bold text-[10px]">Target Budget</span>
                     <span className="font-serif num font-black text-sm">{fmtMoney(target, currency)}</span>
@@ -1024,14 +1024,14 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       <span className="font-serif num font-bold text-xs text-destructive">−{fmtMoney(spentAmt, currency)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-xs pt-1 border-t">
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-white/20 dark:border-white/10">
                     <span className="text-foreground font-bold uppercase text-[10px]">Remaining Balance</span>
                     <span className="font-serif num font-black text-sm text-emerald-600">{fmtMoney(currentAllocated, currency)}</span>
                   </div>
                 </div>
 
                 {/* Allocate Money Form */}
-                <div className="space-y-3 p-3.5 rounded-xl border bg-card">
+                <div className="space-y-3 p-3.5 rounded-xl border border-white/20 dark:border-white/10 bg-white/20 dark:bg-white/5 backdrop-blur-md">
                   <h4 className="font-serif font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <Layers className="h-3.5 w-3.5 text-accent" />
                     Allocate Funds from Account
@@ -1076,7 +1076,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                   </h4>
 
                   {envAllocs.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic py-3 text-center border rounded-xl bg-muted/20">
+                    <p className="text-xs text-muted-foreground italic py-3 text-center border border-white/10 rounded-xl bg-white/10 dark:bg-white/5 backdrop-blur-sm">
                       No account funds allocated to this envelope yet.
                     </p>
                   ) : (
@@ -1084,7 +1084,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                       {envAllocs.map((alloc) => {
                         const acc = accMap.get(alloc.account_id);
                         return (
-                          <div key={alloc.id} className="flex items-center justify-between p-2.5 rounded-xl border bg-card text-xs">
+                          <div key={alloc.id} className="flex items-center justify-between p-2.5 rounded-xl border border-white/20 dark:border-white/10 bg-white/20 dark:bg-white/5 backdrop-blur-md text-xs">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="h-2 w-2 rounded-full shrink-0" style={{ background: acc?.color || "#F59E0B" }} />
                               <span className="font-semibold truncate">{acc?.name || "Account"}</span>
@@ -1141,7 +1141,7 @@ CREATE POLICY "own envelope allocations" ON public.envelope_allocations FOR ALL 
                                   setSelectedEnvelope(null);
                                   setTimeout(() => setEditingTxn(t), 100);
                                 }}
-                                className="p-2.5 rounded-xl border bg-card text-xs flex items-center justify-between gap-2 cursor-pointer hover:bg-accent/5 transition-colors"
+                                className="p-2.5 rounded-xl border border-white/20 dark:border-white/10 bg-white/20 dark:bg-white/5 backdrop-blur-md text-xs flex items-center justify-between gap-2 cursor-pointer hover:bg-white/30 dark:hover:bg-white/10 transition-all shadow-2xs"
                               >
                                 <div className="min-w-0 flex-1 space-y-0.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
