@@ -437,24 +437,84 @@ function Layout() {
     }
   }
 
-  useEffect(() => {
-    if (!authUser || accounts.length === 0) return;
+  async function deleteNotification(id: string) {
+    if (!authUser) return;
+    const { error } = await (supabase.from as any)("notifications")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", authUser.id);
+    if (error) {
+      console.error("Failed to delete notification:", error);
+    } else {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  }
 
+  async function clearAllNotifications() {
+    if (!authUser) return;
+    const { error } = await (supabase.from as any)("notifications")
+      .delete()
+      .eq("user_id", authUser.id);
+    if (error) {
+      console.error("Failed to clear notifications:", error);
+    } else {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  }
+
+  async function cleanupDuplicateNotifications(userId: string) {
+    try {
+      const { data: notifs, error } = await (supabase.from as any)("notifications")
+        .select("id, title, message, identifier, read, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error || !notifs || notifs.length === 0) return;
+
+      const seenKeys = new Set<string>();
+      const idsToDelete: string[] = [];
+
+      for (const n of notifs) {
+        const key = `${n.title}::${n.message}`;
+        if (seenKeys.has(key)) {
+          idsToDelete.push(n.id);
+        } else {
+          seenKeys.add(key);
+        }
+      }
+
+      if (idsToDelete.length > 0) {
+        await (supabase.from as any)("notifications")
+          .delete()
+          .in("id", idsToDelete);
+      }
+    } catch (err) {
+      console.error("Cleanup notifications error:", err);
+    }
+  }
+
+  function generateAlerts(
+    subList: any[],
+    loanList: any[],
+    warrantyList: any[],
+    accList: any[],
+    txnList: any[],
+    currencyStr: string,
+    userIdStr: string
+  ) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const latestBalances = computeAccountBalances(accounts, txns);
-    const currency = profile?.currency || "USD";
+    const latestBalances = computeAccountBalances(accList, txnList);
+    const alerts: any[] = [];
 
-    const newAlerts: any[] = [];
-
-    // Helper to parse YYYY-MM-DD strictly in local timezone
     function parseLocalDate(dateStr: string) {
       const [year, month, day] = dateStr.split("-").map(Number);
       return new Date(year, month - 1, day, 0, 0, 0, 0);
     }
 
-    // 1. Subscriptions Notifications Check
-    for (const sub of subscriptions) {
+    // 1. Subscriptions Check
+    for (const sub of subList) {
+      if (!sub.next_due_date) continue;
       const nextDue = parseLocalDate(sub.next_due_date);
 
       let hasEnough = true;
@@ -467,8 +527,8 @@ function Layout() {
         for (const split of splitsList) {
           const balance = latestBalances.get(split?.accountId) ?? 0;
           const req = Number(split?.amount);
-          const acc = accounts.find(a => a.id === split?.accountId);
-          names.push(`${acc?.name || "Account"} (${fmtMoney(balance, currency)})`);
+          const acc = accList.find(a => a.id === split?.accountId);
+          names.push(`${acc?.name || "Account"} (${fmtMoney(balance, currencyStr)})`);
           if (balance < req) {
             hasEnough = false;
             shortAmount += (req - balance);
@@ -477,8 +537,8 @@ function Layout() {
         accountNames = names.join(", ");
       } else {
         const balance = sub.account_id ? (latestBalances.get(sub.account_id) ?? 0) : 0;
-        const acc = accounts.find(a => a.id === sub.account_id);
-        accountNames = acc ? `${acc.name} (${fmtMoney(balance, currency)})` : "No account selected";
+        const acc = accList.find(a => a.id === sub.account_id);
+        accountNames = acc ? `${acc.name} (${fmtMoney(balance, currencyStr)})` : "No account selected";
         if (balance < Number(sub.amount)) {
           hasEnough = false;
           shortAmount = Number(sub.amount) - balance;
@@ -487,29 +547,27 @@ function Layout() {
 
       const diffTime = nextDue.getTime() - today.getTime();
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      const todayStr = today.toISOString().split("T")[0];
 
       if (diffDays >= 0 && diffDays <= 3) {
-        const identifier = `sub-upcoming-${sub.id}-${sub.next_due_date}-${todayStr}`;
+        const identifier = `sub-upcoming-${sub.id}-${sub.next_due_date}`;
         if (hasEnough) {
-          newAlerts.push({
-            user_id: authUser.id,
+          alerts.push({
+            user_id: userIdStr,
             title: `Upcoming Subscription: ${sub.name}`,
-            message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Funds are available in ${accountNames} for auto-deduction.`,
+            message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currencyStr)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Funds are available in ${accountNames} for auto-deduction.`,
             type: "info",
             identifier,
           });
         } else {
-          newAlerts.push({
-            user_id: authUser.id,
+          alerts.push({
+            user_id: userIdStr,
             title: `Upcoming Subscription Alert: ${sub.name}`,
-            message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}). Please refill.`,
+            message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currencyStr)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currencyStr)}). Please refill.`,
             type: "warning",
             identifier,
           });
         }
       } else if (diffDays < 0 && !hasEnough) {
-        // Calculate how many months (payments) are overdue
         let missedCount = 0;
         let checkDate = new Date(nextDue);
         while (checkDate < today) {
@@ -517,20 +575,20 @@ function Layout() {
           checkDate.setMonth(checkDate.getMonth() + 1);
         }
 
-        const identifier = `sub-overdue-${sub.id}-${sub.next_due_date}-${todayStr}`;
+        const identifier = `sub-overdue-${sub.id}-${sub.next_due_date}`;
         if (missedCount > 1) {
-          newAlerts.push({
-            user_id: authUser.id,
+          alerts.push({
+            user_id: userIdStr,
             title: `Subscription Overdue: ${sub.name}`,
-            message: `"${sub.name}" is overdue by ${missedCount} months! Insufficient funds in ${accountNames}. Total outstanding for auto-deduction: ${fmtMoney(Number(sub.amount) * missedCount, currency)}.`,
+            message: `"${sub.name}" is overdue by ${missedCount} months! Insufficient funds in ${accountNames}. Total outstanding for auto-deduction: ${fmtMoney(Number(sub.amount) * missedCount, currencyStr)}.`,
             type: "critical",
             identifier,
           });
         } else {
-          newAlerts.push({
-            user_id: authUser.id,
+          alerts.push({
+            user_id: userIdStr,
             title: `Subscription Overdue: ${sub.name}`,
-            message: `"${sub.name}" is overdue! Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}).`,
+            message: `"${sub.name}" is overdue! Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currencyStr)}).`,
             type: "critical",
             identifier,
           });
@@ -538,97 +596,104 @@ function Layout() {
       }
     }
 
-    // 2. Loans Notifications Check
-    for (const loan of loans) {
+    // 2. Loans Check
+    for (const loan of loanList) {
       if (loan.status !== "active" || !loan.due_date) continue;
-
       const due = parseLocalDate(loan.due_date);
-
       const diffTime = due.getTime() - today.getTime();
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      const todayStr = today.toISOString().split("T")[0];
-      const identifier = `loan-${loan.id}-${loan.due_date}-${todayStr}`;
 
       if (diffDays >= 0 && diffDays <= 3) {
-        newAlerts.push({
-          user_id: authUser.id,
+        alerts.push({
+          user_id: userIdStr,
           title: "Loan Due Soon",
-          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
+          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currencyStr)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
           type: "warning",
-          identifier,
+          identifier: `loan-upcoming-${loan.id}-${loan.due_date}`,
         });
       } else if (diffDays < 0) {
-        newAlerts.push({
-          user_id: authUser.id,
+        alerts.push({
+          user_id: userIdStr,
           title: "Loan Overdue",
-          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
+          message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currencyStr)}) is overdue!`,
           type: "critical",
-          identifier: `loan-overdue-${loan.id}-${loan.due_date}-${todayStr}`,
+          identifier: `loan-overdue-${loan.id}-${loan.due_date}`,
         });
       }
     }
 
-    // 3. Warranties Notifications Check
-    for (const w of warranties) {
+    // 3. Warranties Check
+    for (const w of warrantyList) {
       if (!w.expiry_date) continue;
 
       const expiry = parseLocalDate(w.expiry_date);
       const diffTime = expiry.getTime() - today.getTime();
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      const todayStr = today.toISOString().split("T")[0];
-      
+
       const alertDays = [30, 15, 7, 3, 2, 1, 0];
 
       if (alertDays.includes(diffDays)) {
-        const identifier = `warranty-expire-${w.id}-${diffDays}-${todayStr}`;
+        const identifier = `warranty-expire-${w.id}-${diffDays}-${w.expiry_date}`;
         const dayMsg = diffDays === 0 ? "today" : diffDays === 1 ? "tomorrow" : `in ${diffDays} days`;
-        newAlerts.push({
-          user_id: authUser.id,
+        alerts.push({
+          user_id: userIdStr,
           title: "Warranty Expiring Soon",
-          message: `Warranty for "${w.title}" (${fmtMoney(Number(w.amount), currency)}) expires ${dayMsg}!`,
+          message: `Warranty for "${w.title}" (${fmtMoney(Number(w.amount), currencyStr)}) expires ${dayMsg}!`,
           type: diffDays <= 3 ? "critical" : "warning",
           identifier,
         });
-      } else if (diffDays < 0) {
-        const identifier = `warranty-expired-${w.id}-${todayStr}`;
-        newAlerts.push({
-          user_id: authUser.id,
+      } else if (diffDays < 0 && diffDays >= -30) {
+        // Trigger ONCE per expired warranty (only if expired within last 30 days)
+        const identifier = `warranty-expired-${w.id}-${w.expiry_date}`;
+        alerts.push({
+          user_id: userIdStr,
           title: "Warranty Expired",
-          message: `Warranty for "${w.title}" expired on ${new Date(w.expiry_date).toLocaleDateString()}!`,
+          message: `Warranty for "${w.title}" expired on ${expiry.toLocaleDateString()}!`,
           type: "critical",
           identifier,
         });
       }
     }
 
-    if (newAlerts.length === 0) return;
+    return alerts;
+  }
 
-    async function insertAlerts() {
+  useEffect(() => {
+    if (!authUser || accounts.length === 0) return;
+
+    const currency = profile?.currency || "USD";
+    const newAlerts = generateAlerts(subscriptions, loans, warranties, accounts, txns, currency, authUser.id);
+
+    async function processAlerts() {
+      if (!authUser) return;
       try {
-        const existingIdentifiers = new Set(dbNotifications.map(n => (n as any).identifier || n.id));
-        const alertsToInsert = newAlerts.filter(alert => !existingIdentifiers.has(alert.identifier));
+        await cleanupDuplicateNotifications(authUser.id);
 
-        if (alertsToInsert.length === 0) return;
+        if (newAlerts.length > 0) {
+          const existingIdentifiers = new Set(dbNotifications.map(n => (n as any).identifier || n.id));
+          const alertsToInsert = newAlerts.filter(alert => !existingIdentifiers.has(alert.identifier));
 
-        const { error } = await (supabase.from as any)("notifications").insert(alertsToInsert);
-        if (error && error.code !== "23505" && error.code !== "42P01") {
-          console.error("Failed to insert notifications:", error);
-        } else {
-          qc.invalidateQueries({ queryKey: ["notifications"] });
+          if (alertsToInsert.length > 0) {
+            const { error } = await (supabase.from as any)("notifications").insert(alertsToInsert);
+            if (error && error.code !== "23505" && error.code !== "42P01") {
+              console.error("Failed to insert notifications:", error);
+            } else {
+              qc.invalidateQueries({ queryKey: ["notifications"] });
+            }
+          }
         }
       } catch (e) {
         console.error(e);
       }
     }
 
-    insertAlerts();
+    processAlerts();
   }, [subscriptions, loans, warranties, accounts, txns, dbNotifications, authUser, profile?.currency, qc]);
 
   // Comprehensive click-to-sync notifications handler (updates and loads on bell click without page refresh)
   async function syncNotifications() {
     if (!authUser) return;
     try {
-      // 1. Refetch all source queries in parallel to get latest database records
       const [freshSubs, freshLoans, freshAccounts, freshTxns, freshWarranties] = await Promise.all([
         api.listSubscriptions(),
         api.listLoans(),
@@ -637,160 +702,11 @@ function Layout() {
         api.listWarranties().catch(() => []),
       ]);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const latestBalances = computeAccountBalances(freshAccounts, freshTxns);
       const currency = profile?.currency || "USD";
-      const newAlerts: any[] = [];
+      const newAlerts = generateAlerts(freshSubs, freshLoans, freshWarranties, freshAccounts, freshTxns, currency, authUser.id);
 
-      // Helper to parse YYYY-MM-DD strictly in local timezone
-      function parseLocalDate(dateStr: string) {
-        const [year, month, day] = dateStr.split("-").map(Number);
-        return new Date(year, month - 1, day, 0, 0, 0, 0);
-      }
+      await cleanupDuplicateNotifications(authUser.id);
 
-      // Subscriptions
-      for (const sub of freshSubs) {
-        const nextDue = parseLocalDate(sub.next_due_date);
-        let hasEnough = true;
-        let accountNames = "";
-        let shortAmount = 0;
-
-        if (sub.is_split && sub.kind !== "transfer") {
-          const splitsList = (Array.isArray(sub.splits) ? sub.splits : []) as any[];
-          const names: string[] = [];
-          for (const split of splitsList) {
-            const balance = latestBalances.get(split?.accountId) ?? 0;
-            const req = Number(split?.amount);
-            const acc = freshAccounts.find(a => a.id === split?.accountId);
-            names.push(`${acc?.name || "Account"} (${fmtMoney(balance, currency)})`);
-            if (balance < req) {
-              hasEnough = false;
-              shortAmount += (req - balance);
-            }
-          }
-          accountNames = names.join(", ");
-        } else {
-          const balance = sub.account_id ? (latestBalances.get(sub.account_id) ?? 0) : 0;
-          const acc = freshAccounts.find(a => a.id === sub.account_id);
-          accountNames = acc ? `${acc.name} (${fmtMoney(balance, currency)})` : "No account selected";
-          if (balance < Number(sub.amount)) {
-            hasEnough = false;
-            shortAmount = Number(sub.amount) - balance;
-          }
-        }
-
-        const diffTime = nextDue.getTime() - today.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        const todayStr = today.toISOString().split("T")[0];
-
-        if (diffDays >= 0 && diffDays <= 3) {
-          const identifier = `sub-upcoming-${sub.id}-${sub.next_due_date}-${todayStr}`;
-          if (hasEnough) {
-            newAlerts.push({
-              user_id: authUser.id,
-              title: `Upcoming Subscription: ${sub.name}`,
-              message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Funds are available in ${accountNames} for auto-deduction.`,
-              type: "info",
-              identifier,
-            });
-          } else {
-            newAlerts.push({
-              user_id: authUser.id,
-              title: `Upcoming Subscription Alert: ${sub.name}`,
-              message: `"${sub.name}" (${fmtMoney(Number(sub.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}. Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}). Please refill.`,
-              type: "warning",
-              identifier,
-            });
-          }
-        } else if (diffDays < 0 && !hasEnough) {
-          let missedCount = 0;
-          let checkDate = new Date(nextDue);
-          while (checkDate < today) {
-            missedCount++;
-            checkDate.setMonth(checkDate.getMonth() + 1);
-          }
-          const identifier = `sub-overdue-${sub.id}-${sub.next_due_date}-${todayStr}`;
-          if (missedCount > 1) {
-            newAlerts.push({
-              user_id: authUser.id,
-              title: `Subscription Overdue: ${sub.name}`,
-              message: `"${sub.name}" is overdue by ${missedCount} months! Insufficient funds in ${accountNames}. Total outstanding for auto-deduction: ${fmtMoney(Number(sub.amount) * missedCount, currency)}.`,
-              type: "critical",
-              identifier,
-            });
-          } else {
-            newAlerts.push({
-              user_id: authUser.id,
-              title: `Subscription Overdue: ${sub.name}`,
-              message: `"${sub.name}" is overdue! Insufficient funds in ${accountNames} (Short by ${fmtMoney(shortAmount, currency)}).`,
-              type: "critical",
-              identifier,
-            });
-          }
-        }
-      }
-
-      // Loans
-      for (const loan of freshLoans) {
-        if (loan.status !== "active" || !loan.due_date) continue;
-        const due = parseLocalDate(loan.due_date);
-        const diffTime = due.getTime() - today.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        const todayStr = today.toISOString().split("T")[0];
-        const identifier = `loan-${loan.id}-${loan.due_date}-${todayStr}`;
-
-        if (diffDays >= 0 && diffDays <= 3) {
-          newAlerts.push({
-            user_id: authUser.id,
-            title: "Loan Due Soon",
-            message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays > 1 ? "s" : ""}`}.`,
-            type: "warning",
-            identifier,
-          });
-        } else if (diffDays < 0) {
-          newAlerts.push({
-            user_id: authUser.id,
-            title: "Loan Overdue",
-            message: `Loan with ${loan.person_name} (${fmtMoney(Number(loan.amount), currency)}) is overdue!`,
-            type: "critical",
-            identifier: `loan-overdue-${loan.id}-${loan.due_date}-${todayStr}`,
-          });
-        }
-      }
-
-      // Warranties
-      for (const w of freshWarranties) {
-        if (!w.expiry_date) continue;
-        const expiry = parseLocalDate(w.expiry_date);
-        const diffTime = expiry.getTime() - today.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        const todayStr = today.toISOString().split("T")[0];
-        const alertDays = [30, 15, 7, 3, 2, 1, 0];
-
-        if (alertDays.includes(diffDays)) {
-          const identifier = `warranty-expire-${w.id}-${diffDays}-${todayStr}`;
-          const dayMsg = diffDays === 0 ? "today" : diffDays === 1 ? "tomorrow" : `in ${diffDays} days`;
-          newAlerts.push({
-            user_id: authUser.id,
-            title: "Warranty Expiring Soon",
-            message: `Warranty for "${w.title}" (${fmtMoney(Number(w.amount), currency)}) expires ${dayMsg}!`,
-            type: diffDays <= 3 ? "critical" : "warning",
-            identifier,
-          });
-        } else if (diffDays < 0) {
-          const identifier = `warranty-expired-${w.id}-${todayStr}`;
-          newAlerts.push({
-            user_id: authUser.id,
-            title: "Warranty Expired",
-            message: `Warranty for "${w.title}" expired on ${new Date(w.expiry_date).toLocaleDateString()}!`,
-            type: "critical",
-            identifier,
-          });
-        }
-      }
-
-      // 2. Load what is currently in the DB notifications table
       const { data: dbNotifs = [] } = await (supabase.from as any)("notifications").select("identifier");
       const existingIdentifiers = new Set((dbNotifs || []).map((n: any) => n.identifier));
 
@@ -800,15 +716,12 @@ function Layout() {
         await (supabase.from as any)("notifications").insert(alertsToInsert);
       }
 
-      // 3. Force invalidate and refetch the notifications query so the UI updates in real-time
       await qc.refetchQueries({ queryKey: ["notifications"] });
-      // Also update local cache for other collections
       qc.setQueryData(["subscriptions"], freshSubs);
       qc.setQueryData(["loans"], freshLoans);
       qc.setQueryData(["accounts"], freshAccounts);
       qc.setQueryData(["transactions"], freshTxns);
       qc.setQueryData(["warranties"], freshWarranties);
-
     } catch (err) {
       console.error("Failed to sync notifications", err);
     }
@@ -1015,6 +928,8 @@ function Layout() {
                   notifications={last5Notifications} 
                   unreadCount={unreadCount} 
                   onMarkAllRead={markAllNotificationsRead} 
+                  onDeleteNotification={deleteNotification}
+                  onClearAll={clearAllNotifications}
                   onBellClick={() => syncNotifications()}
                 />
                 <TransactionDialog
@@ -1073,6 +988,8 @@ function Layout() {
               notifications={last5Notifications} 
               unreadCount={unreadCount} 
               onMarkAllRead={markAllNotificationsRead} 
+              onDeleteNotification={deleteNotification}
+              onClearAll={clearAllNotifications}
               onBellClick={() => syncNotifications()}
             />
             <TransactionDialog
